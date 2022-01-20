@@ -39,10 +39,10 @@ derivation_is_weaker(Weaker_Derivation, Derivation) :-
 	subset(A1, A0).
 
 % Filters all Theorems X for which Derivation is a weaker Derivation than X 
-% and stores them in Usable_Theorems. 
-usable_theorems(Derivation, Theorems, Usable_Theorems) :-
-	subset(Usable_Theorems, Theorems),
-	forall(member(X, Usable_Theorems), 
-				derivation_is_weaker(Derivation, X)).
+% and stores them in Useable_Theorems. 
+usable_theorems(Derivation, Theorems, Useable_Theorems) :-
+	findall(X, (member(X, Theorems), derivation_is_weaker(Derivation, X)), Useable_Theorems).
 
 % usable_theorems([p,q]⊦p,[[A]⊦A,[A∧B]∧A],Z).
+
+
