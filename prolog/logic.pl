@@ -29,8 +29,8 @@ variable(q).
 Assumptions ⊦ Conclusion :- 
 	forall(member(X,Assumptions), formula(X)), formula(Conclusion).
 
-% Checks, if Weaker_Derivation has more assumptions to conclude
-% the same conclusion as Derivation. 
+% Checks, if Weaker_Derivation has more assumptions
+% but same conclusion as Derivation. 
 % Further on, we say that Weaker_Derivation is weaker then Derivation.
 derivation_is_weaker(Weaker_Derivation, Derivation) :-
 	binary_derivation(Weaker_Derivation, A0, C0),
@@ -41,8 +41,21 @@ derivation_is_weaker(Weaker_Derivation, Derivation) :-
 % Filters all Theorems X for which Derivation is a weaker Derivation than X 
 % and stores them in Useable_Theorems. 
 usable_theorems(Derivation, Theorems, Useable_Theorems) :-
-	findall(X, (member(X, Theorems), derivation_is_weaker(Derivation, X)), Useable_Theorems).
+	findall(X, 
+		(member(X, Theorems), 
+		 derivation_is_weaker(Derivation, X)), 
+		                             Useable_Theorems).
+ 
+ test(Dict) :-
+ 	write()
+% usable_theorems([p,q]⊦p,['d1':[A]⊦A,'d2':[A∧B]⊦A],Z).
 
-% usable_theorems([p,q]⊦p,[[A]⊦A,[A∧B]∧A],Z).
 
-
+:-op(900, xfy, →).
+:-op(900, xfy, ⟷).
+    
+find_axioms(Specific, BaseSet, Fullfill) :-
+        findall(X, 
+                ( member(X, Specific), 
+                  member(X, BaseSet) ), 
+                Fullfill).
