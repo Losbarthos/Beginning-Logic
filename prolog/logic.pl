@@ -2,7 +2,7 @@
 :-op(801, xfy, ∧).
 :-op(802, xfy, ∨).
 :-op(803, xfy, →).
-:-op(804, xfy, ⟷).
+:-op(804, xfy, ↔).
 :-op(799, xfy, ⊦).
 
 
@@ -45,17 +45,25 @@ usable_theorems(Derivation, Theorems, Useable_Theorems) :-
 		(member(X, Theorems), 
 		 derivation_is_weaker(Derivation, X)), 
 		                             Useable_Theorems).
- 
- test(Dict) :-
- 	write()
-% usable_theorems([p,q]⊦p,['d1':[A]⊦A,'d2':[A∧B]⊦A],Z).
+
+% Same as usable_theorems. The "Theorems" consist of 
+% pairs of an theorem name (Key) and 
+% the derivation represented by theorem (Value).
+usable_theorems_pairs(Derivation, Theorems, Useable_Theorems) :-
+	pairs_values(Theorems, Theorem_Values),
+	usable_theorems(Derivation, Theorem_Values, Useable_Theorem_Values),
+	pairs_values(Useable_Theorems, Useable_Theorem_Values),
+	subset(Useable_Theorems, Theorems).
+
+% Same as usable_theorems_pairs. The theorems consist of an dictionary 
+% instead of pairs.
+usable_theorems_dict(Derivation, Theorems, Useable_Theorems) :-
+	dict_pairs(Theorems, _, Theorems_Pairs),
+	usable_theorems_pairs(Derivation, Theorems_Pairs, Useable_Theorems_Pairs),
+	dict_pairs(Useable_Theorems, useable_theorems, Useable_Theorems_Pairs).
 
 
-:-op(900, xfy, →).
-:-op(900, xfy, ⟷).
-    
-find_axioms(Specific, BaseSet, Fullfill) :-
-        findall(X, 
-                ( member(X, Specific), 
-                  member(X, BaseSet) ), 
-                Fullfill).
+% Example calls of usable_theorems
+% usable_theorems([p,q]⊦p, [[A]⊦A,[A∧B]⊦A], Z).
+% usable_theorems_dict([p,q]⊦p, theorems{'d1':[A]⊦A,'d2':[A∧B]⊦A}, Z).
+% usable_theorems_pairs([p,q]⊦p, [d1-([A]⊦A), d2-([A∧B]⊦A)], Z).

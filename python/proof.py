@@ -6,11 +6,12 @@ import pandas as pd
 from igraph import Graph, plot
 
 
+
 class Proof:
 	def __init__(self, assumptions, conclusion):
 		self.assumptions = assumptions
 		self.conclusion = conclusion
-		self.theorems = self.build_derivations(CSV_THEOREMS)
+		self.theorems = self.init_theorems(CSV_THEOREMS)
 		self.graph = self.init_graph()
 
 	def init_graph(self):
@@ -28,35 +29,37 @@ class Proof:
 
 		return g
 
-	def build_derivations(self, filename):
-		derivations = {}
+	def init_theorems(self, filename):
+		theorems = {}
 
-		def build_derivation(row):
+		def init_theorem(row):
 			conclusion = row[CONCLUSION]
-			assumptions = (row.dropna()
-							  .filter(regex = f"^{ASSUMPTION}").values)
-
-			derivations[row.name] = f"({assumptions} ⊦ {conclusion})"
+			assumptions = (list(row.dropna()
+						  .filter(regex = f"^{ASSUMPTION}").values))
+			theorems[f'"{row.name}"'] = (f"({assumptions} ⊦ {conclusion})"
+											.replace("'", ""))
 
 		df = pd.read_csv(filename, index_col="Name")
-		df.apply(build_derivation, axis=1)
+		df.apply(init_theorem, axis=1)
+		
+		theorems = (f'{theorems}'
+					.replace("'", "")
+					.replace('"', "'"))
 
-		print(derivations)
+		return theorems
 
-		print(df)
-		return df
-
-	def proof():
-		df.apply(body_fro_loop, axis=1)
-
+	def proof(self):
+		derivation = (f"{self.assumptions} ⊦ {self.conclusion}"
+				     .replace("'", ""))
+		for res in PL.query(f"usable_theorems_dict({derivation}, theorems{self.theorems}, Z)"):
+				print(res)
 	def show_graph(self, graph):
 		layout = graph.layout("kk")
 		plot(graph, layout=layout)
 
 
 p = Proof(["p", "(p→q)"], "q")
-print(p.theorems)
-p.build_derivations(CSV_THEOREMS)
+p.proof()
 p.show_graph(p.graph)
 
 
