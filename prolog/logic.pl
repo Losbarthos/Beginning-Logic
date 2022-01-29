@@ -1,27 +1,35 @@
-:-op(800, fx, ~).
+%  Basic libary to prove theorems
+%    Author:        Martin Kunze
+%    E-mail:        mkunze86@gmail.com
+%    Copyright (c)  2022, Martin Kunze
+
+% Logical operators
+% Connectives
+:-op(800, fx, ¬).
 :-op(801, xfy, ∧).
 :-op(802, xfy, ∨).
 :-op(803, xfy, →).
 :-op(804, xfy, ↔).
+% Derivation symbol
 :-op(799, xfy, ⊦).
-
 
 binary_connective(X  ∨  Y, X, Y).
 binary_connective(X  ∧  Y, X, Y).
 binary_connective(X  → Y, X, Y).
-binary_connective(X  ⟷ Y, X, Y).
+binary_connective(X  ↔ Y, X, Y).
 binary_derivation(X ⊦ Y, X, Y).
 
-
+% Definition of formulas used in propositional logic
 formula(X) :-
     variable(X).
 formula(Binary) :-
-    binary_x_y(Binary, X, Y),
+    binary_connective(Binary, X, Y),
     formula(X),
     formula(Y).
-formula(~ X) :-
+formula(¬ X) :-
     formula(X).
 
+% Used as atoms or individual symbols
 variable(p).
 variable(q).
 

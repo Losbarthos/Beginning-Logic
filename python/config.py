@@ -1,11 +1,25 @@
-from pyswip import Prolog
+#  Configuration file
+#    Author:        Martin Kunze
+#    E-mail:        mkunze86@gmail.com
+#    Copyright (c)  2022, Martin Kunze
+
 from enum import Enum
 from pathlib import Path
+from swiplserver import PrologMQI
 
 
 # Conventions of Table headlines
 ASSUMPTION = "Assumption"
 CONCLUSION = "Conclusion"
+
+# Conventions of logical operators
+NEG = '¬'
+AND = '∧'
+OR = '∨'
+IMP = '→'
+EQV = '↔'
+DERIVATION = '⊦'
+BINARY_CONNECTIVES = [AND, OR, IMP, EQV]
 
 # Conventions of Filenames
 ROOT_DIR = Path(__file__).parent.parent
@@ -20,6 +34,15 @@ class Definition(Enum):
 	CONCLUSION = 2
 
 
-# Starts and gets basic config of prolog interpreter swi-prolog
-PL = Prolog()
-PL.consult(PL_LOGIC)
+# Starts and gets basic config of prolog interpreter swiprologserver
+ARGS = 'args'
+FUNCTOR = 'functor'
+
+MQI = PrologMQI()
+MQI.start()
+
+PL = MQI.create_thread()
+PL.start()
+PL.query(f"consult('{PL_LOGIC}').")
+
+
