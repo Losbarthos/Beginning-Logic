@@ -41,7 +41,7 @@ class PL_Interface:
 		return f"[{', '.join(list_data)}]"
 
 	@staticmethod
-	def get_formula(data):
+	def swipl_to_formula(data):
 		"""
 			Converts some prolog formular predicate (see logic.pl) 
 			from swiplserver format into natural format, wich results
@@ -56,14 +56,18 @@ class PL_Interface:
 		if not (functor in BINARY_CONNECTIVES):
 			raise (ValueError(f'Problem with get_formula, '
 								   'the functor "{functor}" is in f{BINARY_CONNECTIVES}.'))
-		left = PL_Interface().get_formula(args[0])
-		right = PL_Interface().get_formula(args[0])
+		left = PL_Interface().swipl_to_formula(args[0])
+		right = PL_Interface().swipl_to_formula(args[1])
 		data = [left, right]
 
-		return f"{functor.join(data)}]"
+		return f"({functor.join(data)})"
+
+	@staticmethod
+	def swipl_to_formula_list(data):
+		return [PL_Interface().swipl_to_formula(x) for x in data]
 	
 	@staticmethod
-	def get_rule(data):
+	def swipl_to_rules(data):
 		"""
 			This method converts prolog outputs from swiplserver of that kind:
 			       {'rule': {derivation}} 
@@ -77,7 +81,7 @@ class PL_Interface:
 			{'→E': '[p, (p → q)] ⊦ q'})
 		"""
 
-		def get_derivation(args, functor):
+		def swipl_to_derivation(args, functor):
 			"""
 				Converts some dictionary of type 
 				{'args': [[Assumptions], Conclusion], 'functor': '⊦'}
@@ -89,11 +93,11 @@ class PL_Interface:
 				raise (ValueError(f'Problem with get_derivation, '
 								   'the functor "{functor}" is not equal to "f{DERIVATION}".'))
 
-			conclusion = PL_Interface().get_formula(args[1])
-			assumptions = PL_Interface().list_to_datastring([PL_Interface().get_formula(x) for x in args[0]])
+			conclusion = PL_Interface().swipl_to_formula(args[1])
+			assumptions = PL_Interface().list_to_datastring([PL_Interface().swipl_to_formula(x) for x in args[0]])
 			data = [assumptions, conclusion]
 
-			return f"{functor.join(data)}]"
+			return f"{functor.join(data)}"
 
 		def main(data):
 			'''
@@ -106,7 +110,7 @@ class PL_Interface:
 				args = derivation[ARGS]
 				functor = derivation[FUNCTOR]
 
-				result[key] = get_derivation(args, functor)
+				result[key] = swipl_to_derivation(args, functor)
 
 			return result
 		

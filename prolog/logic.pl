@@ -75,3 +75,5 @@ usable_theorems_dict(Derivation, Theorems, Useable_Theorems) :-
 % usable_theorems([p,q]⊦p, [[A]⊦A,[A∧B]⊦A], Z).
 % usable_theorems_dict([p,q]⊦p, theorems{'d1':[A]⊦A,'d2':[A∧B]⊦A}, Z).
 % usable_theorems_pairs([p,q]⊦p, [d1-([A]⊦A), d2-([A∧B]⊦A)], Z).
+
+
