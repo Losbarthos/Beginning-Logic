@@ -9,7 +9,8 @@ from config import *
 
 import pandas as pd
 
-from igraph import Graph, plot
+import networkx as nx
+import matplotlib.pyplot as plt
 
 from prolog_interface import PL_Interface
 
@@ -17,27 +18,23 @@ import json
 
 
 
-class ProofGraph:
+class ProofNetwork():
 	'''
 		Object stores a grap with all his functionality in which the proof is stored.
 	'''
 	def __init__(self, assumptions, conclusion):
 		self.graph = self.init_graph(assumptions, conclusion)
+		self.edge_labels = {}
 
 	def init_graph(self, assumptions, conclusion):
 		'''
 			Defines a directed graph with assumptions and the conclusion
 			as vertices.
 		'''
-		N = len(assumptions)
-  
-		g = Graph(directed=True)
-		g.add_vertices(N + 1)
+		g = nx.DiGraph()
 
-		g.vs["label"] = (assumptions 
-		              + [conclusion])
-		g.vs["category"] = ([Definition.ASSUMPTION] * N  
-		                 + [Definition.CONCLUSION])
+		g.add_nodes_from(assumptions)
+		g.add_node(conclusion)
 
 		return g
 
@@ -63,8 +60,20 @@ class ProofGraph:
 		[assumptions, conclusion] = unpack_derivation(derivation)
 	
 		for assumption in assumptions:
-			self.graph.add_edge(self.graph.vs.find(label=assumption), self.graph.vs.find(label=conclusion))
-			self.graph.es["label"] = name
+			self.graph.add_edge(assumption, conclusion)
+			self.edge_labels[(assumption, conclusion)] = name
+	
+	def draw(self):
+		'''
+		Draws the graph.
+		'''
+		pos = nx.spring_layout(self.graph)
+
+		nx.draw(self.graph, pos, with_labels=True)
+		nx.draw_networkx_edge_labels(self.graph, pos,edge_labels=self.edge_labels)
+		
+		plt.axis('off')
+		plt.show()
 
 
 
@@ -75,7 +84,7 @@ class Proof:
 		Core class for prooving theorems.
 	'''
 	def __init__(self, assumptions, conclusion):
-		self.graph = ProofGraph(assumptions, conclusion)
+		self.network = ProofNetwork(assumptions, conclusion)
 
 		self.assumptions = assumptions
 		self.conclusion = conclusion
@@ -101,8 +110,15 @@ class Proof:
 
 		df = pd.read_csv(filename, index_col="Name")
 		df.apply(init_theorem, axis=1)
+		self.test = PL_Interface().list_to_datastring(list(theorems.values()))
 		
 		return f"theorems{PL_Interface().dict_to_datastring(theorems)}"
+
+	def proofed(self):
+		'''
+			Checks, if theorem is proofed.
+		'''
+		return true
 
 	def proof(self):
 		'''
@@ -117,22 +133,24 @@ class Proof:
 			'''
 
 			derivation = (f"{PL_Interface().list_to_datastring(self.assumptions)} {DERIVATION} {self.conclusion}")
+			print(derivation)
+			print(self.test)
 			result = PL.query(f"usable_theorems_dict({derivation}, {self.theorems}, Z)")
+			result2 = PL.query(f"usable_theorems({derivation}, {self.test}, Z)")
+			print(result)
 			result = PL_Interface().swipl_to_rules(result[0]['Z'])
 			return result
 
 		possible_rules = get_rules(self.assumptions, self.conclusion)
 
 		for key in possible_rules:
-			self.graph.connect_rule(key, possible_rules[key])
-	
-	def show_graph(self, graph):
-		'''
-			Illustrates proof as directed graph.
-		'''
-		layout = graph.layout("kk")
-		plot(graph, layout=layout)
+			self.network.connect_rule(key, possible_rules[key])
 
-p = Proof(["p", "(p→q)"], "q")
+		#if(proofed)
+	
+
+
+p = Proof(["(p→(q→r))", "(p→q)", "p"], "r")
 p.proof()
-p.show_graph(p.graph.graph)
+p.network.draw()
+#p.show_graph(p.graph.graph)

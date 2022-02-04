@@ -52,15 +52,22 @@ class PL_Interface:
 
 		functor = data[FUNCTOR]
 		args = data[ARGS]
+		
+		case_bin = (functor in BINARY_CONNECTIVES)
+		case_neg = (functor == '¬')
 
-		if not (functor in BINARY_CONNECTIVES):
+		if not (case_bin or case_neg):
 			raise (ValueError(f'Problem with get_formula, '
-								   'the functor "{functor}" is in f{BINARY_CONNECTIVES}.'))
-		left = PL_Interface().swipl_to_formula(args[0])
-		right = PL_Interface().swipl_to_formula(args[1])
-		data = [left, right]
+								   f'the functor {functor} is in {BINARY_CONNECTIVES}.'))
+		if case_bin:
+			left = PL_Interface().swipl_to_formula(args[0])
+			right = PL_Interface().swipl_to_formula(args[1])
+			data = [left, right]
 
-		return f"({functor.join(data)})"
+			return f"({functor.join(data)})"
+		else: # is case_neg
+			data = PL_Interface().swipl_to_formula(args[0])
+			return f"({functor}{data})"
 
 	@staticmethod
 	def swipl_to_formula_list(data):

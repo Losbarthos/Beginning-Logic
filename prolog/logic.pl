@@ -3,6 +3,8 @@
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
+
+
 % Logical operators
 % Connectives
 :-op(800, fx, ¬).
@@ -32,10 +34,20 @@ formula(¬ X) :-
 % Used as atoms or individual symbols
 variable(p).
 variable(q).
+variable(r).
 
 % Definition of derivation
 Assumptions ⊦ Conclusion :- 
 	forall(member(X,Assumptions), formula(X)), formula(Conclusion).
+
+
+unordered_subset(SubSet, Set):-
+  length(LSet, Set),
+  between(0,LSubSet, LSet),
+  length(LSubSet, NSubSet),
+  permutation(NSubSet, SubSet),
+  subset(NSubSet, Set).
+
 
 % Checks, if Weaker_Derivation has more assumptions
 % but same conclusion as Derivation. 
@@ -43,8 +55,8 @@ Assumptions ⊦ Conclusion :-
 derivation_is_weaker(Weaker_Derivation, Derivation) :-
 	binary_derivation(Weaker_Derivation, A0, C0),
 	binary_derivation(Derivation, A1, C1),
-	C0 = C1,
-	subset(A1, A0).
+	subset(A1, A0),
+	(((nonvar(C0) -> (C1 = C0)); (C0 = C1))).
 
 % Filters all Theorems X for which Derivation is a weaker Derivation than X 
 % and stores them in Useable_Theorems. 

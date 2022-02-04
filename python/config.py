@@ -26,6 +26,7 @@ ROOT_DIR = Path(__file__).parent.parent
 CSV_THEOREMS = f"{ROOT_DIR}/data/theorems.csv"
 CSV_PROBLEMS = f"{ROOT_DIR}/data/problems.csv"
 PL_LOGIC = f"{ROOT_DIR}/prolog/logic.pl"
+print(ROOT_DIR)
 
 # Stores meaningfull names in further programms in some enum.
 class Definition(Enum):
