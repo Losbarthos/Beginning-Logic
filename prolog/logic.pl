@@ -14,6 +14,9 @@
 :-op(804, xfy, ↔).
 % Derivation symbol
 :-op(799, xfy, ⊦).
+% Element symbol
+:-op(798, xfy, ∈).
+:-op(798, xfy, ∉).
 
 binary_connective(X  ∨  Y, X, Y).
 binary_connective(X  ∧  Y, X, Y).
@@ -36,10 +39,93 @@ variable(p).
 variable(q).
 variable(r).
 
-% Definition of derivation
-Assumptions ⊦ Conclusion :- 
-	forall(member(X,Assumptions), formula(X)), formula(Conclusion).
 
+% We introduce some derivation symbol which is orientated on intercalation caluli 
+% (see "Searching for Proogs (in Sentential Logic)" 
+%	from Wilfried Sieg and Richard Scheines)
+
+% Definition of element
+X ∈ M :- member(X, M).
+X ∉ M :- not(member(X, M)).
+
+% Definition of derivation
+% We define some derivation as the same as the intercalation derivation 
+Tail ⊦ Head :-
+	Tail = (Assumptions, Premisses),
+	formula(Head),
+	forall(member(X,Assumptions), formula(X)),
+	forall(member(X,Premisses), formula(X)).
+
+% Rules of simplification
+
+% Rules from the proposed theorem to towards the hypotheses (bottom-up rules)
+
+% Same as
+% A;P?L∧R → A;P?L and A;P?R   
+%    with
+% AndI = [L ∧ R]  
+↑∧(Origin, NextStep, AndI) :-
+	Origin = ((A, P) ⊦ (L ∧ R)), 
+	NextStep = ((A, P) ⊦ L) ∧ ((A, P) ⊦ R),
+	AndI = [L ∧ R].
+
+% Same as
+% A;P?L∨R → A;P?L or A;P?R   
+%    with
+% OrI = [L ∧ R]  
+↑∨(Origin, NextStep, OrI) :-
+	Origin = ((A, P) ⊦ (L ∨ R)), 
+	NextStep = ((A, P) ⊦ L) ∨ ((A, P) ⊦ R),
+	OrI = [L ∨ R].
+
+% Same as
+% [A;P?L→R] → A,L;P?R   
+%    with
+% ImpI = [L → R]  
+↑∨(Origin, NextStep, ImpI) :-
+	Origin = ((A1, P) ⊦ (L → R)),
+	NextStep = ((A2, P) ⊦ R),
+	append(A1, [L], A2),
+	ImpI = [L → R].
+
+%
+% Rules from the assumptions towards the prposed theorem (top-down rules)
+%
+
+
+% Same as
+% [A;P?C, (L ∧ R) ∈ (A ∪ P), L or R ∉ (A ∪ P)] → A;P,L or R?C   
+%    with
+% AndE = [L ∧ R, L or R]  
+↓∧(Origin, NextStep, AndE) :- 
+	(Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
+		union(A, P1, U), ((L ∧ R) ∈ U),
+	(L ∉ U), append(P1, [L], P2), AndE = [L ∧ R, L]);
+	(Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
+		union(A, P1, U), ((L ∧ R) ∈ U),
+	(R ∉ U), append(P1, [R], P2), AndE = [L ∧ R, R]).
+
+% Same as
+% [A;P?C, (L ∨ R) ∈ (A ∪ P), L, R ∉ (A ∪ P)] → A,L;P?C and A,R;P?C    
+%    with
+% OrE = [L ∨ R]  
+↓∨(Origin, NextStep, OrE) :-
+	Origin = ((A1, P) ⊦ C), 
+	NextStep = (((A2, P) ⊦ C) ∧ ((A3, P) ⊦ C)),
+	union(A1, P, U), ((L ∨ R) ∈ U), L ∉ U, R ∉ U,
+	append(A1, [L], A2), append(A1, [R], A3),
+	OrE = [L ∨ R].
+
+% Same as
+% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A,R;P?C and A;P?L    
+%    with
+% ImpE = [L → R]  
+↓→(Origin, NextStep, ImpE) :-
+	Origin = ((A, P1) ⊦ C), 
+	NextStep = (((A, P2) ⊦ C) ∧ ((A, P1) ⊦ R)),
+	union(A, P1, U), ((L → R) ∈ U), R ∉ U,
+	append(P1, [R], P2),
+	ImpE = [L → R].
 
 unordered_subset(SubSet, Set):-
   length(LSet, Set),
