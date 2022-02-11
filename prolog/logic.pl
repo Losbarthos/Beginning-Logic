@@ -39,6 +39,22 @@ variable(p).
 variable(q).
 variable(r).
 
+% Definition of subformula
+subformulas(Formula, Subformulas) :- 
+			variable(Formula), 
+			Subformulas = [Formula].
+subformulas(Formula, Subformulas) :-
+			binary_connective(Formula, X, Y),
+			Subformulas(X, S1),
+			Subformulas(Y, S2),
+			union(S1, S2, SXY),
+			union(SXY,[Formula],Subformulas).
+
+subformulas(Formula, Subformulas) :-
+			Formula = ¬(X),
+			Subformulas(X, S1),
+			union(S1, [¬(X)], Subformulas).
+
 
 % We introduce some derivation symbol which is orientated on intercalation caluli 
 % (see "Searching for Proogs (in Sentential Logic)" 
@@ -126,6 +142,28 @@ Tail ⊦ Head :-
 	union(A, P1, U), ((L → R) ∈ U), R ∉ U,
 	append(P1, [R], P2),
 	ImpE = [L → R].
+
+
+% Contradiction rules
+⊥(A):- (A = (X ∧ (¬X));A = ((¬X) ∧ X)), formula(X).
+
+% Gets all possible contradictions withhin negation elemination and introduction
+contradictions(Base, Contradictions) :-
+	findall(X, (X ∈ Base), variable(X), Variables),
+	findall(X, (¬(X) ∈ Base), Negatable),
+	findall(X,
+		((_ → X) ∈ Base), 
+		subformulas(X, S), 
+		not(subset(S, Base)), Consequences),
+	union(Variables, Negatable, S1), 
+	union(S1, Consequences, Contradictions).
+
+
+↓¬¬(Origin, NextStep, NegI) :-
+	Origin = ((A1, P) ⊦ C),
+	not(⊥(C)), append(A1, [¬(C)], A2).
+
+
 
 unordered_subset(SubSet, Set):-
   length(LSet, Set),
