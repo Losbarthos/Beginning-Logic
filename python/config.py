@@ -5,7 +5,7 @@
 
 from enum import Enum
 from pathlib import Path
-from swiplserver import PrologMQI
+from swiplserver import PrologMQI, json_to_prolog
 
 
 # Conventions of Table headlines
@@ -33,6 +33,16 @@ class Definition(Enum):
 	ASSUMPTION = 0
 	PREMISS = 1
 	CONCLUSION = 2
+
+BASIC_RULES = {
+		'↓∧': '∧E',
+		'↓→': '→E', 
+		'↓∨': '∨E', 
+		'↑∧': '∧I',
+		'↑→': '→I', 
+		'↑∨': '∨I', 
+		'↓¬¬': '¬E', 
+		'↓¬': '¬I'}
 
 
 # Starts and gets basic config of prolog interpreter swiprologserver
