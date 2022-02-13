@@ -7,6 +7,8 @@
 
 from config import *
 
+import tabulate as tbl
+
 import pandas as pd
 
 import networkx as nx
@@ -18,13 +20,149 @@ import json
 
 
 
+def normalize(proposition):
+	'''
+		Replace proposition of form connective (proposition1, proposition2) 
+		into proposition1 connective proposition2.
+		Example: →(p, q) is converted into p → q.  
+	'''
+	try:
+		rest = PL.query(f"binary_connective({proposition},A,B)".replace("'",""))[0]
+		return f"({normalize(json_to_prolog(rest['A']))}{proposition[1]}{normalize(json_to_prolog(rest['B']))})"
+	except:
+		return proposition
+
+
+def invert_dict(d):
+	'''
+		Inverts a dict
+		Example:
+		d = {'child1': 'parent1',
+     		 'child2': 'parent1',
+     		 'child3': 'parent2',
+     		 'child4': 'parent2',
+     		}
+     	returns: {'parent2': ['child3', 'child4'], 'parent1': ['child1', 'child2']}
+	'''
+	from collections import defaultdict
+	new_dict = defaultdict(list)
+	for k, v in d.items():
+		new_dict[v].append(k)
+
+	return dict(new_dict)
+
+class ProofTable():
+	def __init__(self, network):
+		self.len = 0
+		self.graph = network.graph
+		self.edge_labels = network.edge_labels
+		self.indexes = invert_dict(network.edge_rule_index)
+		self.node_description = self.description_set_false()
+		self.table = self.create_table()
+
+
+	def description_set_false(self):
+		description = {}
+		for node in self.graph.nodes:
+			description[node] = False
+
+		return description
+
+	def get_table(self):
+		df = self.table
+		# remove brackets
+		for c in df.columns:
+			df[c]= df.apply(lambda x: str(x[c]).replace("[",'').replace(']',''), axis=1)
+		return df.to_string(index=False, header=False)
+
+	def create_table(self):
+		table = self.init_assumptions()
+		next_layer = table
+		while False in self.node_description.values():
+			next_layer = self.init_next_layer(next_layer)
+		
+		result = pd.DataFrame(next_layer)
+		return result
+
+	def init_next_layer(self, table):
+		def normalize_list(val):
+			'''
+				Removes duplicates from list and sort list values. 
+			'''
+			if len(val) == 0:
+				return ""
+			result = list(dict.fromkeys(val)) # removes duplicates from list
+			result.sort()
+			return result
+
+		layer = []
+		for value in self.indexes:
+			buffer = True
+			for edge in self.indexes[value]:
+				if self.node_description[edge[0]] == False or self.node_description[edge[1]] == True:
+					buffer = False
+					break
+			if buffer == True:
+				layer.append(self.indexes[value])
+		
+
+		for rule in layer:
+			self.len = self.len + 1
+			self.node_description[rule[0][1]] = True
+
+			assumption_index = []
+			premisses = []
+			for edge in rule:
+				search = edge[0]
+				for line in table:
+					if search in line:
+						reference_line = line
+
+				assumption_index = assumption_index + reference_line[0]
+				premisses.append(reference_line[1])
+
+			assumption_index = normalize_list(assumption_index) 
+			premisses = normalize_list(premisses) 
+
+			index = self.len
+			proposition = edge[1]
+			rule_name = self.edge_labels[rule[0]]
+			
+			line = [assumption_index, index, proposition, rule_name, premisses]
+			table.append(line)	
+		return table	
+
+
+	def init_assumptions(self):
+		table = []
+		for node in self.graph.nodes:
+			if len(self.graph.in_edges(node)) == 0:
+				self.len = self.len + 1
+				self.node_description[node] = True
+				
+				assumption_index = [self.len]
+				index = self.len
+				proposition = node
+				rule_name = 'A'
+				premisses = ''
+
+				line = [assumption_index, index, proposition, rule_name, premisses]
+				table.append(line)
+		return table
+
+
+
 class ProofNetwork():
 	'''
 		Object stores a grap with all his functionality in which the proof is stored.
 	'''
 	def __init__(self, assumptions, conclusion):
-		self.graph = self.init_graph(assumptions, conclusion)
+		self.assumptions = assumptions
+		self.conclusion = conclusion
+		self.graph = self.init_graph(self.assumptions, self.conclusion)
 		self.edge_labels = {}
+		self.edge_rule_index = {}
+
 
 	def init_graph(self, assumptions, conclusion):
 		'''
@@ -38,31 +176,28 @@ class ProofNetwork():
 
 		return g
 
-	def connect_rule(self, name, derivation):
-		'''
-		If "[a1, ..., an ] ⊦ c" is some rule with name 'rule', then expands the graph by 
-		edges a1 -- c, ..., an -- c (edgename 'rule')
-		:param derivation: string of form "[a1, ..., an ] ⊦ c"
-		:param name: name of derivation
-		'''
-		def unpack_derivation(derivation):
-			'''
-			Converts some derivation "[a1, ..., an ] ⊦ c" into its assumptions 
-			["a1", ..., "an"] and its conclusion "c".
-			:param derivation: string of form "[a1, ..., an ] ⊦ c"
-			'''
-			result = PL.query(f"binary_derivation({derivation}, X, Y).")
-			assumptions = PL_Interface().swipl_to_formula_list(result[0]['X'])
-			conclusion = PL_Interface().swipl_to_formula(result[0]['Y'])
+	def connect_with_rule(self, rule_name, rule_index, head, origin):
 
-			return [assumptions, conclusion]
+		for vertex in origin:
+			self.graph.add_edge(vertex, head)
+			self.edge_labels[(vertex, head)] = rule_name
+			self.edge_rule_index[(vertex, head)] = rule_index
 
-		[assumptions, conclusion] = unpack_derivation(derivation)
-	
-		for assumption in assumptions:
-			self.graph.add_edge(assumption, conclusion)
-			self.edge_labels[(assumption, conclusion)] = name
-	
+	def add_network(self, network):
+		self.edge_labels.update(network.edge_labels)
+		self.edge_rule_index.update(network.edge_rule_index)
+
+		self.graph = nx.compose(self.graph, network.graph)
+
+	def remove_lost_vertices(self):
+		remove = []
+		for node in self.graph.nodes:
+			if not nx.has_path(self.graph, node, self.conclusion):
+				remove.append(node)
+		
+		for to_remove in remove:
+			self.graph.remove_node(to_remove)
+
 	def draw(self):
 		'''
 		Draws the graph.
@@ -75,82 +210,91 @@ class ProofNetwork():
 		plt.axis('off')
 		plt.show()
 
-
-
-
-
 class Proof:
 	'''
 		Core class for prooving theorems.
 	'''
-	def __init__(self, assumptions, conclusion):
-		self.network = ProofNetwork(assumptions, conclusion)
-
-		self.assumptions = assumptions
-		self.conclusion = conclusion
-		self.theorems = self.init_theorems(CSV_THEOREMS)
-
-
-	def init_theorems(self, filename):
-		'''
-			Metod for initializing the theorems from filename into 
-			some string we can pass as prolog-parameter (prolog dictionary). 
-		'''
-		theorems = {}
-
-		def init_theorem(row):
-			'''
-				Inits a single theorem
-			'''
-			conclusion = row[CONCLUSION]
-			assumptions = (list(row.dropna()
-						  .filter(regex = f"^{ASSUMPTION}").values))
-			assumptions = PL_Interface().list_to_datastring(assumptions)
-			theorems[row.name] = f"({assumptions} {DERIVATION} {conclusion})"
-
-		df = pd.read_csv(filename, index_col="Name")
-		df.apply(init_theorem, axis=1)
-		self.test = PL_Interface().list_to_datastring(list(theorems.values()))
+	def __init__(self, derivation):
+		self.derivation = derivation
 		
-		return f"theorems{PL_Interface().dict_to_datastring(theorems)}"
+		self.assumptions, self.conclusion = self.unzip(derivation)
+		self.network = ProofNetwork(assumptions, conclusion)
+		self.table = False
+		self.rule_index = 0
+		self.proofed()
+
+	def set_index(self, index):
+		self.rule_index = index
+
+	def unzip(self, derivation):
+		result = PL.query(f"unzip({derivation}, A, _, C).")[0]
+		return (result['A'], result['C'])
 
 	def proofed(self):
 		'''
 			Checks, if theorem is proofed.
 		'''
-		return true
+		return PL.query(f"isvalid({self.derivation}).")
+
+
+
+	def simplify(self, rule):
+		result = PL.query(f"{rule}({self.derivation}, NextStep, Core).")
+		if result != False:
+			next_step = []
+			core = []
+			for step in result[0]['NextStep']:
+				next_step.append(json_to_prolog(step).replace("'","").replace("(,","("))
+
+			for elem in result[0]['Core']:
+				core.append(normalize(json_to_prolog(elem)))
+			
+			return (next_step, core)
+		return result
+
+	def evaluate_and(self, rule, rule_result):
+		derivations = rule_result[0]
+		networks = []
+		for derivation in derivations:
+			proof_buffer = Proof(derivation)
+			proof_buffer.set_index(self.rule_index)
+			proof_buffer.proof()
+			self.rule_index = proof_buffer.rule_index
+			self.network.add_network(proof_buffer.network)
+
+		head = rule_result[1][0]
+		origin = rule_result[1][1:]
+		self.network.connect_with_rule(rule, self.rule_index, head, origin)
+		self.rule_index = self.rule_index + 1
 
 	def proof(self):
 		'''
-			Core function for proving [self.assumptions] ⊦ self.conclusion.
+			Core function for proving self.derivation.
 		'''
-		def get_rules(assumptions, conclusion):
-			'''
-				Returns a python dictionary of all the rules which can applied to deduce 
-				the "conclusion" from the "assumptions". Key is the rule name from the 
-				file which contains all the rules, and value is the rule itself in form of 
-				some derivation. 
-			'''
+		if self.proofed():	return True
 
-			derivation = (f"{PL_Interface().list_to_datastring(self.assumptions)} {DERIVATION} {self.conclusion}")
-			print(derivation)
-			print(self.test)
-			result = PL.query(f"usable_theorems_dict({derivation}, {self.theorems}, Z)")
-			result2 = PL.query(f"usable_theorems({derivation}, {self.test}, Z)")
-			print(result)
-			result = PL_Interface().swipl_to_rules(result[0]['Z'])
-			return result
+		for key in BASIC_RULES:
+			result = self.simplify(key)
+			if result != False:
+				if key in ['↓→']:
+					self.evaluate_and(BASIC_RULES[key], result)
 
-		possible_rules = get_rules(self.assumptions, self.conclusion)
+		self.network.remove_lost_vertices()	
+		self.table = ProofTable(self.network) 
 
-		for key in possible_rules:
-			self.network.connect_rule(key, possible_rules[key])
 
-		#if(proofed)
 	
 
 
-p = Proof(["(p→(q→r))", "(p→q)", "p"], "r")
+assumptions = ["(p→(q→r))", "(p→q)", "p"]
+conclusion = "r"
+
+derivation = f"([{','.join(assumptions)}],[]) ⊦ {conclusion}"
+
+p = Proof(derivation)
 p.proof()
+print(p.table.get_table())
+print(p.rule_index)
 p.network.draw()
+
 #p.show_graph(p.graph.graph)

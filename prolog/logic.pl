@@ -39,20 +39,36 @@ variable(p).
 variable(q).
 variable(r).
 
+% Converts a list l1,...,ln into (l1 ∨ (l2 ∨ ( ... ∨ ln)...)
+disjunction_list(List, Disjunction) :- 
+	List = [Head | Tail], 
+	disjunction_list(Tail, Sub),
+	Disjunction = (Head ∨ Sub).
+disjunction_list(List, Disjunction) :-
+	List = [X], length(List, 1), Disjunction = X.
+
+% Converts a list l1,...,ln into (l1 ∧ (l2 ∧ ( ... ∧ ln)...)
+conjunction_list(List, Disjunction) :- 
+	List = [Head | Tail], 
+	disjunction_list(Tail, Sub),
+	Disjunction = (Head ∧ Sub).
+conjunction_list(List, Disjunction) :-
+	List = [X], length(List, 1), Disjunction = X.
+
 % Definition of subformula
 subformulas(Formula, Subformulas) :- 
 			variable(Formula), 
 			Subformulas = [Formula].
 subformulas(Formula, Subformulas) :-
 			binary_connective(Formula, X, Y),
-			Subformulas(X, S1),
-			Subformulas(Y, S2),
+			subformulas(X, S1),
+			subformulas(Y, S2),
 			union(S1, S2, SXY),
 			union(SXY,[Formula],Subformulas).
 
 subformulas(Formula, Subformulas) :-
 			Formula = ¬(X),
-			Subformulas(X, S1),
+			subformulas(X, S1),
 			union(S1, [¬(X)], Subformulas).
 
 
@@ -71,6 +87,15 @@ Tail ⊦ Head :-
 	formula(Head),
 	forall(member(X,Assumptions), formula(X)),
 	forall(member(X,Premisses), formula(X)).
+
+% extracts Assumptions, Premisses and Conclusion from derivation
+unzip(Derivation, Assumptions, Premisses, Conclusion) :-
+	Derivation = ((Assumptions, Premisses) ⊦ Conclusion).
+
+isvalid(Derivation) :-
+	Derivation = ((Assumptions, Premisses) ⊦ Conclusion),
+	union(Assumptions, Premisses, U),
+	member(Conclusion, U).
 
 % Rules of simplification
 
@@ -98,7 +123,7 @@ Tail ⊦ Head :-
 % [A;P?L→R] → A,L;P?R   
 %    with
 % ImpI = [L → R]  
-↑∨(Origin, NextStep, ImpI) :-
+↑→(Origin, NextStep, ImpI) :-
 	Origin = ((A1, P) ⊦ (L → R)),
 	NextStep = ((A2, P) ⊦ R),
 	append(A1, [L], A2),
@@ -133,15 +158,16 @@ Tail ⊦ Head :-
 	OrE = [L ∨ R].
 
 % Same as
-% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A,R;P?C and A;P?L    
+% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A,R;P?C and A\(L → R);P\(L → R)?L    
 %    with
 % ImpE = [L → R]  
 ↓→(Origin, NextStep, ImpE) :-
-	Origin = ((A, P1) ⊦ C), 
-	NextStep = (((A, P2) ⊦ C) ∧ ((A, P1) ⊦ R)),
-	union(A, P1, U), ((L → R) ∈ U), R ∉ U,
+	Origin = ((A1, P1) ⊦ C), 
+	NextStep = [((A1, P2) ⊦ C), ((A3, P3) ⊦ L)],
+	union(A1, P1, U), ((L → R) ∈ U), R ∉ U,
+	delete(A1, (L → R), A3), delete(P1, (L → R), P3),
 	append(P1, [R], P2),
-	ImpE = [L → R].
+	ImpE = [R, L → R, L].
 
 
 % Contradiction rules
@@ -161,7 +187,18 @@ contradictions(Base, Contradictions) :-
 
 ↓¬¬(Origin, NextStep, NegI) :-
 	Origin = ((A1, P) ⊦ C),
-	not(⊥(C)), append(A1, [¬(C)], A2).
+	not(⊥(C)), append(A1, [¬(C)], A2),
+	union(A1, P, U), contradictions(U, Contra),
+	findall(X, member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y))), NextSteps),
+	disjunction_list(NextSteps, NextStep).
+
+↓¬(Origin, NextStep, NegI) :-
+	Origin = ((A1, P) ⊦ ¬(C)),
+	not(⊥(C)), append(A1, [C], A2),
+	union(A1, P, U), contradictions(U, Contra),
+	findall(X, member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y))), NextSteps),
+	disjunction_list(NextSteps, NextStep).
+
 
 
 
@@ -213,3 +250,5 @@ usable_theorems_dict(Derivation, Theorems, Useable_Theorems) :-
 % usable_theorems_pairs([p,q]⊦p, [d1-([A]⊦A), d2-([A∧B]⊦A)], Z).
 
 
+pair(X, Y, Z) :-
+	Z=(X,Y).
