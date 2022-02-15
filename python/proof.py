@@ -68,12 +68,16 @@ class ProofTable():
 
 		return description
 
-	def get_table(self):
+	def console_format(self):
+		'''
+			Gets the ProofTable (without header-row and index-column) 
+			into console-format. It is neccessary for further printing.
+		'''
+
 		df = self.table
-		# remove brackets
-		for c in df.columns:
-			df[c]= df.apply(lambda x: str(x[c]).replace("[",'').replace(']',''), axis=1)
-		return df.to_string(index=False, header=False)
+		df = df.astype(str).apply(lambda col: col.str.strip('[]')) # remove brackets
+		df[1] = df[1].apply(lambda val: f"({val})") # Brackets arround the Index-Column
+		return df#.to_string(index=False, header=False)
 
 	def create_table(self):
 		table = self.init_assumptions()
@@ -128,7 +132,7 @@ class ProofTable():
 			proposition = edge[1]
 			rule_name = self.edge_labels[rule[0]]
 			
-			line = [assumption_index, index, proposition, rule_name, premisses]
+			line = [assumption_index, index, proposition, premisses, rule_name]
 			table.append(line)	
 		return table	
 
@@ -146,7 +150,7 @@ class ProofTable():
 				rule_name = 'A'
 				premisses = ''
 
-				line = [assumption_index, index, proposition, rule_name, premisses]
+				line = [assumption_index, index, proposition, premisses, rule_name]
 				table.append(line)
 		return table
 
@@ -244,8 +248,7 @@ class Proof:
 			next_step = []
 			core = []
 			for step in result[0]['NextStep']:
-				next_step.append(json_to_prolog(step).replace("'","").replace("(,","("))
-
+				next_step.append(json_to_prolog(step))
 			for elem in result[0]['Core']:
 				core.append(normalize(json_to_prolog(elem)))
 			
@@ -293,7 +296,10 @@ derivation = f"([{','.join(assumptions)}],[]) ⊦ {conclusion}"
 
 p = Proof(derivation)
 p.proof()
-print(p.table.get_table())
+
+from tabulate import tabulate
+print(tabulate(p.table.console_format(),  showindex=False, tablefmt="plain"))
+
 print(p.rule_index)
 p.network.draw()
 
