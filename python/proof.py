@@ -195,12 +195,34 @@ class ProofNetwork():
 
 	def remove_lost_vertices(self):
 		remove = []
+
+		remove_label = []
+		remove_index = []
 		for node in self.graph.nodes:
 			if not nx.has_path(self.graph, node, self.conclusion):
 				remove.append(node)
+
+				# for removing edge_labels
+				for edge in self.edge_labels:
+					if edge[1] == node:
+						remove_label.append(edge)
+
+				# for removing edge_labels
+				for edge in self.edge_rule_index:
+					if edge[1] == node:
+						remove_index.append(edge)
 		
 		for to_remove in remove:
 			self.graph.remove_node(to_remove)
+		
+		# for removing edge_labels
+		for edge in remove_label:
+			self.edge_labels.pop(edge)
+		# for removing edge_rule_index
+		for edge in remove_index:
+			self.edge_rule_index.pop(edge)
+
+
 
 	def draw(self):
 		'''
@@ -222,17 +244,36 @@ class Proof:
 		self.derivation = derivation
 		
 		self.assumptions, self.conclusion = self.unzip(derivation)
-		self.network = ProofNetwork(assumptions, conclusion)
+		self.network = ProofNetwork(self.assumptions, self.conclusion)
 		self.table = False
 		self.rule_index = 0
-		self.proofed()
 
 	def set_index(self, index):
 		self.rule_index = index
 
 	def unzip(self, derivation):
+		def unzip_list(list):
+			'''
+				Converts some prolog list of propositions into some python list of propositions.
+			'''
+			result = PL.query(f"length({list}, N)")[0]
+			n = int(result['N'])
+
+			assumptions = []
+			for i in range(n):
+				result = PL.query(f"nth0({i},{list},N)")[0]
+				result['N'] = json_to_prolog(result['N'])
+				result['N'] = normalize(result['N'])
+				assumptions.append(result['N'])
+
+			return assumptions
+
 		result = PL.query(f"unzip({derivation}, A, _, C).")[0]
-		return (result['A'], result['C'])
+		result['A'] = json_to_prolog(result['A'])
+		result['C'] = json_to_prolog(result['C'])
+		assumptions = unzip_list(result['A'])
+
+		return (assumptions, normalize(result['C']))
 
 	def proofed(self):
 		'''
@@ -274,13 +315,12 @@ class Proof:
 		'''
 			Core function for proving self.derivation.
 		'''
-		if self.proofed():	return True
-
-		for key in BASIC_RULES:
-			result = self.simplify(key)
-			if result != False:
-				if key in ['↓→']:
-					self.evaluate_and(BASIC_RULES[key], result)
+		if not self.proofed():	
+			for key in BASIC_RULES:
+				result = self.simplify(key)
+				if result != False:
+					if key in ['↓→']:
+						self.evaluate_and(BASIC_RULES[key], result)
 
 		self.network.remove_lost_vertices()	
 		self.table = ProofTable(self.network) 
@@ -289,18 +329,21 @@ class Proof:
 	
 
 
-assumptions = ["(p→(q→r))", "(p→q)", "p"]
-conclusion = "r"
+#assumptions = ["((p→q)→(p→r))", "(p→q)", "p"]
+#conclusion = "r"
 
-derivation = f"([{','.join(assumptions)}],[]) ⊦ {conclusion}"
+#derivation = f"([{','.join(assumptions)}],[]) ⊦ {conclusion}"
 
-p = Proof(derivation)
-p.proof()
 
-from tabulate import tabulate
-print(tabulate(p.table.console_format(),  showindex=False, tablefmt="plain"))
+#print(derivation)
+#p = Proof(derivation)
+#p.proof()
 
-print(p.rule_index)
-p.network.draw()
+#from tabulate import tabulate
+#print(tabulate(p.table.console_format(),  showindex=False, tablefmt="plain"))
+
+#print(p.rule_index)
+#p.network.draw()
 
 #p.show_graph(p.graph.graph)
+#([(p→(q→r)),(p→q),p],[]) ⊦ r
