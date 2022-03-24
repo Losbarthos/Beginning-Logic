@@ -5,8 +5,11 @@
 
 from enum import Enum
 from pathlib import Path
-from swiplserver import PrologMQI, json_to_prolog
+#from swiplserver import PrologMQI, json_to_prolog
+from prolog_interface import *
 
+
+GET_PROTOCOLL = False
 
 # Conventions of Table headlines
 ASSUMPTION = "Assumption"
@@ -53,11 +56,6 @@ BASIC_RULES = {
 ARGS = 'args'
 FUNCTOR = 'functor'
 
-MQI = PrologMQI()
-MQI.start()
-
-PL = MQI.create_thread()
-PL.start()
-PL.query(f"consult('{PL_LOGIC}').")
 
 
+PL = PL_Interface(f'{PL_LOGIC}')
