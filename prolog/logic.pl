@@ -107,8 +107,8 @@ isvalid(Derivation) :-
 % AndI = [L ∧ R]  
 ↑∧(Origin, NextStep, AndI) :-
 	Origin = ((A, P) ⊦ (L ∧ R)), 
-	NextStep = ((A, P) ⊦ L) ∧ ((A, P) ⊦ R),
-	AndI = [L ∧ R].
+	NextStep = [((A, P) ⊦ L), ((A, P) ⊦ R)],
+	AndI = [L ∧ R, L, R].
 
 % Same as
 % A;P?L∨R → A;P?L or A;P?R   
@@ -158,7 +158,7 @@ isvalid(Derivation) :-
 	OrE = [L ∨ R].
 
 % Same as
-% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A,R;P?C and A\(L → R);P\(L → R)?L    
+% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 %    with
 % ImpE = [L → R]  
 ↓→(Origin, NextStep, ImpE) :-
@@ -175,30 +175,29 @@ isvalid(Derivation) :-
 
 % Gets all possible contradictions withhin negation elemination and introduction
 contradictions(Base, Contradictions) :-
-	findall(X, (X ∈ Base), variable(X), Variables),
+	findall(X, ((X ∈ Base), variable(X)), Variables),
 	findall(X, (¬(X) ∈ Base), Negatable),
 	findall(X,
-		((_ → X) ∈ Base), 
+		(((_ → X) ∈ Base), 
 		subformulas(X, S), 
-		not(subset(S, Base)), Consequences),
+		not(subset(S, Base))), Consequences),
 	union(Variables, Negatable, S1), 
 	union(S1, Consequences, Contradictions).
 
 
-↓¬¬(Origin, NextStep, NegI) :-
+↓¬¬(Origin, NextStep, NegE) :-
 	Origin = ((A1, P) ⊦ C),
-	not(⊥(C)), append(A1, [¬(C)], A2),
+	not(⊥(C)), (¬(C) ∉ A1), append(A1, [¬(C)], A2),
 	union(A1, P, U), contradictions(U, Contra),
-	findall(X, member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y))), NextSteps),
-	disjunction_list(NextSteps, NextStep).
+	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStep),
+	findall(X, (member(Y, Contra), X=[C,(Y ∧ ¬(Y)), ¬(C)]), NegE).
 
 ↓¬(Origin, NextStep, NegI) :-
 	Origin = ((A1, P) ⊦ ¬(C)),
-	not(⊥(C)), append(A1, [C], A2),
+	not(⊥(C)), (C ∉ A1), append(A1, [C], A2),
 	union(A1, P, U), contradictions(U, Contra),
-	findall(X, member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y))), NextSteps),
-	disjunction_list(NextSteps, NextStep).
-
+	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStep),
+	findall(X, (member(Y, Contra), X=[¬(C),(Y ∧ ¬(Y)), C]), NegI).
 
 
 
