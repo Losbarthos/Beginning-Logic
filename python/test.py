@@ -1,16 +1,14 @@
-test1 = [['p', '(q ∧ ¬(q))', '¬(p)'], ['p', '(¬(p) ∧ ¬(¬(p)))', '¬(p)']]
-test2 = ['p', '(q ∧ ¬(q))', '¬(p)', 'q']
+from tkinter import *
+from tkinter import ttk
 
-def seperate(data, index=None):
-	if index == None:
-		head = data[0]
-		origin = data[1:]
-	else:
-		head = data[index][0]
-		origin = data[index][1:]
+from anytree import Node, RenderTree, AsciiStyle, PreOrderIter
 
-	return (head, origin)
+# anytree definition
+udo = Node("Udo the very first king of London and Manchester, born in China and studied in Japan.")
+marc = Node("Marc the second monarch of south carolina married Isabel the very first arab princess.", parent=udo)
 
-print(seperate(test1,0))
-print(seperate(test2))
-print(seperate(test1,1))
+print(udo.name)
+
+udo.name = "udo"
+
+print(udo.name)
