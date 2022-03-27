@@ -1,7 +1,11 @@
 from tkinter import *
+from tkinter import ttk
+
 from config import *
 import re
 from itertools import cycle, islice, dropwhile
+
+from anytree import Node, PreOrderIter
 
 from proof import *
 
@@ -174,11 +178,16 @@ class DerivationTool(Frame):
 	def __init__(self, parent, apply_assumption=None, apply_conclusion=None):
 		Frame.__init__(self, parent)
 
-		self.bt_new_assumption = Button(parent, text="Add Assumption", command=lambda: self.new_FormulaEditor(apply_assumption))
+		self.parent = parent
+		self.apply_assumption = apply_assumption
+		self.apply_conclusion = apply_conclusion
+
+		self.bt_new_assumption = Button(self.parent, text="Add Assumption", command=lambda: self.new_FormulaEditor(self.apply_assumption))
 		self.bt_new_assumption.grid(column=0, row=1)
 
-		self.bt_new_conclusion = Button(parent, text="Add Conclusion", command=lambda: self.new_FormulaEditor(apply_conclusion))
+		self.bt_new_conclusion = Button(self.parent, text="Add Conclusion", command=lambda: self.new_FormulaEditor(self.apply_conclusion))
 		self.bt_new_conclusion.grid(column=1, row=1)
+
 
 	def get_derivation(self):
 		'''
@@ -189,13 +198,13 @@ class DerivationTool(Frame):
 		conclusion = ""
 		derivation = ""
 
-		for child in root.grid_slaves(column=0):
+		for child in self.parent.grid_slaves(column=0):
 			g_info = child.grid_info()
 			if type(child) is Label:
 				assumptions.append(child['text'])
 
 		
-		for child in root.grid_slaves(column=1):
+		for child in self.parent.grid_slaves(column=1):
 			g_info = child.grid_info()
 			if type(child) is Label:
 				conclusion = child['text']
@@ -209,13 +218,22 @@ class DerivationTool(Frame):
 		'''
 			Opens a new PropositionEditor window with custom apply function.
 		'''
-		PropositionEditor(root, apply)
+		PropositionEditor(self.parent, apply)
 
 class Derivation(Frame):
 	def __init__(self, parent):
 		Frame.__init__(self, parent)
+		self.parent = parent
 
-		self.toolbar = Frame(parent)
+		self.main_frame = Frame(self.parent)
+		self.main_frame.grid(column=0, row=0)
+
+		self.init_main_frame()
+
+
+	
+	def init_main_frame(self):
+		self.toolbar = Frame(self.main_frame)
 		self.toolbar.grid(column=0,row=0, sticky='w')
 
 		self.i_calc = PhotoImage(file=I_QED)
@@ -233,7 +251,12 @@ class Derivation(Frame):
 		self.tbl.grid(column=2, row=0)
 		self.tbl.configure(state=DISABLED)
 
-		self.derivation = DerivationTool(root, self.apply_assumption, self.apply_conclusion)
+		self.i_reset = PhotoImage(file=I_RESET)
+		self.reset = Button(self.toolbar, image=self.i_reset, bg='white', command=self.reset)
+		self.reset.grid(column=3, row=0)
+
+		self.derivation = DerivationTool(self.main_frame, self.apply_assumption, self.apply_conclusion)
+
 
 	def proof(self):
 		'''
@@ -247,6 +270,10 @@ class Derivation(Frame):
 		derivation = self.derivation.get_derivation()
 		self.proof = Proof(derivation)
 		self.proof.proof()
+
+		if GET_PROTOCOLL == True:
+			atv = AnyTreeView(root, self.proof.derivation_tree)
+			atv.generate()
 
 
 	def graph(self):
@@ -262,20 +289,86 @@ class Derivation(Frame):
 
 		ProofTable(root, self.proof.table.console_format(), derivation)
 
+	def reset(self):
+		# destroy all widgets from frame
+		for widget in self.main_frame.winfo_children():
+			widget.destroy()
+
+		self.main_frame.destroy()
+    
+		# this will clear frame and frame will be empty
+		# if you want to hide the empty panel then
+
+		self = Derivation(self.parent)
+
+
 	def apply_assumption(self, lbl_txt):
-		row = len(root.grid_slaves(column=0))+1
-		lbl = Label(root, text=lbl_txt)
+		row = len(self.main_frame.grid_slaves(column=0))+1
+		lbl = Label(self.main_frame, text=lbl_txt)
 		lbl.grid(row=row, column=0)
 
 	def apply_conclusion(self, lbl_txt):
-		row = len(root.grid_slaves(column=1))+1
-		lbl = Label(root, text=lbl_txt)
+		row = len(self.main_frame.grid_slaves(column=1))+1
+		lbl = Label(self.main_frame, text=lbl_txt)
 		lbl.grid(row=row, column=1)
 		self.derivation.bt_new_conclusion.configure(state=DISABLED)
 		self.calc.configure(state=NORMAL)
 
 
+class AnyTreeView(Toplevel):
+	'''
+		Illustrates some anytree treeview into some 
+	'''
+	def __init__(self, master, tree ):	
+		super().__init__(master = master)
+
+		self.resizable(width=True, height=False)
+		
+		self.main_frame = Frame(self)
+		self.main_frame.grid(row=1,column=1,sticky="ew")
+
+
+		self.title('AnyTreeView')
+		
+		self.tree = tree
+		h = len([node.name for node in PreOrderIter(tree)])
+		self.treeview = ttk.Treeview(self.main_frame, column=("c1"), height = h)
+		self.treeview.column("# 1",anchor=CENTER, stretch=YES, width=1000)
+		self.treeview.pack(expand=True, fill='y')
+
+	def generate(self):
+
+		def separate_string(data, seps):
+			'''
+				Separates strings by seperators constist of more than one char saved in the variable seps.
+				Receive the last separated string s1 and the last separator which has s1 on his right hand side.
+				https://stackoverflow.com/questions/71630052/python-separate-string-by-multiple-separators-and-return-separators-and-separat
+			'''
+			import re
+
+			pattern = "|".join(re.escape(sep) for sep in seps)
+			try:
+				start, end = [m.span() for m in re.finditer(pattern, data)][-1]
+				return f"{data[start:end]},{data[end:]}"
+			except IndexError:
+				return data
+		
+
+		index = 0
+		for node in PreOrderIter(self.tree):
+			print(node.name)
+			self.treeview.insert('',f'{index}', node.name, text = separate_string(node.name, BASIC_RULES.values()))
+			index = index + 1
+
+		for node in PreOrderIter(self.tree):
+			for child in node.children:
+				self.treeview.move(child.name, node.name, 'end')
+
+
+
+
 root = Tk()
+
 
 derivation = Derivation(root)
 

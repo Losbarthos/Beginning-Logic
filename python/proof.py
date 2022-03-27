@@ -12,6 +12,7 @@ from tabulate import tabulate
 import pandas as pd
 
 import networkx as nx
+from anytree import Node, search
 import matplotlib.pyplot as plt
 
 from operator import itemgetter
@@ -258,80 +259,6 @@ class ProofTable():
 
 		return table
 
-class ProofTable_next():
-	def __init__(self, assumptions, next_conclusion, premisses = None, rule = None, previous_table = None):
-		self.table = previous_table
-		self.expand(assumptions, next_conclusion, premisses, rule_name)
-
-	def expand(self, assumptions, next_conclusion, premisses, rule_name):
-		for assumption in assumptions:
-			self.add_assumption(assumption)
-
-
-	def has_line(self, assumptions, proposition):
-		'''
-			Checks if the proof-table self.table already has some value with assumptions
-			and proposition  
-		'''
-		assumption_indexes = []
-		for assumption in assumptions:
-			a_line = [el for el in self.table if el[4] == 'A' and el[2] == assumption]
-			if len(a_line) == 0:
-				return False
-			else:
-				assumption_indexes.append(a_line[1])
-		assumption_indexes.sort()
-
-		prop_line = [el for el in self.table if el[0] == assumption_indexes and el[2] == proposition]
-
-		return len(a_line) > 0
-
-
-
-	def add_assumption(self, assumption):
-		index = 1
-		if self.table != None:
-			indexes = [el[1] for el in self.table]
-			index = max(indexes) + 1
-
-		if not self.has_line([assumption], assumption):
-			line = [[index], index, assumption, '', 'A']
-			self.table.append(line)
-
-	def add_conclusion(self, assumptions, conclusion, rule, premisses):
-		assumption_indexes = []
-		premiss_indexes = []
-		origin_indexes = []
-		premisses_not_used = False
-
-		for assumption in assumptions:
-			a_line = [el for el in self.table if el[4] == 'A' and el[2] == assumption]
-			assumption_indexes.append(a_line[1])
-
-		for premiss in premisses:
-			p_line = [el for el in self.table if el[2] == premiss and set(el[0]).issubset(set(assumption_indexes))]
-			if len(p_line) == 0:
-				premisses_not_used = True
-
-			origin_indexes.append(p_line[0])
-			premiss_indexes.append(p_line[1])
-
-
-		lines = [el for el in self.table if el[0] == origin_indexes and el[2] == conclusion and el[3] == premiss_indexes]
-
-		if len(lines) == 0:
-			if premisses_not_used == True:
-				indexes = [el[1] for el in self.table]
-				index = min(indexes) - 1
-				self.table.append(origin_indexes,index, conclusion, [], rule)
-			else:
-				indexes = [el[1] 
-							for el in self.table 
-								if el[0] == origin_indexes and el[2] == conclusion and el[3] == None and el[4] == rule]
-				self.table = [[origin_indexes,indexes[0], conclusion, premiss_indexes, rule] 
-								if item == [origin_indexes,indexes[0], conclusion, [], rule] 
-								else item for item in self.table]
-
 
 class ProofNetwork():
 	'''
@@ -428,6 +355,8 @@ class Proof:
 
 		self.rule_index = 0
 		self.is_proofed = self.proofed()
+
+		self.derivation_tree = Node(derivation)
 	
 	def replace_by(self, new_proof):
 		self.derivation = new_proof.derivation
@@ -511,17 +440,19 @@ class Proof:
 		proof_index = self.rule_index
 
 		for derivation in derivations:
-			proof_buffer = Proof(derivation)
-			proof_buffer.set_index(proof_index)
+			p = Proof(derivation)
+			p.set_index(proof_index)
+			p.derivation_tree = Node(f"{self.derivation_tree.name} {rule} {derivation}", parent=self.derivation_tree)
+			p.proof()
 
-			proof_buffer.proof()
-
-			if proof_buffer.is_proofed == False:	
+			if p.is_proofed == False:	
 				self.is_proofed = False
 				return False
+				#for proof in proofs:
+				#	proof.derivation_tree.name = p.derivation_tree.name + ", not solved."
 
-			proofs.append(proof_buffer)
-			proof_index = proof_buffer.rule_index
+			proofs.append(p)
+			proof_index = p.rule_index
 
 		return proofs
 
@@ -537,11 +468,14 @@ class Proof:
 		for i in range(n):
 			p = Proof(derivations[i])
 			p.set_index(self.rule_index)
+			p.derivation_tree = Node(f"{self.derivation_tree.name} {rule} {derivations[i]}", parent=self.derivation_tree)
 
 			p.proof()
 
 			if p.is_proofed == True:
 				proofs.append([p, i, p.table.len, p.table.len])
+			#else:
+			#	p.derivation_tree.name = p.derivation_tree.name + ", not solved."
 		
 		if len(proofs) == 0:
 			self.is_proofed = False
@@ -570,7 +504,7 @@ class Proof:
 					if GET_PROTOCOLL == True:
 						print("Old: " + self.derivation)
 						print("Key: " + key)
-						print(f"New: {result[0]}")
+						print(f"New: {result[0][0]}")
 					
 					if key in ['↓→', '↑∧']:
 						passed = True
@@ -614,7 +548,7 @@ class Proof:
 						self.table.create_table()
 
 						if GET_PROTOCOLL == True:
-							print(f"Solved: {self.derivation}")
+							self.derivation_tree.name = self.derivation_tree.name + ", solved."
 							protocoll_marked = True
 							self.network.draw()
 							
@@ -623,13 +557,13 @@ class Proof:
 					else:
 						if GET_PROTOCOLL == True:
 							protocoll_marked = True
-							print(f"Not solved: {self.derivation}")
+							#self.derivation_tree.name = self.derivation_tree.name + ", not solved."
 		if GET_PROTOCOLL == True:
 			if protocoll_marked == False:
 				if self.is_proofed == True:
-					print(f"Solved: {self.derivation}")
+					self.derivation_tree.name = self.derivation_tree.name + ", solved."
 				else:
-					print(f"Not solved: {self.derivation}")
+					self.derivation_tree.name = self.derivation_tree.name + ", not solved."
 
 	
 if __name__ == '__main__':

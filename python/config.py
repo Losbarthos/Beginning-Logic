@@ -9,7 +9,7 @@ from pathlib import Path
 from prolog_interface import *
 
 
-GET_PROTOCOLL = False
+GET_PROTOCOLL = True
 
 # Conventions of Table headlines
 ASSUMPTION = "Assumption"
@@ -33,7 +33,7 @@ PL_LOGIC = f"{ROOT_DIR}/prolog/logic.pl"
 I_GRAPH = f"{ROOT_DIR}/icons/graph.png"
 I_QED = f"{ROOT_DIR}/icons/qed.png"
 I_TBL = f"{ROOT_DIR}/icons/table.png"
-print(ROOT_DIR)
+I_RESET = f"{ROOT_DIR}/icons/reset.png"
 
 # Stores meaningfull names in further programms in some enum.
 class Definition(Enum):
