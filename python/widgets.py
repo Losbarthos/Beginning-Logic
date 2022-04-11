@@ -321,11 +321,10 @@ class AnyTreeView(Toplevel):
 	'''
 	def __init__(self, master, tree ):	
 		super().__init__(master = master)
-
-		self.resizable(width=True, height=False)
 		
 		self.main_frame = Frame(self)
 		self.main_frame.grid(row=1,column=1,sticky="ew")
+		self.columnconfigure(1, weight=1)
 
 
 		self.title('AnyTreeView')
@@ -333,8 +332,11 @@ class AnyTreeView(Toplevel):
 		self.tree = tree
 		h = len([node.name for node in PreOrderIter(tree)])
 		self.treeview = ttk.Treeview(self.main_frame, column=("c1"), height = h)
-		self.treeview.column("# 1",anchor=CENTER, stretch=YES, width=1000)
-		self.treeview.pack(expand=True, fill='y')
+		self.treeview.column("# 1",anchor=CENTER, stretch=YES)
+
+		# Streching treeview after right atjust the window
+		self.columnconfigure(1, weight=1)
+		self.treeview.pack(expand=True, fill='x')
 
 	def generate(self):
 
