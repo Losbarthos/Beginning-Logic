@@ -18,12 +18,6 @@ import matplotlib.pyplot as plt
 from operator import itemgetter
 
 
-#from swiplserver import json_to_prolog
-
-import json
-
-import multiprocessing
-
 
 
 def normalize(proposition, extended = False):
@@ -344,226 +338,143 @@ class Proof:
 		Core class for prooving theorems.
 	'''
 	def __init__(self, derivation):
+		# Constants
+		self.NODE = "origin_node"
+		self.EDGE = "edge"
+		self.RULE = "rule"
+
+
+
 		self.derivation = derivation
-		
-		self.assumptions, self.premisses, self.conclusion = self.unzip(derivation, with_premisses=True, extended=True)
-		self.network = ProofNetwork(self.assumptions, self.conclusion)
-		
-		self.table = ProofTable()
-		self.table.expand_assumptions(self.assumptions)
-		self.table.expand_premisses(self.premisses)
+		self.proofs_original = self.proof(self.derivation)
+		self.graphs = self.init_graphs(self.proofs_original)
+		self.tables = self.init_tables(self.proofs_original)
 
-		self.rule_index = 0
-		self.is_proofed = self.proofed()
 
-		self.derivation_tree = Node(derivation)
-	
-	def replace_by(self, new_proof):
-		self.derivation = new_proof.derivation
-		
-		self.assumptions = new_proof.assumptions
-		self.premisses = new_proof.premisses
-		self.conclusion = new_proof.conclusion
-		self.network = new_proof.network
-		
-		self.table = new_proof.table
-		
-		self.rule_index = new_proof.rule_index
-		self.is_proofed = new_proof.is_proofed	
 
-	def set_index(self, index):
-		self.rule_index = index
-
-	def unzip(self, derivation, with_premisses=False, extended=False):
-		result = PL.query(f"unzip({derivation}, A, B, C).")[0]
-		result['A'] = json_to_prolog(result['A'])
-		result['B'] = json_to_prolog(result['B'])
-		result['C'] = json_to_prolog(result['C'])
-
-		assumptions = normalize(result['A'], extended)
-		premisses = normalize(result['B'], extended)
-		conclusion = normalize(result['C'], extended)
-
-		if with_premisses == False:
-			return (assumptions, conclusion)
-		else:
-			return (assumptions, premisses, conclusion)
-
-	def proofed(self):
+	def proof(self, derivation):
 		'''
-			Checks, if theorem is proofed.
+			Proofs the derivation within Prolog functionality and sends it from 
+			Prolog to Python with swiplserver. The result is a list of dictionaries 
+			which illustrate the proof-graph.
 		'''
-		return PL.query(f"isvalid({self.derivation}).")
+		def proof_to_dict(proof):
+			'''
+				Converts the result string in some dictionary python can work with
+			'''
 
+			import json
+			result = "{" + proof.replace("''",'"').replace("'","")[1:-1] + "}"
+			result = json.loads(result)
 
+			return result
 
-	def simplify(self, rule):
-		result = PL.query(f"{rule}({self.derivation}, NextStep, Core).")
-		if result != False:
-			next_step = []
-			core = []
-			for step in result[0]['NextStep']:
-				next_step.append(normalize(json_to_prolog(step)))
-			for elem in result[0]['Core']:
-				res = normalize(json_to_prolog(elem), True)
-				core.append(res)
-			
-			return (next_step, core)
-		return result
+		def main(derivation):
+			'''
+				Called from here.
+			'''
 
-	def expand_to_new_rule(self, subProofs, old_rule, new_rule):
-		'''
-			Updates the proof variables after one rule is successfully evaluated
-			by functions evaluate_and or evaluate_or.
-		'''
-		
-		# main function expand_to_new_rule:
+			from swiplserver import PrologMQI, PrologThread
 
-		for subProof in subProofs:
-			self.rule_index = subProof.rule_index
-			self.network.add_network(subProof.network)
+			with PrologMQI() as mqi:
+				with mqi.create_thread() as prolog_thread:
+					prolog_thread.query(f"consult('{PL_LOGIC}').")
+					result = prolog_thread.query(f"proof_py({derivation}, Proof).")
 
-			self.table.expand_assumptions(subProof.table.assumptions)
-			self.table.expand_premisses(subProof.table.premisses)
-
-		head = new_rule[0]		
-		origin = new_rule[1:]
-
-		self.network.connect_with_rule(old_rule, self.rule_index, head, origin)
-		self.rule_index = self.rule_index + 1
-		self.is_proofed = True
-		return True
-
-	def evaluate_and(self, rule, rule_result):
-		derivations = sring_to_stringlist(rule_result[0])
-		proofs = []
-		proof_index = self.rule_index
-
-		for derivation in derivations:
-			p = Proof(derivation)
-			p.set_index(proof_index)
-			p.derivation_tree = Node(f"{self.derivation_tree.name} {rule} {derivation}", parent=self.derivation_tree)
-			p.proof()
-
-			if p.is_proofed == False:	
-				self.is_proofed = False
-				return False
-				#for proof in proofs:
-				#	proof.derivation_tree.name = p.derivation_tree.name + ", not solved."
-
-			proofs.append(p)
-			proof_index = p.rule_index
-
-		return proofs
-
-	def evaluate_or(self, rule, rule_result):
-		derivations = sring_to_stringlist(rule_result[0])
-		if len(derivations) == 0:
-			self.is_proofed = False
-			return False
-
-		n = len(derivations)
-		proofs = []
-			
-		for i in range(n):
-			p = Proof(derivations[i])
-			p.set_index(self.rule_index)
-			p.derivation_tree = Node(f"{self.derivation_tree.name} {rule} {derivations[i]}", parent=self.derivation_tree)
-
-			p.proof()
-
-			if p.is_proofed == True:
-				proofs.append([p, i, p.table.len, p.table.len])
-			#else:
-			#	p.derivation_tree.name = p.derivation_tree.name + ", not solved."
-		
-		if len(proofs) == 0:
-			self.is_proofed = False
-			return False
-
-		proofs = (sorted(proofs, key=itemgetter(3)))
-
-		return [[proofs[0][0]], proofs[0][1], proofs[0][2]]
-
-
-	def proof(self):
-		'''
-			Core function for proving self.derivation.
-		'''
-		question_solved = False
-		passed = False
-		protocoll_marked = False 
-		neg_proof_buffer = []
-		neg_index = 0 
-		
-		if self.is_proofed == False:	
-			for key in BASIC_RULES:
-				passed = False
-				result = self.simplify(key)
-				if result != False:
-					if GET_PROTOCOLL == True:
-						print("Old: " + self.derivation)
-						print("Key: " + key)
-						print(f"New: {result[0][0]}")
+					result = [proof_to_dict(item["Proof"]) for item in result]
 					
-					if key in ['↓→', '↑∧']:
-						passed = True
-						question_solved = self.evaluate_and(BASIC_RULES[key], result)
+					return result
 
-						if question_solved != False:
-							question_solved = self.expand_to_new_rule(question_solved, BASIC_RULES[key], result[1])
-					elif key in ['↓¬¬', '↓¬']:
-						buffer = self.evaluate_or(BASIC_RULES[key], result)
-						if buffer != False:
-							buffer.append(key)
-							neg_proof_buffer.append(buffer)
+		return main(derivation)
 
-						
-						if key == '↓¬':
-							passed = True
-							try:
-								neg_proof_buffer.remove(False)
-							except:
-								pass
+	def init_graphs(self, proofs):
+		def remove_node(node_string):
+			'''
+				removes the function tag self.NODE(inner) and returns inner.
+			'''
+			return node_string.replace(self.NODE,"")[1:-1]
 
-						if neg_index == 1:
-							if neg_proof_buffer == []:
-								question_solved = False
-							else:
-								neg_proof_buffer = (sorted(neg_proof_buffer, key=itemgetter(2)))
-								question_solved = neg_proof_buffer[0]
-								key_solved = question_solved[3]
+		def remove_rule(rule_string):
+			'''
+				removes the function tag self.RULE(inner) and returns inner.
+			'''
+			return rule_string.replace(self.RULE,"")[1:-1]
 
-						neg_index = neg_index + 1
+		def remove_edge(edge_string):
+			'''
+				removes the function tag self.EDGE(inner1, inner2) and returns 
+				(inner1, inner2) as tuple.
+			'''
+			edge_string = edge_string.replace(self.EDGE,"")[1:-1]
+			edge_string = edge_string.split(",")
+			return tuple(edge_string)
 
-						if passed == True and question_solved != False:
-							print
-							question_solved = self.expand_to_new_rule(question_solved[0], BASIC_RULES[key_solved], result[1][question_solved[1]])
-						
-				if passed == True:
-					if question_solved == True:			
+		def main(proofs):
+			'''
+				Called from here.
+			'''
+			import networkx as nx
 
-						self.network.remove_lost_vertices()
-						self.table.set_network(self.network)
-						self.table.create_table()
+			result = []
+			for proof in proofs:
+				g = nx.DiGraph()
+				lbl = {}
 
-						if GET_PROTOCOLL == True:
-							self.derivation_tree.name = self.derivation_tree.name + ", solved."
-							protocoll_marked = True
-							self.network.draw()
-							
-							print(tabulate(self.table.console_format(),  showindex=False, tablefmt="plain"))
-						break
-					else:
-						if GET_PROTOCOLL == True:
-							protocoll_marked = True
-							#self.derivation_tree.name = self.derivation_tree.name + ", not solved."
-		if GET_PROTOCOLL == True:
-			if protocoll_marked == False:
-				if self.is_proofed == True:
-					self.derivation_tree.name = self.derivation_tree.name + ", solved."
-				else:
-					self.derivation_tree.name = self.derivation_tree.name + ", not solved."
+				for key, list_value in proof.items():
+					
+					nodes = [remove_node(x) for x in list_value if x.startswith(self.NODE)]
+					edges = [remove_edge(x) for x in list_value if x.startswith(self.EDGE)]
+					rule = [remove_rule(x) for x in list_value if x.startswith(self.RULE)]
+					
+		
+					if len(rule) > 0:
+						rule = rule[0] # at most we have one rule
+
+					for node in nodes:
+						g.add_node(node)
+
+					for edge in edges:
+						g.add_edge(edge[0], edge[1])
+						lbl[edge] = rule
+
+				result.append(tuple([g, lbl]))
+
+			return result
+
+		return main(proofs)
+
+	def init_tables(self, proofs):
+		print(proofs)
+
+
+
+		for proof in proofs:
+			for key, list_value in proof.items():
+
+
+	def view_graph(self, index):
+		'''
+			Draws self.graph[index].
+		'''
+		import networkx as nx
+		import matplotlib.pyplot as plt
+
+		graph = self.graphs[index][0]
+		labels = self.graphs[index][1]
+
+		pos = nx.spring_layout(graph)
+
+		nx.draw(graph, pos, with_labels=True)
+		nx.draw_networkx_edge_labels(graph, pos,edge_labels=labels)
+		
+		plt.axis('off')
+		plt.show()
+
+
+
+
+		
+	
 
 	
 if __name__ == '__main__':
@@ -577,18 +488,6 @@ if __name__ == '__main__':
 	print(derivation)
 
 	p = Proof(derivation)
+	#p.view_graph(0)
 
-	p.proof()
-	
-	print(p.is_proofed)
 
-	#p.table.create_table()
-
-	
-	print(tabulate(p.table.console_format(),  showindex=False, tablefmt="plain"))
-
-#print(p.rule_index)
-	p.network.draw()
-
-	#p.network.show_graph(p.graph.graph)
-#([(p→(q→r)),(p→q),p],[]) ⊦ r

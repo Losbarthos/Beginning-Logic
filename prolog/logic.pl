@@ -3,8 +3,6 @@
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
-
-
 % Logical operators
 % Connectives
 :-op(800, fx, ¬).
@@ -88,14 +86,19 @@ Tail ⊦ Head :-
 	forall(member(X,Assumptions), formula(X)),
 	forall(member(X,Premisses), formula(X)).
 
+derivation(X) :- X = (_ ⊦ _).
+derivation(X) :- binary_connective(X, A, B), derivation(A), derivation(B).
+
 % extracts Assumptions, Premisses and Conclusion from derivation
 unzip(Derivation, Assumptions, Premisses, Conclusion) :-
 	Derivation = ((Assumptions, Premisses) ⊦ Conclusion).
 
-isvalid(Derivation) :-
-	Derivation = ((Assumptions, Premisses) ⊦ Conclusion),
+% checks if a Derivation is valid without some use of proof steps
+isvalid(((Assumptions, Premisses) ⊦ Conclusion)) :-
 	union(Assumptions, Premisses, U),
 	member(Conclusion, U).
+
+
 
 % Rules of simplification
 
@@ -145,6 +148,11 @@ isvalid(Derivation) :-
 	(Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
 		union(A, P1, U), ((L ∧ R) ∈ U),
 	(R ∉ U), append(P1, [R], P2), AndE = [L ∧ R, R]).
+
+andE_s(Origin, NextStep, AndE) :-
+	↓∧(Origin_old, NextStep_old, AndE_old),
+	term_to_atom(Origin_old, Origin), term_to_atom(NextStep_old, NextStep), term_to_atom(AndE_old, AndE). 
+
 
 % Same as
 % [A;P?C, (L ∨ R) ∈ (A ∪ P), L, R ∉ (A ∪ P)] → A,L;P?C and A,R;P?C    
@@ -200,54 +208,93 @@ contradictions(Base, Contradictions) :-
 	findall(X, (member(Y, Contra), X=[¬(C),(Y ∧ ¬(Y)), C]), NegI).
 
 
+% Same as
+% A;P?L∧R → A;P?L and A;P?R   
+%    with
+% AndI = [L ∧ R]  
+rule(Origin, NextStep, AndI, N) :-
+	Origin = ((A, P) ⊦ (L ∧ R)), 
+	NextStep = (((A, P) ⊦ L) ∧ ((A, P) ⊦ R)),
+	format(atom(AndI), '"~w": ["~w", "~w", "~w"]', [N, edge(L, L ∧ R), edge(R, L ∧ R), rule('∧I')]).
 
-unordered_subset(SubSet, Set):-
-  length(LSet, Set),
-  between(0,LSubSet, LSet),
-  length(LSubSet, NSubSet),
-  permutation(NSubSet, SubSet),
-  subset(NSubSet, Set).
+% Same as
+% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
+%    with
+% ImpE = [L → R]  
+rule(Origin, NextStep, ImpE, N) :-
+	Origin = ((A1, P1) ⊦ C), 
+	NextStep = (((A1, P2) ⊦ C) ∧ ((A3, P3) ⊦ L)),
+	union(A1, P1, U), ((L → R) ∈ U), R ∉ U,
+	delete(A1, (L → R), A3), delete(P1, (L → R), P3),
+	append(P1, [R], P2),
+	format(atom(ImpE), '"~w": ["~w", "~w", "~w"]', [N, edge(L, R), edge(L → R, R), rule('→E')]).
 
+rule(Origin, NextStep, NegE, N) :-
+	Origin = ((A1, P) ⊦ C),
+	not(⊥(C)), (¬(C) ∉ A1), append(A1, [¬(C)], A2),
+	union(A1, P, U), contradictions(U, Contra),
+	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
+	disjunction_list(NextStepList, NextStep),
+	findall(X, (member(Y, Contra), 
+				format(atom(X), '"~w": ["~w", "~w", "~w", "~w"]', 
+					   [N, origin_node(¬(C)), edge(¬(C), C), edge(Y ∧ ¬(Y), C), rule('¬E')])),
+				NegEList),
+	disjunction_list(NegEList, NegE).
 
-% Checks, if Weaker_Derivation has more assumptions
-% but same conclusion as Derivation. 
-% Further on, we say that Weaker_Derivation is weaker then Derivation.
-derivation_is_weaker(Weaker_Derivation, Derivation) :-
-	binary_derivation(Weaker_Derivation, A0, C0),
-	binary_derivation(Derivation, A1, C1),
-	subset(A1, A0),
-	(((nonvar(C0) -> (C1 = C0)); (C0 = C1))).
-
-% Filters all Theorems X for which Derivation is a weaker Derivation than X 
-% and stores them in Useable_Theorems. 
-usable_theorems(Derivation, Theorems, Useable_Theorems) :-
-	findall(X, 
-		(member(X, Theorems), 
-		 derivation_is_weaker(Derivation, X)), 
-		                             Useable_Theorems).
-
-% Same as usable_theorems. The "Theorems" consist of 
-% pairs of an theorem name (Key) and 
-% the derivation represented by theorem (Value).
-usable_theorems_pairs(Derivation, Theorems, Useable_Theorems) :-
-	pairs_values(Theorems, Theorem_Values),
-	usable_theorems(Derivation, Theorem_Values, Useable_Theorem_Values),
-	pairs_values(Useable_Theorems, Useable_Theorem_Values),
-	subset(Useable_Theorems, Theorems).
-
-% Same as usable_theorems_pairs. The theorems consist of an dictionary 
-% instead of pairs.
-usable_theorems_dict(Derivation, Theorems, Useable_Theorems) :-
-	dict_pairs(Theorems, _, Theorems_Pairs),
-	usable_theorems_pairs(Derivation, Theorems_Pairs, Useable_Theorems_Pairs),
-	dict_pairs(Useable_Theorems, useable_theorems, Useable_Theorems_Pairs).
-
-
-% Example calls of usable_theorems
-% usable_theorems([p,q]⊦p, [[A]⊦A,[A∧B]⊦A], Z).
-% usable_theorems_dict([p,q]⊦p, theorems{'d1':[A]⊦A,'d2':[A∧B]⊦A}, Z).
-% usable_theorems_pairs([p,q]⊦p, [d1-([A]⊦A), d2-([A∧B]⊦A)], Z).
+rule(Origin, NextStep, NegI, N) :-
+	Origin = ((A1, P) ⊦ ¬(C)),
+	not(⊥(C)), (C ∉ A1), append(A1, [C], A2),
+	union(A1, P, U), contradictions(U, Contra),
+	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
+	disjunction_list(NextStepList, NextStep),
+	findall(X, (member(Y, Contra), 
+				format(atom(X), '"~w": ["~w", "~w", "~w", "~w"]', 
+					   [N, origin_node(C), edge(C, ¬(C)), edge(Y ∧ ¬(Y), ¬(C)), rule('¬I')])),
+			NegIList),
+	disjunction_list(NegIList, NegI).
 
 
-pair(X, Y, Z) :-
-	Z=(X,Y).
+proof(Derivation, [], G, G, N, N) :- 	
+		isvalid(Derivation).
+
+proof(Derivation, Proof, G, G, N, M) 	:- 	
+		Derivation = (D1 ∧ D2),
+		proof(D1, Proof1, _, _, N, NN), proof(D2, Proof2, _, _, NN, M), 
+		union(Proof1, Proof2, Proof).
+
+proof(Derivation, Proof, G, G, N, M) :- 	
+		not(isvalid(Derivation)),
+		rule(Derivation, NextStep, Gin, N), 
+		succ(N,NN), 
+		proof(NextStep, Proof1, Gin, Gout, NN, M),
+		union([Gout],Proof1,Proof).
+
+proof(Derivation, Proof, Gin, Gout, N, M) :- 
+		Derivation = (D1 ∨ _),
+		Gin = (G1 ∨ _),
+		proof(D1, Proof, G1, Gout, N, M).
+
+proof(Derivation, Proof, Gin, Gout, N, M) :- 
+		Derivation = (_ ∨ D2),
+		Gin = (_ ∨ G2),
+		proof(D2, Proof, G2, Gout, N, M).
+
+
+
+proof(Derivation, Proof) :- 
+	Derivation = ((A, []) ⊦ _),
+	findall(X, (member(Y, A), term_to_atom(origin_node(Y), X)), AStrings),
+	term_to_atom(AStrings, Assumptions),
+	format(atom(Assume), '"0": ~w', [Assumptions]),
+	proof(Derivation, Proof1, _, _, 1, _),
+	union([Assume], Proof1, Proof).
+
+
+% Examples
+% ?- proof((([¬(q),p→q], []) ⊦ ¬(p)), P).
+%
+
+
+proof_py(Derivation, Proof) :-
+	proof(Derivation, Proof1), 
+	term_to_atom(Proof1, Proof).
