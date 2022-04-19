@@ -3,6 +3,9 @@
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
+:-use_module(ldict).
+:-use_module(library(http/json)).
+
 % Logical operators
 % Connectives
 :-op(800, fx, ¬).
@@ -208,86 +211,123 @@ contradictions(Base, Contradictions) :-
 	findall(X, (member(Y, Contra), X=[¬(C),(Y ∧ ¬(Y)), C]), NegI).
 
 
+%
+% Derivations which can used in the proof.
+%
+
 % Same as
 % A;P?L∧R → A;P?L and A;P?R   
 %    with
 % AndI = [L ∧ R]  
-rule(Origin, NextStep, AndI, N) :-
+rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A, P) ⊦ (L ∧ R)), 
 	NextStep = (((A, P) ⊦ L) ∧ ((A, P) ⊦ R)),
-	format(atom(AndI), '"~w": ["~w", "~w", "~w"]', [N, edge(L, L ∧ R), edge(R, L ∧ R), rule('∧I')]).
+
+	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
+	term_string(edge([L, L ∧ R]), Atom1), term_string(edge([R, L ∧ R]), Atom2),
+	term_string(assumptions(A), Atom3),
+	DictOut = DictIn.put([CIndexOut = [Atom3, Atom1, Atom2, "rule([∧I])"]]).
 
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 %    with
 % ImpE = [L → R]  
-rule(Origin, NextStep, ImpE, N) :-
+rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P1) ⊦ C), 
-	NextStep = (((A1, P2) ⊦ C) ∧ ((A3, P3) ⊦ L)),
+	NextStep1 = ((A3, P3) ⊦ L),
+	NextStep = ((A1, P2) ⊦ C),
+
 	union(A1, P1, U), ((L → R) ∈ U), R ∉ U,
 	delete(A1, (L → R), A3), delete(P1, (L → R), P3),
 	append(P1, [R], P2),
-	format(atom(ImpE), '"~w": ["~w", "~w", "~w"]', [N, edge(L, R), edge(L → R, R), rule('→E')]).
 
-rule(Origin, NextStep, NegE, N) :-
+	dict_min_index(DictIn, IndexUntouched),
+
+	proof(NextStep1, DictIn, ProofRaw),
+	dict_normalize(ProofRaw, IndexUntouched, Proof),
+	dict_max_index(Proof, AIndexIn), succ(AIndexIn, AIndexOut),
+	term_string(edge([L, R]), Atom1), term_string(edge([L → R, R]), Atom2), term_string(assumptions(A1), Atom3),
+	DictOut = Proof.put([AIndexOut = [Atom3, Atom1, Atom2, "rule([→E])"]]).
+
+% Same as
+% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
+%    with
+% ImpE = [L → R]  
+rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P) ⊦ C),
 	not(⊥(C)), (¬(C) ∉ A1), append(A1, [¬(C)], A2),
 	union(A1, P, U), contradictions(U, Contra),
 	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
-	findall(X, (member(Y, Contra), 
-				format(atom(X), '"~w": ["~w", "~w", "~w", "~w"]', 
-					   [N, origin_node(¬(C)), edge(¬(C), C), edge(Y ∧ ¬(Y), C), rule('¬E')])),
-				NegEList),
-	disjunction_list(NegEList, NegE).
 
-rule(Origin, NextStep, NegI, N) :-
+	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
+	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
+	findall(X, (member(Y, Contra), 
+				term_string(¬(C), Atom1), term_string(edge([¬(C), C]), Atom2),
+				term_string(edge([Y ∧ ¬(Y), C]), Atom3), term_string(assumptions(A2), Atom4),
+				term_string(except([¬(C)]), Atom5),
+				X = DictIn.put([AIndexOut = Atom1, 
+								CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([¬E])"]])),
+				NegEList),
+	disjunction_list(NegEList, DictOut).
+
+
+rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P) ⊦ ¬(C)),
 	not(⊥(C)), (C ∉ A1), append(A1, [C], A2),
 	union(A1, P, U), contradictions(U, Contra),
 	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
+
+	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
+	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
+	
 	findall(X, (member(Y, Contra), 
-				format(atom(X), '"~w": ["~w", "~w", "~w", "~w"]', 
-					   [N, origin_node(C), edge(C, ¬(C)), edge(Y ∧ ¬(Y), ¬(C)), rule('¬I')])),
+				term_string(C, Atom1), term_string(edge([C, ¬(C)]), Atom2),
+				term_string(edge([Y ∧ ¬(Y), ¬(C)]), Atom3), term_string(assumptions(A2), Atom4),
+				term_string(except([C]), Atom5),
+				X = DictIn.put([AIndexOut = Atom1, 
+								CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([¬I])"]])),
 			NegIList),
-	disjunction_list(NegIList, NegI).
+	disjunction_list(NegIList, DictOut).
 
+%
+% Proofs some Derivation
+%
 
-proof(Derivation, [], G, G, N, N) :- 	
+proof(Derivation, Proof, Proof) :- 	
 		isvalid(Derivation).
 
-proof(Derivation, Proof, G, G, N, M) 	:- 	
+proof(Derivation, ProofIn, Proof) 	:- 	
 		Derivation = (D1 ∧ D2),
-		proof(D1, Proof1, _, _, N, NN), proof(D2, Proof2, _, _, NN, M), 
-		union(Proof1, Proof2, Proof).
+		proof(D2, ProofIn, Proof2),
+		proof(D1, ProofIn, Proof1), 
+		Proof = Proof2.put(Proof1).
 
-proof(Derivation, Proof, G, G, N, M) :- 	
+proof(Derivation, ProofIn, Proof) :- 	
 		not(isvalid(Derivation)),
-		rule(Derivation, NextStep, Gin, N), 
-		succ(N,NN), 
-		proof(NextStep, Proof1, Gin, Gout, NN, M),
-		union([Gout],Proof1,Proof).
+		rule(Derivation, NextStep, ProofIn, ProofOut), 
+		proof(NextStep, ProofOut, Proof).
 
-proof(Derivation, Proof, Gin, Gout, N, M) :- 
+proof(Derivation, ProofIn, Proof) :- 
 		Derivation = (D1 ∨ _),
-		Gin = (G1 ∨ _),
-		proof(D1, Proof, G1, Gout, N, M).
+		ProofIn = (Proof1 ∨ _),
+		proof(D1, Proof1, Proof).
 
-proof(Derivation, Proof, Gin, Gout, N, M) :- 
+proof(Derivation, ProofIn, Proof) :- 
 		Derivation = (_ ∨ D2),
-		Gin = (_ ∨ G2),
-		proof(D2, Proof, G2, Gout, N, M).
+		ProofIn = (_ ∨ Proof2),
+		proof(D2, Proof2, Proof).
 
 
 
 proof(Derivation, Proof) :- 
 	Derivation = ((A, []) ⊦ _),
-	findall(X, (member(Y, A), term_to_atom(origin_node(Y), X)), AStrings),
-	term_to_atom(AStrings, Assumptions),
-	format(atom(Assume), '"0": ~w', [Assumptions]),
-	proof(Derivation, Proof1, _, _, 1, _),
-	union([Assume], Proof1, Proof).
+	findall(X, (member(Y, A), term_string(Y,X)), AA),
+	list_to_dict(AA, proof, Assumptions),
+	distinct([Proof], 
+			 (proof(Derivation, Assumptions, ProofRaw), 
+			  dict_normalize(ProofRaw, 1, Proof))).
 
 
 % Examples
