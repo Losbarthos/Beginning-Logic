@@ -153,23 +153,26 @@ class ProofTable(Toplevel):
 
 		for index in self.table.index:
 			# Assumptions
-			lbl = Label(self, text=self.table[0][index])
+			s_assumptions = ', '.join([str(s) for s in self.table["Assumptions"][index]])
+			lbl = Label(self, text=s_assumptions)
 			lbl.grid(column=0, row=index+1, sticky='e')
 
 			# Index
-			lbl = Label(self, text=self.table[1][index])
+			lbl = Label(self, text=self.table["Index"][index])
 			lbl.grid(column=1, row=index+1, sticky='e')
 
 			# Proposition
-			lbl = Label(self, text=self.table[2][index])
+			lbl = Label(self, text=self.table["Proposition"][index])
 			lbl.grid(column=2, row=index+1, sticky='w')
 
 			# Premisses
-			lbl = Label(self, text= self.table[3][index])
+			s_premisses = ', '.join([str(s) for s in self.table["Premisses"][index]])
+
+			lbl = Label(self, text= s_premisses)
 			lbl.grid(column=3, row=index+1, sticky='e')
 
 			# Rule
-			lbl = Label(self, text= self.table[4][index])
+			lbl = Label(self, text= self.table['Rule'][index])
 			lbl.grid(column=4, row=index+1, sticky='w')
 
 
@@ -280,14 +283,12 @@ class Derivation(Frame):
 		'''
 			Draws some networkx-graph illustrates the proof.
 		'''
-		self.proof.network.draw()
+		self.proof.view_graph(0)
 
 	def proofTable(self):
-		assumptions = ', '.join(self.proof.assumptions)
-		conclusion = self.proof.conclusion
-		derivation = f"{assumptions} ⊦ {conclusion}"
+		derivation = self.proof.derivation
 
-		ProofTable(root, self.proof.table.console_format(), derivation)
+		ProofTable(root, self.proof.tables[1], derivation)
 
 	def reset(self):
 		# destroy all widgets from frame

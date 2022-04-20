@@ -1,60 +1,31 @@
-from tkinter import *
-from tkinter import ttk
+import matplotlib.pyplot as plt
+import networkx as nx
 
-from anytree import Node, RenderTree, AsciiStyle, PreOrderIter
-
-# anytree definition
-udo = Node("Udo the very first king of London and Manchester, born in China and studied in Japan.")
-marc = Node("Marc the second monarch of south carolina married Isabel the very first arab princess.", parent=udo)
-
-class AnyTreeView(Toplevel):
+def view_graph(graph, node_labels, edge_labels):
     '''
-        Illustrates some anytree treeview into some 
+        Plots the graph
     '''
-    def __init__(self, master, tree ):  
-        super().__init__(master = master)
+    pos = nx.spring_layout(graph)
+    nx.draw(graph, pos, node_color=color_map)
+    nx.draw_networkx_labels(graph, pos, labels=node_labels)
+    nx.draw_networkx_edge_labels(graph, pos, edge_labels=edge_labels)
+    plt.axis('off')
+    plt.show()
 
-        self.resizable(width=True, height=False)
-        
-        self.main_frame = Frame(self)
-        self.main_frame.grid(row=1,column=1,sticky="ew")
+index_to_name = {1: "Paul", 2: "Magda", 3: "Paul", 4: "Anna", 5: "Marie", 6: "John", 7: "Mark"}
+color_map2 = {1: "blue", 2: "green", 3: "blue", 4: "lightgreen", 5: "lightgreen", 6: "lightblue", 7: "lightblue"}
+color_map = ["blue", "green", "blue", "lightgreen", "lightgreen", "lightblue", "lightblue"]
 
+relation = {}
+relation[(1, 4)] = "dad"
+relation[(2, 4)] = "mom"
+relation[(1, 5)] = "dad"
+relation[(2, 5)] = "mom"
+relation[(3, 6)] = "dad"
+relation[(4, 6)] = "mom"
+relation[(3, 7)] = "dad"
+relation[(4, 7)] = "mom"
 
-        self.title('AnyTreeView')
-        
-        self.tree = tree
-        h = len([node.name for node in PreOrderIter(tree)])
-        self.treeview = ttk.Treeview(self.main_frame, column=("c1"), height = h)
-        self.treeview.column("# 1",anchor=CENTER, stretch=YES)
+g = nx.from_edgelist(relation, nx.DiGraph())
 
-
-        # Streching treeview after right atjust the window
-        self.columnconfigure(1, weight=1)
-        self.treeview.pack(expand=True, fill='x')
-
-
-    def generate(self):
-        '''
-        Dynamically generates the treeview object with the nodes from the parameter tree.
-        '''
-
-        index = 0
-        for node in PreOrderIter(self.tree):
-            print(node.name)
-            self.treeview.insert('',f'{index}', node.name, text = node.name)
-            index = index + 1
-
-        for node in PreOrderIter(self.tree):
-            for child in node.children:
-                self.treeview.move(child.name, node.name, 'end')
-
-def m_tree():
-    tv = AnyTreeView(root, udo)
-    tv.generate()
-
-root = Tk()
-
-bt = Button(text ="Tree", command = m_tree)
-bt.pack()
-
-root.mainloop()
+view_graph(g, index_to_name, relation)
