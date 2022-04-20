@@ -333,123 +333,185 @@ class ProofNetwork():
 		plt.axis('off')
 		plt.show()
 
+
+
+
+
+
 class Proof:
 	'''
 		Core class for prooving theorems.
 	'''
-	def __init__(self, derivation):
+	def __init__(self):
 		# Constants
 		self.NODE = "origin_node"
 		self.EDGE = "edge"
 		self.RULE = "rule"
 
+		self.assumptions = []
+		self.conclusion = ""
+
+		self.derivation = ""
+		self.original = None
+		self.tables = None
+		self.graphs = None
 
 
-		self.derivation = derivation
-		self.proofs_original = self.proof(self.derivation)
-		self.graphs = self.init_graphs(self.proofs_original)
-		self.tables = self.init_tables(self.proofs_original)
+	def add_assumptions(self, assumptions):
+		if(type(assumptions) == str ):
+			self.assumptions.append(assumptions)
+		else:
+			self.assumptions = [*self.assumptions, *assumptions]
+		self.update_derivation()
 
+	def set_conclusion(self, conclusion):
+		self.conclusion = conclusion
+		self.update_derivation()
 
+	def update_derivation(self):
+		self.derivation = f"([{','.join(self.assumptions)}],[]) ⊦ {self.conclusion}"
 
-	def proof(self, derivation):
+	def get_derivation(self):
+		if len(self.assumptions) == 0 and self.conclusion == "":
+			return ""
+		else:
+			return f"{','.join(self.assumptions)} ⊦ {self.conclusion}"
+
+	def proof(self):
 		'''
 			Proofs the derivation within Prolog functionality and sends it from 
 			Prolog to Python with swiplserver. The result is a list of dictionaries 
 			which illustrate the proof-graph.
 		'''
-		def proof_to_dict(proof):
-			'''
-				Converts the result string in some dictionary python can work with
-			'''
-
-			import json
-			result = "{" + proof.replace("''",'"').replace("'","")[1:-1] + "}"
-			result = json.loads(result)
-
-			return result
 
 		def main(derivation):
 			'''
-				Called from here.
+				This function is called from proof(self, derivation)
 			'''
 
 			from swiplserver import PrologMQI, PrologThread
+			import ast
 
 			with PrologMQI() as mqi:
 				with mqi.create_thread() as prolog_thread:
 					prolog_thread.query(f"consult('{PL_LOGIC}').")
 					result = prolog_thread.query(f"proof_py({derivation}, Proof).")
 
-					result = [proof_to_dict(item["Proof"]) for item in result]
+					return [ast.literal_eval(item["Proof"].replace("proof","")) for item in result]
+		derivation = self.derivation
+
+		self.original = main(derivation)
+		self.tables = self.init_tables()
+		self.graphs = self.init_graphs()
+
+	def init_tables(self):
+		def assume(index, assumption):
+			'''
+				Returns some assumption line in table.
+			'''
+			line = {'Assumptions': set([index]),
+					'Index': index,
+					'Proposition': assumption,
+					'Premisses': set([]),
+					'Rule': 'A'}
+			return pd.DataFrame([line])
+
+		def conclude(index, inner, df):
+			'''
+				Returns some conclusion line different frome assumption line in table.
+			'''
+			def get_parameters(name, function):
+				'''
+					Gets the parameters [a1, a2, ..., an] in form of a list
+					of some function of type f1(a1, a2, ..., an).
+				'''
+				inner = function.removeprefix(name)[2:-2]
+				return inner.split(",")
+
+			premisses = set([]) # premiss parameter in table (column 3)
+			assumptions = set([]) # assumption parameter in table (column 0) (includes ex, which must be seperately eliminated)
+			origin = set([]) # possible assumptions from prolog output
+			ex = set([]) # propositions which are eliminated from assumptions
+			rule = "" # rule name
+			conclusion = "" # proposition name
+			
+			for entry in inner:
+				if entry.startswith("edge"): # appends premiss index and its assumption indexes to line
+					[premiss, conclusion] = get_parameters("edge", entry)
+					select = df.loc[(df['Proposition'] == premiss) & 
+										(df['Assumptions'].apply(lambda x: x.issubset(origin)))]
+					premisses = premisses.union(set([select["Index"].item()]))
+					assumptions = assumptions.union(select["Assumptions"].item())
+					conclusion = conclusion
+				elif entry.startswith("rule"): # gets the rule name
+					rule = get_parameters("rule", entry)[0]
+				elif entry.startswith("assumptions"): # gets the possible assumptions 
+					origin = set([df.loc[(df['Proposition'] == assumption) &
+								         (df['Rule'] == 'A')]["Index"].item() 
+								  for assumption in get_parameters("assumptions", entry)])
+				elif entry.startswith("except"): # gets the exceptions which don't get the permission to be assumptions. 
+					ex = set([df.loc[(df['Proposition'] == no_assumption) &
+								  	  (df['Rule'] == 'A')]["Index"].item() 
+								  for no_assumption in get_parameters("except", entry)])
+
+			line = {'Assumptions': assumptions.difference(ex),
+					'Index': index,
+					'Proposition': conclusion,
+					'Premisses': premisses,
+					'Rule': rule}
+			return pd.DataFrame([line])
+
+
+		def main():
+			'''
+				Function init_tables(self) is called from here
+			'''
+			table = {}
+			i = -1
+			for proof in self.original:
+				i = i + 1
+				table[i] = pd.DataFrame(
+						   columns=['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule'])
+
+				for key in proof:
+					if type(proof[key]) is str: # assumptions are string objects
+						new_frame = [table[i], assume(key, proof[key])]
+					else: # general conclusions are list objects
+						new_frame = [table[i], conclude(key, proof[key], table[i])]
+					table[i] = pd.concat(new_frame)	
+
+				table[i].index = table[i]['Index']
+
+			return table
+		# Body of function init_tables(self)
+		return main()
+
+	def init_graphs(self):
+		import networkx as nx
+		graphs = []
+
+
+		for key in self.tables:
+			table = self.tables[key]
+			g = nx.DiGraph()
+			edge_labels = {}
+			color_map = []
+
+			for index, row in table.iterrows():
+				if(row["Rule"] == 'A'):
 					
-					return result
+					color_map.append("red")
+				else:
+					color_map.append("blue")
+				for premiss in row["Premisses"]:
+					e = (premiss, index)
+					edge_labels[e]  = row["Rule"]
+					g.add_edge(*e)
+			graphs.append((g, edge_labels, color_map))
 
-		return main(derivation)
-
-	def init_graphs(self, proofs):
-		def remove_node(node_string):
-			'''
-				removes the function tag self.NODE(inner) and returns inner.
-			'''
-			return node_string.replace(self.NODE,"")[1:-1]
-
-		def remove_rule(rule_string):
-			'''
-				removes the function tag self.RULE(inner) and returns inner.
-			'''
-			return rule_string.replace(self.RULE,"")[1:-1]
-
-		def remove_edge(edge_string):
-			'''
-				removes the function tag self.EDGE(inner1, inner2) and returns 
-				(inner1, inner2) as tuple.
-			'''
-			edge_string = edge_string.replace(self.EDGE,"")[1:-1]
-			edge_string = edge_string.split(",")
-			return tuple(edge_string)
-
-		def main(proofs):
-			'''
-				Called from here.
-			'''
-			import networkx as nx
-
-			result = []
-			for proof in proofs:
-				g = nx.DiGraph()
-				lbl = {}
-
-				for key, list_value in proof.items():
+		return graphs
 					
-					nodes = [remove_node(x) for x in list_value if x.startswith(self.NODE)]
-					edges = [remove_edge(x) for x in list_value if x.startswith(self.EDGE)]
-					rule = [remove_rule(x) for x in list_value if x.startswith(self.RULE)]
-					
-		
-					if len(rule) > 0:
-						rule = rule[0] # at most we have one rule
 
-					for node in nodes:
-						g.add_node(node)
-
-					for edge in edges:
-						g.add_edge(edge[0], edge[1])
-						lbl[edge] = rule
-
-				result.append(tuple([g, lbl]))
-
-			return result
-
-		return main(proofs)
-
-	def init_tables(self, proofs):
-		print(proofs)
-
-
-
-		for proof in proofs:
-			for key, list_value in proof.items():
 
 
 	def view_graph(self, index):
@@ -460,12 +522,16 @@ class Proof:
 		import matplotlib.pyplot as plt
 
 		graph = self.graphs[index][0]
-		labels = self.graphs[index][1]
+		edge_labels = self.graphs[index][1]
+		color_map = self.graphs[index][2]
+		node_labels = self.tables[index]
+		node_labels = node_labels.to_dict()['Proposition']
 
 		pos = nx.spring_layout(graph)
 
-		nx.draw(graph, pos, with_labels=True)
-		nx.draw_networkx_edge_labels(graph, pos,edge_labels=labels)
+		nx.draw(graph, pos, node_color = color_map)
+		nx.draw_networkx_labels(graph, pos, labels=node_labels)
+		nx.draw_networkx_edge_labels(graph, pos,edge_labels=edge_labels)
 		
 		plt.axis('off')
 		plt.show()
@@ -479,15 +545,24 @@ class Proof:
 	
 if __name__ == '__main__':
 
+	p = Proof()
+
 	assumptions = ["(p→q)", "¬(q)"]
 	conclusion = "¬(p)"
 
-	derivation = f"([{','.join(assumptions)}],[]) ⊦ {conclusion}"
+	p.add_assumptions(assumptions)
+	p.set_conclusion(conclusion)
+	
 
+	
 
-	print(derivation)
+	p.proof()
 
-	p = Proof(derivation)
-	#p.view_graph(0)
+	#data = [table.to_dict() for table in p.tables]
+
+	print(p.tables[0].to_dict())
+	print(p.tables[1].to_dict())
+
+	p.view_graph(0)
 
 

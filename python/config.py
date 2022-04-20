@@ -9,7 +9,7 @@ from pathlib import Path
 from prolog_interface import *
 
 
-GET_PROTOCOLL = True
+GET_PROTOCOLL = False
 
 # Conventions of Table headlines
 ASSUMPTION = "Assumption"
@@ -55,6 +55,7 @@ BASIC_RULES = {
 # Starts and gets basic config of prolog interpreter swiprologserver
 ARGS = 'args'
 FUNCTOR = 'functor'
+
 
 
 
