@@ -342,19 +342,40 @@ class Proof:
 	'''
 		Core class for prooving theorems.
 	'''
-	def __init__(self, derivation):
+	def __init__(self):
 		# Constants
 		self.NODE = "origin_node"
 		self.EDGE = "edge"
 		self.RULE = "rule"
 
-		self.derivation = derivation
-		self.original = self.proof()
-		self.tables = self.init_tables()
+		self.assumptions = []
+		self.conclusion = ""
 
-		self.graphs = self.init_graphs()
+		self.derivation = ""
+		self.original = None
+		self.tables = None
+		self.graphs = None
 
 
+	def add_assumptions(self, assumptions):
+		if(type(assumptions) == str ):
+			self.assumptions.append(assumptions)
+		else:
+			self.assumptions = [*self.assumptions, *assumptions]
+		self.update_derivation()
+
+	def set_conclusion(self, conclusion):
+		self.conclusion = conclusion
+		self.update_derivation()
+
+	def update_derivation(self):
+		self.derivation = f"([{','.join(self.assumptions)}],[]) ⊦ {self.conclusion}"
+
+	def get_derivation(self):
+		if len(self.assumptions) == 0 and self.conclusion == "":
+			return ""
+		else:
+			return f"{','.join(self.assumptions)} ⊦ {self.conclusion}"
 
 	def proof(self):
 		'''
@@ -378,7 +399,10 @@ class Proof:
 
 					return [ast.literal_eval(item["Proof"].replace("proof","")) for item in result]
 		derivation = self.derivation
-		return main(derivation)
+
+		self.original = main(derivation)
+		self.tables = self.init_tables()
+		self.graphs = self.init_graphs()
 
 	def init_tables(self):
 		def assume(index, assumption):
@@ -521,15 +545,24 @@ class Proof:
 	
 if __name__ == '__main__':
 
+	p = Proof()
+
 	assumptions = ["(p→q)", "¬(q)"]
 	conclusion = "¬(p)"
 
-	derivation = f"([{','.join(assumptions)}],[]) ⊦ {conclusion}"
+	p.add_assumptions(assumptions)
+	p.set_conclusion(conclusion)
+	
 
+	
 
-	print(derivation)
+	p.proof()
 
-	p = Proof(derivation)
+	#data = [table.to_dict() for table in p.tables]
+
+	print(p.tables[0].to_dict())
+	print(p.tables[1].to_dict())
+
 	p.view_graph(0)
 
 
