@@ -1,18 +1,22 @@
+#  Basic libary to prove theorems
+#    Author:        Martin Kunze
+#    E-mail:        mkunze86@gmail.com
+#    Copyright (c)  2022, Martin Kunze
+
+from config import *
+from proof import *
+
+
 from tkinter import *
 from tkinter import ttk
 
-from config import *
+
 import re
 from itertools import cycle, islice, dropwhile
-
-from anytree import Node, PreOrderIter
-
-from proof import *
+from collections import deque
 
 import pandas as pd
-from pandastable import Table, TableModel
 
-from collections import deque
 
 class PropositionEditor(Toplevel):
 	#SQUARES = '▯▮'
@@ -219,11 +223,6 @@ class Derivation(Frame):
 		self.bt_graph.grid(column=1, row=0)
 		self.bt_graph.configure(state=DISABLED)
 
-		self.i_tbl = PhotoImage(file=I_TBL)
-		self.tbl = Button(self.toolbar, image=self.i_tbl, bg='lightgreen', command=self.proofTable)
-		self.tbl.grid(column=2, row=0)
-		self.tbl.configure(state=DISABLED)
-
 		self.i_reset = PhotoImage(file=I_RESET)
 		self.reset = Button(self.toolbar, image=self.i_reset, bg='white', command=self.reset)
 		self.reset.grid(column=3, row=0)
@@ -285,7 +284,6 @@ class Derivation(Frame):
 		self.add_assumption.configure(state=DISABLED)
 		self.set_conclusion.configure(state=DISABLED)
 		self.bt_graph.configure(state=NORMAL)
-		self.tbl.configure(state=NORMAL)
 		self.p.proof()
 
 		self.shift = ShiftControl(self.table_shift_frame, self.table_shift_child_frame, self.init_table, self.p.tables)
@@ -301,12 +299,8 @@ class Derivation(Frame):
 		'''
 			Draws some networkx-graph illustrates the proof.
 		'''
-		self.proof.view_graph(0)
-
-	def proofTable(self):
-		derivation = self.proof.derivation
-
-		ProofTable(root, self.proof.tables[1], derivation)
+		index = self.shift.index_pool[0]
+		self.p.view_graph(index)
 
 	def reset(self):
 		# destroy all widgets from frame
