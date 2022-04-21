@@ -10,6 +10,8 @@ from proof import *
 from tkinter import *
 from tkinter import ttk
 
+import matplotlib.pyplot as plt
+
 
 import re
 from itertools import cycle, islice, dropwhile
