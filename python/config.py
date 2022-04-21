@@ -5,8 +5,6 @@
 
 from enum import Enum
 from pathlib import Path
-#from swiplserver import PrologMQI, json_to_prolog
-from prolog_interface import *
 
 
 GET_PROTOCOLL = False
@@ -55,8 +53,3 @@ BASIC_RULES = {
 # Starts and gets basic config of prolog interpreter swiprologserver
 ARGS = 'args'
 FUNCTOR = 'functor'
-
-
-
-
-PL = PL_Interface(f'{PL_LOGIC}')
