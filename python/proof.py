@@ -67,13 +67,16 @@ class Proof:
 				with mqi.create_thread() as prolog_thread:
 					prolog_thread.query(f"consult('{PL_LOGIC}').")
 					result = prolog_thread.query(f"proof_py({derivation}, Proof).")
-
-					return [ast.literal_eval(item["Proof"].replace("proof","")) for item in result]
+					if result == False:
+						return False
+					else:
+						return [ast.literal_eval(item["Proof"].replace("proof","")) for item in result]
 		derivation = self.derivation
 
 		self.original = main(derivation)
-		self.tables = self.init_tables()
-		self.graphs = self.init_graphs()
+		if self.original != False:
+			self.tables = self.init_tables()
+			self.graphs = self.init_graphs()
 
 	def init_tables(self):
 		def assume(index, assumption):
@@ -132,26 +135,37 @@ class Proof:
 					'Rule': rule}
 			return pd.DataFrame([line])
 
+		def is_unique_value(dictionary, key, value):
+			to_append = True
+			for index in dictionary:
+				if dictionary[index].equals(value):
+					to_append = False
+
+			return to_append
+
 
 		def main():
 			'''
 				Function init_tables(self) is called from here
 			'''
 			table = {}
-			i = -1
+			i = 0
 			for proof in self.original:
-				i = i + 1
-				table[i] = pd.DataFrame(
+				df = pd.DataFrame(
 						   columns=['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule'])
 
 				for key in proof:
 					if type(proof[key]) is str: # assumptions are string objects
-						new_frame = [table[i], assume(key, proof[key])]
+						new_frame = [df, assume(key, proof[key])]
 					else: # general conclusions are list objects
-						new_frame = [table[i], conclude(key, proof[key], table[i])]
-					table[i] = pd.concat(new_frame)	
+						new_frame = [df, conclude(key, proof[key], df)]
+					df = pd.concat(new_frame)	
 
-				table[i].index = table[i]['Index']
+				df.index = df['Index'] # sets key
+
+				if is_unique_value(table, i, df):
+					table[i] = df
+					i = i + 1
 
 			return table
 		# Body of function init_tables(self)
@@ -184,30 +198,28 @@ class Proof:
 
 		return graphs
 					
-
-
-
 	def view_graph(self, index):
 		'''
 			Draws self.graph[index].
 		'''
 		import networkx as nx
-		from netgraph import Graph # pip install netgraph
+		from netgraph._main import EmphasizeOnHoverGraph
 		import matplotlib.pyplot as plt
 
 		graph = self.graphs[index][0]
 		edge_labels = self.graphs[index][1]
 		color_map = self.graphs[index][2]
-		node_labels = self.tables[index]
+		node_labels = highlight = self.tables[index]
 		node_labels = node_labels.to_dict()['Proposition']
 
-		print(graph)
+		highlight = highlight.to_dict()["Assumptions"]
+		highlight = {x: list(highlight[x].union(set([x]))) for x in highlight}
 
-
-		Graph(graph, node_layout='dot',
+		fig, ax = plt.subplots(figsize=(10, 10))
+		g = EmphasizeOnHoverGraph(graph, node_layout='dot',
 			node_labels=node_labels, node_label_fontdict=dict(size=10),
 			edge_labels=edge_labels, edge_label_fontdict=dict(size=8), edge_label_rotate=False,
-			node_color=color_map, node_edge_color=color_map, arrows=True
+			node_color=color_map, node_edge_color=color_map, arrows=True, mouseover_highlight_mapping = highlight
 		)
 
 		plt.show()
@@ -229,3 +241,7 @@ if __name__ == '__main__':
 	p.view_graph(1)
 
 
+# MTT
+# assumptions = ["(p→q)", "¬(q)"]
+# conclusion = "¬(p)"
+#
