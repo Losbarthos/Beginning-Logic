@@ -12,7 +12,6 @@ from tkinter import ttk
 
 import matplotlib.pyplot as plt
 
-
 import re
 from itertools import cycle, islice, dropwhile
 from collections import deque
@@ -282,14 +281,18 @@ class Derivation(Frame):
 		'''
 			Generates a proof of the derivation by natural deduction.
 		'''
-		self.calc.configure(state=DISABLED)
-		self.add_assumption.configure(state=DISABLED)
-		self.set_conclusion.configure(state=DISABLED)
-		self.bt_graph.configure(state=NORMAL)
+		from tkinter import messagebox
+
 		self.p.proof()
-
-		self.shift = ShiftControl(self.table_shift_frame, self.table_shift_child_frame, self.init_table, self.p.tables)
-
+		
+		if self.p.original != False:
+			self.calc.configure(state=DISABLED)
+			self.add_assumption.configure(state=DISABLED)
+			self.set_conclusion.configure(state=DISABLED)
+			self.bt_graph.configure(state=NORMAL)
+			self.shift = ShiftControl(self.table_shift_frame, self.table_shift_child_frame, self.init_table, self.p.tables)
+		else:
+			messagebox.showinfo("Info", "Proof failed!")
 
 
 		if GET_PROTOCOLL == True:

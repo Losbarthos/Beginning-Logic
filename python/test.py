@@ -1,22 +1,23 @@
-#!/usr/bin/env python
-# coding: utf-8
 
-import matplotlib.pyplot as plt
-import networkx as nx
+import pandas as pd
+import numpy as np
 
-from netgraph import Graph # pip install netgraph
+if __name__ == '__main__':
+    data1 = {'row_1': [3, 2, 1, 0], 'row_2': ['a', 'b', 'c', 'd']}
+    
+    df1 = pd.DataFrame.from_dict(data1, orient='index', columns=['A', 'B', 'C', 'D'])
+    data2 = {'col_1': [3, 2, 1, 0], 'col_2': ['a', 'b', 'c', 'd']}
 
-node_labels = {1: 'p→q', 2: '¬q', 3: '¬ (¬p)', 4: '¬p', 5: '¬p∧ ¬ (¬p)', 6: 'p', 7: 'q', 8: 'q∧ ¬q', 9: '¬p'}
-color_map = {1: 'red', 2: 'red', 3: 'red', 4: 'red', 5: 'lightblue', 6: 'lightblue', 7: 'lightblue', 8: 'lightblue', 9: 'blue'}
-edge_labels = {(3, 5): '∧I', (4, 5): '∧I', (4, 6): '¬E', (5, 6): '¬E', (1, 7): '→E', (6, 7): '→E', (2, 8): '∧I', (7, 8): '∧I', (8, 9): '¬E', (3, 9): '¬E'}
-highlight = {1: {1}, 2: {2}, 3: {3}, 4: {4}, 5: {3, 4}, 6: {3}, 7: {1, 3}, 8: {1, 2, 3}, 9: {1, 2}}
+    df2 = pd.DataFrame.from_dict(data2)
+    df3 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
+                   columns=['a', 'b', 'c'])
+    data = np.array([(1, 2, 3), (4, 5, 6), (7, 8, 9)],
 
-graph = nx.from_edgelist(edge_labels, nx.DiGraph())
+                dtype=[("a", "i4"), ("b", "i4"), ("c", "i4")])
 
-Graph(graph, node_layout='dot',
-      node_labels=node_labels, node_label_fontdict=dict(size=21),
-      edge_labels=edge_labels, edge_label_fontdict=dict(size=14), edge_label_rotate=False,
-      node_color=color_map, node_edge_color=color_map, arrows=True
-)
+    df4 = pd.DataFrame(data, columns=['c', 'a'])
 
-plt.show()
+    l_input = [df1, df2, df1, df3, df4, df4, df1, df3]
+    l_aim = [df1, df2, df3, df4]
+    if df1.equals(df1):
+        print("yes")

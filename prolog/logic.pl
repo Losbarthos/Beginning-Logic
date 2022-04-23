@@ -24,6 +24,7 @@ binary_connective(X  ∧  Y, X, Y).
 binary_connective(X  → Y, X, Y).
 binary_connective(X  ↔ Y, X, Y).
 binary_derivation(X ⊦ Y, X, Y).
+negation(¬(X), X).
 
 % Definition of formulas used in propositional logic
 formula(X) :-
@@ -101,20 +102,10 @@ isvalid(((Assumptions, Premisses) ⊦ Conclusion)) :-
 	union(Assumptions, Premisses, U),
 	member(Conclusion, U).
 
+% Contradiction rules
+⊥(A):- (A = (X ∧ (¬X));A = ((¬X) ∧ X)), formula(X).
 
-
-% Rules of simplification
-
-% Rules from the proposed theorem to towards the hypotheses (bottom-up rules)
-
-% Same as
-% A;P?L∧R → A;P?L and A;P?R   
-%    with
-% AndI = [L ∧ R]  
-↑∧(Origin, NextStep, AndI) :-
-	Origin = ((A, P) ⊦ (L ∧ R)), 
-	NextStep = [((A, P) ⊦ L), ((A, P) ⊦ R)],
-	AndI = [L ∧ R, L, R].
+% Rules of simplification (need improvement)
 
 % Same as
 % A;P?L∨R → A;P?L or A;P?R   
@@ -168,48 +159,47 @@ andE_s(Origin, NextStep, AndE) :-
 	append(A1, [L], A2), append(A1, [R], A3),
 	OrE = [L ∨ R].
 
-% Same as
-% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
-%    with
-% ImpE = [L → R]  
-↓→(Origin, NextStep, ImpE) :-
-	Origin = ((A1, P1) ⊦ C), 
-	NextStep = [((A1, P2) ⊦ C), ((A3, P3) ⊦ L)],
-	union(A1, P1, U), ((L → R) ∈ U), R ∉ U,
-	delete(A1, (L → R), A3), delete(P1, (L → R), P3),
-	append(P1, [R], P2),
-	ImpE = [R, L → R, L].
 
-
-% Contradiction rules
-⊥(A):- (A = (X ∧ (¬X));A = ((¬X) ∧ X)), formula(X).
-
+% contradictions(+Base, -Contradictions)
 % Gets all possible contradictions withhin negation elemination and introduction
+
+% The set of contradictions of A ∧ B, A ∨ B, A → C and A ↔ B is the union of the set of contradictions of A
+% with the set of contradictions of B
 contradictions(Base, Contradictions) :-
-	findall(X, ((X ∈ Base), variable(X)), Variables),
-	findall(X, (¬(X) ∈ Base), Negatable),
-	findall(X,
-		(((_ → X) ∈ Base), 
-		subformulas(X, S), 
-		not(subset(S, Base))), Consequences),
-	union(Variables, Negatable, S1), 
-	union(S1, Consequences, Contradictions).
+	binary_connective(Base, X, Y), contradictions(X, C1), contradictions(Y, C2), union(C1, C2, Contradictions).
+% The set of contradictions of a negation ¬ A only consists of ¬ A itself.
+contradictions(Base, Contradictions) :-
+	Base = ¬(A), Contradictions = [A].
+% The set of contradictions of some variable is empty.
+contradictions(Base, Contradictions) :-
+	subformulas(Base, Sub),
+	findall(X, member(X, Sub), X = ¬(_), Neg),
+	length(Neg, 0), Contradictions = [].
+% Find all contradictions for some list of propositions.
+contradictions(Base, Contradictions) :-
+	findall(X, (Y ∈ Base, contradictions(Y, X)), LoLContradictions),
+	append(LoLContradictions, Contradictions).
 
+% Checks, if some functor is negation invariant. More details see: 
+% https://stackoverflow.com/questions/71967110/remove-invariants-from-some-prolog-list/71980981#71980981
+% invariant_2n(+X,+Y,+Fun)
 
-↓¬¬(Origin, NextStep, NegE) :-
-	Origin = ((A1, P) ⊦ C),
-	not(⊥(C)), (¬(C) ∉ A1), append(A1, [¬(C)], A2),
-	union(A1, P, U), contradictions(U, Contra),
-	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStep),
-	findall(X, (member(Y, Contra), X=[C,(Y ∧ ¬(Y)), ¬(C)]), NegE).
+invariant_2n(X, Y, Fun) :-
+    Y =.. [Fun, T],
+    T =.. [Fun, X].
+invariant_2n(X, Y, Fun) :-
+    Y =.. [Fun, T],
+    T =.. [Fun, Z],
+    invariant_2n(X, Z, Fun).
 
-↓¬(Origin, NextStep, NegI) :-
-	Origin = ((A1, P) ⊦ ¬(C)),
-	not(⊥(C)), (C ∉ A1), append(A1, [C], A2),
-	union(A1, P, U), contradictions(U, Contra),
-	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStep),
-	findall(X, (member(Y, Contra), X=[¬(C),(Y ∧ ¬(Y)), C]), NegI).
-
+% Checks, if their is some member in Terms, which has negation invariant opposite to Member 
+% anymember_invariant_2n(+Terms,+Member,+F)
+anymember_invariant_2n(Terms, Member, F) :-
+	member(T, Terms),
+	invariant_2n(T, Member, F).
+anymember_invariant_2n(Terms, Member, F) :-
+	member(T, Terms),
+	invariant_2n(Member, T, F).
 
 %
 % Derivations which can used in the proof.
@@ -217,8 +207,7 @@ contradictions(Base, Contradictions) :-
 
 % Same as
 % A;P?L∧R → A;P?L and A;P?R   
-%    with
-% AndI = [L ∧ R]  
+% RuleName: ∧I
 rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A, P) ⊦ (L ∧ R)), 
 	NextStep = (((A, P) ⊦ L) ∧ ((A, P) ⊦ R)),
@@ -228,16 +217,54 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	term_string(assumptions(A), Atom3),
 	DictOut = DictIn.put([CIndexOut = [Atom3, Atom1, Atom2, "rule([∧I])"]]).
 
+
+
+
+
+
+
+
+
+
+% Same as
+% [A;P?L→R] → A,L;P?R   
+%    with
+% ImpI = [L → R]  
+% RuleName: →I
+rule(Origin, NextStep, DictIn, DictOut) :-
+	Origin = ((A1, P) ⊦ (L → R)),
+	NextStep = ((A2, P) ⊦ R),
+	append(A1, [L], A2),
+
+	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
+	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
+	term_string(L, Atom1), term_string(edge([L, L → R]), Atom2), term_string(edge([R, L → R]), Atom3),
+	term_string(assumptions(A2), Atom4), term_string(except([L]), Atom5), 
+	DictOut = DictIn.put([AIndexOut = Atom1, CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([→I])"]]).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
-%    with
-% ImpE = [L → R]  
+% RuleName: →E
 rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P1) ⊦ C), 
 	NextStep1 = ((A3, P3) ⊦ L),
 	NextStep = ((A1, P2) ⊦ C),
 
-	union(A1, P1, U), ((L → R) ∈ U), R ∉ U,
+	union(A1, P1, U), ((L → R) ∈ U), R ∉ U, not(C=L),
 	delete(A1, (L → R), A3), delete(P1, (L → R), P3),
 	append(P1, [R], P2),
 
@@ -249,14 +276,23 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	term_string(edge([L, R]), Atom1), term_string(edge([L → R, R]), Atom2), term_string(assumptions(A1), Atom3),
 	DictOut = Proof.put([AIndexOut = [Atom3, Atom1, Atom2, "rule([→E])"]]).
 
+
+
+
+
+
+
+
 % Same as
-% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
+% [A;P?C, (C ∧ ¬C) ∉ A, ¬C ∉ A] → (A,¬C;P?(X1 ∧ ¬X1)) ∨ (A,¬C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,¬C;P?(Xn ∧ ¬Xn))    
 %    with
-% ImpE = [L → R]  
-rule(Origin, NextStep, DictIn, DictOut) :-
+% ¬Xi ∈ (A ∪ P)
+% RuleName: ¬E 
+% Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
+c_rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P) ⊦ C),
-	not(⊥(C)), (¬(C) ∉ A1), append(A1, [¬(C)], A2),
-	union(A1, P, U), contradictions(U, Contra),
+	not(⊥(C)), union(A1, P, U), (¬(C) ∉ U), append(A1, [¬(C)], A2), not(anymember_invariant_2n(U, ¬(C), ¬)),
+	union(A2, P, U2), contradictions(U2, Contra),
 	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
 
@@ -271,11 +307,15 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 				NegEList),
 	disjunction_list(NegEList, DictOut).
 
-
-rule(Origin, NextStep, DictIn, DictOut) :-
+% Same as
+% [A;P?¬C, (C ∧ ¬C) ∉ A, C ∉ A] → (A,C;P?(X1 ∧ ¬X1)) ∨ (A,C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,C;P?(Xn ∧ ¬Xn))    
+%    with
+% ¬Xi ∈ (A ∪ P)
+% RuleName: ¬I 
+c_rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P) ⊦ ¬(C)),
-	not(⊥(C)), (C ∉ A1), append(A1, [C], A2),
-	union(A1, P, U), contradictions(U, Contra),
+	not(⊥(C)), union(A1, P, U), (C ∉ U), append(A1, [C], A2), not(anymember_invariant_2n(U, C, ¬)),
+	union(A2, P, U2), contradictions(U2, Contra),
 	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
 
@@ -308,7 +348,11 @@ proof(Derivation, ProofIn, Proof) :-
 		not(isvalid(Derivation)),
 		rule(Derivation, NextStep, ProofIn, ProofOut), 
 		proof(NextStep, ProofOut, Proof).
-
+proof(Derivation, ProofIn, Proof) :- 	
+		not(isvalid(Derivation)),
+		not(rule(Derivation, NextStep, ProofIn, ProofOut)),
+		c_rule(Derivation, NextStep, ProofIn, ProofOut), 
+		proof(NextStep, ProofOut, Proof).
 proof(Derivation, ProofIn, Proof) :- 
 		Derivation = (D1 ∨ _),
 		ProofIn = (Proof1 ∨ _),
@@ -325,9 +369,8 @@ proof(Derivation, Proof) :-
 	Derivation = ((A, []) ⊦ _),
 	findall(X, (member(Y, A), term_string(Y,X)), AA),
 	list_to_dict(AA, proof, Assumptions),
-	distinct([Proof], 
-			 (proof(Derivation, Assumptions, ProofRaw), 
-			  dict_normalize(ProofRaw, 1, Proof))).
+	proof(Derivation, Assumptions, ProofRaw),
+	distinct([Proof], dict_normalize(ProofRaw, 1, Proof)).
 
 
 % Examples
