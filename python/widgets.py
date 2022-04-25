@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 #  Basic libary to prove theorems
 #    Author:        Martin Kunze
 #    E-mail:        mkunze86@gmail.com
@@ -147,7 +149,7 @@ class PropositionEditor(Toplevel):
 
 
 class ShiftControl(Frame):
-    def __init__(self, parent, parent_child, apply_method, dataset):
+    def __init__(self, parent, parent_child, apply_method, dataset, label_key_text):
         Frame.__init__(self, parent)
         Frame.__init__(self, parent_child)
         
@@ -157,41 +159,72 @@ class ShiftControl(Frame):
         self.parent_child = parent_child
         self.apply = apply_method
         self.data = dataset
+        self.label_key_text = label_key_text
 
         self.backward = Button(self.parent, text="◀", command = self.backward)
-        self.backward.grid(column=0, row=0,  sticky='news')
+        self.backward.grid(column=0, row=0,  sticky='w')
         
         self.forward = Button(self.parent, text="▶", command = self.forward)
-        self.forward.grid(column=1, row=0,  sticky='news')   
+        self.forward.grid(column=1, row=0,  sticky='w')   
 
-        self.inner = Label(self.parent, text=self.get_label_text("Proof"))
-        self.inner.grid(column=2, row=0, stick='w')
+        self.inner = Label(self.parent, text=self.get_label_text(self.label_key_text))
+        self.inner.grid(column=2, row=0, stick='news')
 
         self.switch_frame = Frame(self.parent_child)
-        self.switch_frame.grid(column=0, row=1, columnspan=3)
+        self.switch_frame.grid(column=0, row=1, columnspan=3, sticky='news')
         self.apply(self.switch_frame, self.data[0])
+
+    def append_data(self, element):
+    	'''
+    		Appends a new element to the dataset of the switch datacollection element.
+    	'''
+    	# Element has form deque([m, m+1, ..., n, 0, 1, ..., m-1]),
+    	# Step 1: bring deque with a negative rotation of m to form deque([0, 1, m, m+1, ..., n]),    	 
+    	neg_rotate = self.index_pool[0] - self.max # needet shift of deque to perform step 1.
+    	self.index_pool.rotate(neg_rotate)
+    	# Step 2: append n+1 to the deque, it as now the form deque([0, 1, m, m+1, ..., n, n+1]).
+    	self.index_pool.append(self.max)
+    	# Step 3: rotate the element again to get the origin position of the deque. It is now of form:
+    	# 							deque([m, m+1, ..., n, n+1, 0, 1, ..., m-1]).
+    	self.index_pool.rotate(-neg_rotate + 1)
+    	self.max = self.max + 1
+    	self.inner["text"] = self.get_label_text(self.label_key_text)
 
     def get_label_text(self, switch_name):
         return f"{switch_name} {self.index_pool[0] + 1} from {self.max}"
 
 
     def switch(self, steps):
-        ###
-        # Table 
-        ###
+        '''
+        	Switch the values of the ShiftControl by steps. In special we only need the cases 
+        	switch(1) and switch(-1) in this control element.
+        '''
+        for widget in self.switch_frame.winfo_children():
+        	widget.destroy()
+
         self.switch_frame.destroy()
         self.switch_frame = Frame(self.parent_child)
         self.switch_frame.grid(column=0, row=1, columnspan=3)
+        
         self.index_pool.rotate(steps)
 
-        self.inner["text"] = self.get_label_text("Proof")
         self.apply(self.switch_frame, self.data[self.index_pool[0]])
-        #tbl = ProofTable(self.table_frame, data[self.index_pool[0]])
+        self.inner["text"] = self.get_label_text(self.label_key_text)
     
-    def forward(self):
-        self.switch(1)
+    def forward(self): 
+    	'''
+    		performs a shift of following form:
+    		deque([0, 1,..., n-1]) --> deque([1, 2, ..., n, 0])
+    		so the second element is now focused. 
+    	'''        
+    	self.switch(-1)
     def backward(self):
-        self.switch(-1)
+    	'''
+    		performs a shift of following form:
+    		deque([0, 1,..., n-1]) --> deque([n, 0, 1, ..., n-1])
+    		so the last element n is now focused.
+    	'''
+    	self.switch(1)
 
 
 class Derivation(Frame):
@@ -201,7 +234,7 @@ class Derivation(Frame):
 
 		self.main_frame = Frame(self.parent)
 		self.main_frame.grid(column=0, row=0)
-		self.p = Proof()
+		self.p = [Proof()]
 
 		self.table = None
 
@@ -215,9 +248,9 @@ class Derivation(Frame):
 		self.toolbar.grid(column=0,row=0, sticky='w')
 
 		self.i_calc = PhotoImage(file=I_QED)
-		self.calc = Button(self.toolbar, image=self.i_calc, bg='white', command=self.proof)
-		self.calc.grid(column=0, row=0)
-		self.calc.configure(state=DISABLED)
+		self.bt_calc = Button(self.toolbar, image=self.i_calc, bg='white', command=self.proof)
+		self.bt_calc.grid(column=0, row=0)
+		self.bt_calc.configure(state=DISABLED)
 
 		self.i_graph = PhotoImage(file=I_GRAPH)
 		self.bt_graph = Button(self.toolbar, image=self.i_graph, bg='lightblue', command=self.graph)
@@ -225,31 +258,104 @@ class Derivation(Frame):
 		self.bt_graph.configure(state=DISABLED)
 
 		self.i_reset = PhotoImage(file=I_RESET)
-		self.reset = Button(self.toolbar, image=self.i_reset, bg='white', command=self.reset)
-		self.reset.grid(column=3, row=0)
+		self.bt_reset = Button(self.toolbar, image=self.i_reset, bg='white', command=self.reset)
+		self.bt_reset.grid(column=3, row=0)
 
 		##
 		# Derivation representation
 		##
+		self.derivation_shift_frame = Frame(self.main_frame)
+		self.derivation_shift_frame.grid(column=0, row=1, sticky='w')
+		self.derivation_shift_child_frame = Frame(self.derivation_shift_frame)
+		self.derivation_shift_child_frame.grid(column=0, row=1, columnspan=3, sticky='w')
 
-		self.add_assumption = Button(self.main_frame, text = "Add Assumption", command=lambda: self.new_FormulaEditor(self.apply_assumption))
-		self.add_assumption.grid(column=0, row=1)
-		self.set_conclusion = Button(self.main_frame, text = "Add Conclusion", command=lambda: self.new_FormulaEditor(self.apply_conclusion))
-		self.set_conclusion.grid(column=1, row=1)
+		self.shift_derivation = ShiftControl(self.derivation_shift_frame, self.derivation_shift_child_frame, self.set_derivation, self.p, "Derivation")
 
-		self.lbl_derivation = Label(self.main_frame)
-		self.lbl_derivation.grid(column=0, row=2, columnspan=2)
+		self.init_derivation_shift_frame(self.shift_derivation.switch_frame)
+	def init_derivation_shift_frame(self, inner_derivation_frame):
+		'''
+			After press the derivation shift buttons, the screen is updated. This method does the update.
+		'''
+
+		self.bt_add_assumption = Button(inner_derivation_frame, text = "Add Assumption", command=lambda: self.new_FormulaEditor(self.apply_assumption))
+		self.bt_add_assumption.grid(column=0, row=0)
+		self.bt_set_conclusion = Button(inner_derivation_frame, text = "Add Conclusion", command=lambda: self.new_FormulaEditor(self.apply_conclusion))
+		self.bt_set_conclusion.grid(column=1, row=0)
+		self.bt_add_derivation = Button(inner_derivation_frame, text = "+", command=self.add_derivation)
+		self.bt_add_derivation.grid(column=2, row=0)
+
+		self.lbl_derivation = Label(inner_derivation_frame)
+		self.lbl_derivation.grid(column=0, row=1, columnspan=3)
 
 		##
 		# Shift Control for Table view
 		##
-		self.table_shift_frame = Frame(root)
-		self.table_shift_frame.grid(column=0, row=3, sticky='w')
+		self.table_shift_frame = Frame(inner_derivation_frame)
+		self.table_shift_frame.grid(column=0, row=2, columnspan=5, sticky='w')
 
-		self.table_shift_child_frame = Frame(root)
-		self.table_shift_child_frame.grid(column=0, row=4, sticky='w')
+		self.table_shift_child_frame = Frame(self.table_shift_frame)
+		self.table_shift_child_frame.grid(column=0, row=1)
 
 		self.shift = None
+
+	def init_toolbar_state_proofed(self, proof, index):
+		'''
+			Setup of the toolbar under the condition of some proofed proposition.
+		'''
+		self.bt_calc.configure(state=DISABLED)
+		self.bt_add_assumption.configure(state=DISABLED)
+		self.bt_set_conclusion.configure(state=DISABLED)
+		if(len(proof.graphs[index][1]) > 0):
+			self.bt_graph.configure(state=NORMAL)
+		self.shift_table = ShiftControl(self.table_shift_frame, self.table_shift_child_frame, self.init_table, proof.tables, "Proof")
+
+	def init_toolbar_state_not_proofed(self):
+		self.bt_calc.configure(state=NORMAL)
+		self.bt_add_assumption.configure(state=NORMAL)
+		self.bt_set_conclusion.configure(state=NORMAL)
+		self.bt_graph.configure(state=DISABLED)
+
+	def init_toolbar_state_no_derivation(self):
+		self.bt_calc.configure(state=DISABLED)
+		self.bt_add_assumption.configure(state=NORMAL)
+		self.bt_set_conclusion.configure(state=NORMAL)
+		self.bt_graph.configure(state=DISABLED)
+		
+
+	def get_current_proof(self):
+		'''
+			Gets the current Proof variable "proof" based on some derivation and the index of the illustrated proof
+			from this variable.
+		'''
+		index = self.shift_derivation.index_pool[0]
+		proof = self.shift_derivation.data[index]
+
+		return proof
+
+	def set_derivation(self, parent_frame, proof):
+		#self.lbl_derivation = Label(parent_frame)
+		#self.lbl_derivation.grid(column=0, row=0, columnspan=2)
+		#self.lbl_derivation['text'] = proof.derivation
+
+		self.init_derivation_shift_frame(parent_frame)
+		self.lbl_derivation['text'] = proof.get_derivation()
+		
+		if proof.is_proven(): 
+			if proof.original != False: # The proof has found some valid result
+				proof = self.get_current_proof()
+				self.init_toolbar_state_proofed(proof, 0)
+			else:
+				self.init_toolbar_state_not_proofed()
+		else:
+			if proof.conclusion == "":
+				self.init_toolbar_state_no_derivation()
+			else:
+				self.init_toolbar_state_not_proofed()
+				
+
+	def add_derivation(self):
+		self.p.append(Proof())
+		self.shift_derivation.append_data("")
 
 
 	def init_table(self, parent_frame, table):
@@ -282,15 +388,11 @@ class Derivation(Frame):
 			Generates a proof of the derivation by natural deduction.
 		'''
 		from tkinter import messagebox
-
-		self.p.proof()
+		proof = self.get_current_proof()
+		proof.proof()
 		
-		if self.p.original != False:
-			self.calc.configure(state=DISABLED)
-			self.add_assumption.configure(state=DISABLED)
-			self.set_conclusion.configure(state=DISABLED)
-			self.bt_graph.configure(state=NORMAL)
-			self.shift = ShiftControl(self.table_shift_frame, self.table_shift_child_frame, self.init_table, self.p.tables)
+		if proof.original != False:
+			self.init_toolbar_state_proofed(proof, 0)
 		else:
 			messagebox.showinfo("Info", "Proof failed!")
 
@@ -304,8 +406,12 @@ class Derivation(Frame):
 		'''
 			Draws some networkx-graph illustrates the proof.
 		'''
-		index = self.shift.index_pool[0]
-		self.p.view_graph(index)
+		from tkinter import messagebox
+
+		proof = self.get_current_proof()
+		index = self.shift_table.index_pool[0]
+		proof.view_graph(index)
+		
 
 	def reset(self):
 		# destroy all widgets from frame
@@ -326,13 +432,15 @@ class Derivation(Frame):
 		PropositionEditor(self.parent, apply)
 
 	def apply_assumption(self, lbl_txt):
-		self.p.add_assumptions(lbl_txt)
-		self.lbl_derivation['text'] = self.p.get_derivation()
+		proof = self.shift_derivation.data[self.shift_derivation.index_pool[0]]
+		proof.add_assumptions(lbl_txt)
+		self.lbl_derivation['text'] = proof.get_derivation()
 
 	def apply_conclusion(self, lbl_txt):
-		self.p.set_conclusion(lbl_txt)
-		self.lbl_derivation['text'] = self.p.get_derivation()
-		self.calc.configure(state=NORMAL)
+		proof = self.shift_derivation.data[self.shift_derivation.index_pool[0]]
+		proof.set_conclusion(lbl_txt)
+		self.lbl_derivation['text'] = proof.get_derivation()
+		self.bt_calc.configure(state=NORMAL)
 
 
 class AnyTreeView(Toplevel):
@@ -390,7 +498,7 @@ class AnyTreeView(Toplevel):
 
 
 root = Tk()
-
+root.title("Beginning Logic")
 derivation = Derivation(root)
 
 root.mainloop()
