@@ -27,6 +27,15 @@ class Proof:
 		self.tables = None
 		self.graphs = None
 
+	def is_proven(self):
+		'''
+			True, if prove is already done.
+		'''
+
+		if self.original == None:
+			return False
+		else:
+			return True
 
 	def add_assumptions(self, assumptions):
 		if(type(assumptions) == str ):
@@ -114,8 +123,14 @@ class Proof:
 					[premiss, conclusion] = get_parameters("edge", entry)
 					select = df.loc[(df['Proposition'] == premiss) & 
 										(df['Assumptions'].apply(lambda x: x.issubset(origin)))]
-					premisses = premisses.union(set([select["Index"].item()]))
-					assumptions = assumptions.union(select["Assumptions"].item())
+					try:
+						premisses = premisses.union(set([select["Index"].item()]))
+						assumptions = assumptions.union(select["Assumptions"].item())
+					except:
+						print(f"Table at moment: {df}")
+						print(f"Indexes of most possible assumptions: {origin}")
+						print(f"Premiss to append on table: {premiss}")
+						raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')
 					conclusion = conclusion
 				elif entry.startswith("rule"): # gets the rule name
 					rule = get_parameters("rule", entry)[0]
@@ -186,6 +201,7 @@ class Proof:
 			for index, row in table.iterrows():
 				if(row["Rule"] == 'A'):
 					color_map[index] = "red"
+					g.add_node(index)
 				elif(index < rows):
 					color_map[index] = "lightblue"
 				else:
@@ -214,7 +230,6 @@ class Proof:
 
 		highlight = highlight.to_dict()["Assumptions"]
 		highlight = {x: list(highlight[x].union(set([x]))) for x in highlight}
-
 		fig, ax = plt.subplots(figsize=(10, 10))
 		g = EmphasizeOnHoverGraph(graph, node_layout='dot',
 			node_labels=node_labels, node_label_fontdict=dict(size=10),

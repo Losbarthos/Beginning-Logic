@@ -261,11 +261,11 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 % RuleName: →E
 rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P1) ⊦ C), 
-	NextStep1 = ((A3, P3) ⊦ L),
+	NextStep1 = ((A3, P4) ⊦ L),
 	NextStep = ((A1, P2) ⊦ C),
 
-	union(A1, P1, U), ((L → R) ∈ U), R ∉ U, not(C=L),
-	delete(A1, (L → R), A3), delete(P1, (L → R), P3),
+	union(A1, P1, U), ((L → R) ∈ U), R ∉ U, not(C=L), temp(L → R) ∉ U, temp(R) ∉ U,
+	delete(A1, (L → R), A3), delete(P1, (L → R), P3), append(P3, [temp(L → R)], P4),
 	append(P1, [R], P2),
 
 	dict_min_index(DictIn, IndexUntouched),
@@ -366,11 +366,11 @@ proof(Derivation, ProofIn, Proof) :-
 
 
 proof(Derivation, Proof) :- 
-	Derivation = ((A, []) ⊦ _),
+	distinct([Proof], (Derivation = ((A, []) ⊦ _),
 	findall(X, (member(Y, A), term_string(Y,X)), AA),
 	list_to_dict(AA, proof, Assumptions),
 	proof(Derivation, Assumptions, ProofRaw),
-	distinct([Proof], dict_normalize(ProofRaw, 1, Proof)).
+	dict_normalize(ProofRaw, 1, Proof))).
 
 
 % Examples
