@@ -127,6 +127,7 @@ class Proof:
 						premisses = premisses.union(set([select["Index"].item()]))
 						assumptions = assumptions.union(select["Assumptions"].item())
 					except:
+						print(f"At derivation: {self.derivation}")
 						print(f"Table at moment: {df}")
 						print(f"Indexes of most possible assumptions: {origin}")
 						print(f"Premiss to append on table: {premiss}")

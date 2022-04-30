@@ -201,6 +201,11 @@ anymember_invariant_2n(Terms, Member, F) :-
 	member(T, Terms),
 	invariant_2n(Member, T, F).
 
+% Deletes all members of WithTemp with prefix temp(...). 
+% no_temp(+WithTemp,-NoTemp)
+no_temp(WithTemp, NoTemp) :-
+	findall(X, (X ∈ WithTemp, not(X=temp(_))), NoTemp).
+
 %
 % Derivations which can used in the proof.
 %
@@ -214,22 +219,12 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 
 	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
 	term_string(edge([L, L ∧ R]), Atom1), term_string(edge([R, L ∧ R]), Atom2),
-	term_string(assumptions(A), Atom3),
+	sort(A, ASort), term_string(assumptions(ASort), Atom3),
 	DictOut = DictIn.put([CIndexOut = [Atom3, Atom1, Atom2, "rule([∧I])"]]).
-
-
-
-
-
-
-
-
-
 
 % Same as
 % [A;P?L→R] → A,L;P?R   
 %    with
-% ImpI = [L → R]  
 % RuleName: →I
 rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P) ⊦ (L → R)),
@@ -239,49 +234,60 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
 	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
 	term_string(L, Atom1), term_string(edge([L, L → R]), Atom2), term_string(edge([R, L → R]), Atom3),
-	term_string(assumptions(A2), Atom4), term_string(except([L]), Atom5), 
+	sort(A2, A2Sort), term_string(assumptions(A2Sort), Atom4), term_string(except([L]), Atom5), 
 	DictOut = DictIn.put([AIndexOut = Atom1, CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([→I])"]]).
 
+% Same as
+% [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L   
+%    with
+% RuleName: ∧E
+rule(Origin, NextStep, DictIn, DictOut) :- 
+	Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
+	union(A, P1, U), ((L ∧ R) ∈ U),
+	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, append(P1, [L], P2),
 
+	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut),
+	term_string(edge([L ∧ R, L]), Atom1), sort(A, ASort), term_string(assumptions(ASort), Atom2),
+	DictOut = DictIn.put([AIndexOut = [Atom2, Atom1, "rule([∧E])"]]).
 
+% Same as
+% [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R   
+%    with
+% RuleName: ∧E
+rule(Origin, NextStep, DictIn, DictOut) :- 
+	Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
+	union(A, P1, U), ((L ∧ R) ∈ U),
+	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, append(P1, [R], P2),
 
-
-
-
-
-
-
-
-
-
-
+	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut),
+	term_string(edge([L ∧ R, R]), Atom1), sort(A, ASort), term_string(assumptions(ASort), Atom2),
+	DictOut = DictIn.put([AIndexOut = [Atom2, Atom1, "rule([∧E])"]]).
 
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 % RuleName: →E
 rule(Origin, NextStep, DictIn, DictOut) :-
 	Origin = ((A1, P1) ⊦ C), 
-	NextStep1 = ((A3, P4) ⊦ L),
-	NextStep = ((A1, P2) ⊦ C),
+	NextStep1 = ((A2, P2) ⊦ L),
+	
 
-	union(A1, P1, U), ((L → R) ∈ U), R ∉ U, not(C=L), temp(L → R) ∉ U, temp(R) ∉ U,
-	delete(A1, (L → R), A3), delete(P1, (L → R), P3), append(P3, [temp(L → R)], P4),
-	append(P1, [R], P2),
+	union(A1, P1, U1), ((L → R) ∈ U1), R ∉ U1, not(C=L), temp(L → R) ∉ U1, temp(R) ∉ U1,
+	delete(A1, (L → R), A2), delete(P1, (L → R), P12), append(P12, [temp(L → R)], P2),
 
 	dict_min_index(DictIn, IndexUntouched),
 
-	proof(NextStep1, DictIn, ProofRaw),
+	proof(NextStep1, NewAssumptions, NewPremisses, DictIn, ProofRaw),
+	no_temp(NewAssumptions, MidAssumptions), no_temp(NewPremisses, MidPremisses),
+	union(MidAssumptions, MidPremisses, U2), ((L → R) ∉ U2), R ∉ U2,
+	union(A1, MidAssumptions, LastAssumptions), union(P1, MidPremisses, MidLastPremisses),
+	append(MidLastPremisses, [R], LastPremisses), 
+	NextStep = ((LastAssumptions, LastPremisses) ⊦ C),
+
 	dict_normalize(ProofRaw, IndexUntouched, Proof),
 	dict_max_index(Proof, AIndexIn), succ(AIndexIn, AIndexOut),
-	term_string(edge([L, R]), Atom1), term_string(edge([L → R, R]), Atom2), term_string(assumptions(A1), Atom3),
+	term_string(edge([L, R]), Atom1), term_string(edge([L → R, R]), Atom2), 
+	sort(A1, A1Sort), term_string(assumptions(A1Sort), Atom3),
 	DictOut = Proof.put([AIndexOut = [Atom3, Atom1, Atom2, "rule([→E])"]]).
-
-
-
-
-
-
-
 
 % Same as
 % [A;P?C, (C ∧ ¬C) ∉ A, ¬C ∉ A] → (A,¬C;P?(X1 ∧ ¬X1)) ∨ (A,¬C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,¬C;P?(Xn ∧ ¬Xn))    
@@ -289,18 +295,18 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 % ¬Xi ∈ (A ∪ P)
 % RuleName: ¬E 
 % Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
-c_rule(Origin, NextStep, DictIn, DictOut) :-
-	Origin = ((A1, P) ⊦ C),
-	not(⊥(C)), union(A1, P, U), (¬(C) ∉ U), append(A1, [¬(C)], A2), not(anymember_invariant_2n(U, ¬(C), ¬)),
+c_rule(Origin, NextStep, DictIn, DictOut, CAssumption) :-
+	Origin = ((A1, P) ⊦ C), CAssumption = ¬(C),
+	not(⊥(C)), union(A1, P, U), (¬(C) ∉ U), (temp(¬(C)) ∉ U), append(A1, [¬(C)], A2), not(anymember_invariant_2n(U, ¬(C), ¬)),
 	union(A2, P, U2), contradictions(U2, Contra),
 	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
 
 	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
 	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
-	findall(X, (member(Y, Contra), 
+	findall(X, (member(Y, Contra), sort(A2, A2Sort),
 				term_string(¬(C), Atom1), term_string(edge([¬(C), C]), Atom2),
-				term_string(edge([Y ∧ ¬(Y), C]), Atom3), term_string(assumptions(A2), Atom4),
+				term_string(edge([Y ∧ ¬(Y), C]), Atom3), term_string(assumptions(A2Sort), Atom4),
 				term_string(except([¬(C)]), Atom5),
 				X = DictIn.put([AIndexOut = Atom1, 
 								CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([¬E])"]])),
@@ -312,9 +318,9 @@ c_rule(Origin, NextStep, DictIn, DictOut) :-
 %    with
 % ¬Xi ∈ (A ∪ P)
 % RuleName: ¬I 
-c_rule(Origin, NextStep, DictIn, DictOut) :-
-	Origin = ((A1, P) ⊦ ¬(C)),
-	not(⊥(C)), union(A1, P, U), (C ∉ U), append(A1, [C], A2), not(anymember_invariant_2n(U, C, ¬)),
+c_rule(Origin, NextStep, DictIn, DictOut, CAssumption) :-
+	Origin = ((A1, P) ⊦ ¬(C)), CAssumption = C,
+	not(⊥(C)), union(A1, P, U), (C ∉ U), temp(C) ∉ U, append(A1, [C], A2), not(anymember_invariant_2n(U, C, ¬)),
 	union(A2, P, U2), contradictions(U2, Contra),
 	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
@@ -322,9 +328,9 @@ c_rule(Origin, NextStep, DictIn, DictOut) :-
 	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
 	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
 	
-	findall(X, (member(Y, Contra), 
+	findall(X, (member(Y, Contra), sort(A2, A2Sort),
 				term_string(C, Atom1), term_string(edge([C, ¬(C)]), Atom2),
-				term_string(edge([Y ∧ ¬(Y), ¬(C)]), Atom3), term_string(assumptions(A2), Atom4),
+				term_string(edge([Y ∧ ¬(Y), ¬(C)]), Atom3), term_string(assumptions(A2Sort), Atom4),
 				term_string(except([C]), Atom5),
 				X = DictIn.put([AIndexOut = Atom1, 
 								CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([¬I])"]])),
@@ -335,41 +341,44 @@ c_rule(Origin, NextStep, DictIn, DictOut) :-
 % Proofs some Derivation
 %
 
-proof(Derivation, Proof, Proof) :- 	
-		isvalid(Derivation).
+proof(Derivation, LastAssumptions, LastPremisses, Proof, Proof) :- 	
+		Derivation = ((LastAssumptions, LastPremisses) ⊦ _),
+		isvalid(Derivation),!.
 
-proof(Derivation, ProofIn, Proof) 	:- 	
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) 	:- 	
 		Derivation = (D1 ∧ D2),
-		proof(D2, ProofIn, Proof2),
-		proof(D1, ProofIn, Proof1), 
-		Proof = Proof2.put(Proof1).
+		proof(D2, LA1, LP1, ProofIn, Proof2),
+		proof(D1, LA2, LP2, ProofIn, Proof1),
+		union(LA1, LA2, LastAssumptions), union(LP1, LP2, LastPremisses), 
+		Proof = Proof2.put(Proof1),!.
 
-proof(Derivation, ProofIn, Proof) :- 	
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 	
 		not(isvalid(Derivation)),
 		rule(Derivation, NextStep, ProofIn, ProofOut), 
-		proof(NextStep, ProofOut, Proof).
-proof(Derivation, ProofIn, Proof) :- 	
+		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof).
+
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 	
 		not(isvalid(Derivation)),
 		not(rule(Derivation, NextStep, ProofIn, ProofOut)),
-		c_rule(Derivation, NextStep, ProofIn, ProofOut), 
-		proof(NextStep, ProofOut, Proof).
-proof(Derivation, ProofIn, Proof) :- 
+		c_rule(Derivation, NextStep, ProofIn, ProofOut, CAssumption), 
+		proof(NextStep, MidAssumptions, LastPremisses, ProofOut, Proof),
+		delete(MidAssumptions, CAssumption, LastAssumptions).
+
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 
 		Derivation = (D1 ∨ _),
 		ProofIn = (Proof1 ∨ _),
-		proof(D1, Proof1, Proof).
+		proof(D1, LastAssumptions, LastPremisses, Proof1, Proof),!.
 
-proof(Derivation, ProofIn, Proof) :- 
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 
 		Derivation = (_ ∨ D2),
 		ProofIn = (_ ∨ Proof2),
-		proof(D2, Proof2, Proof).
-
-
+		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof),!.
 
 proof(Derivation, Proof) :- 
 	distinct([Proof], (Derivation = ((A, []) ⊦ _),
 	findall(X, (member(Y, A), term_string(Y,X)), AA),
 	list_to_dict(AA, proof, Assumptions),
-	proof(Derivation, Assumptions, ProofRaw),
+	proof(Derivation, _, _, Assumptions, ProofRaw),
 	dict_normalize(ProofRaw, 1, Proof))).
 
 
