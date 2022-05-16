@@ -109,15 +109,98 @@ class Proof:
 					of some function of type f1(a1, a2, ..., an).
 				'''
 				inner = function.removeprefix(name)[2:-2]
-				return inner.split(",")
+				inner = inner.split(",")
+				if(inner[0] == ''):	
+					return []
+				else: 
+					return inner
 
-			premisses = set([]) # premiss parameter in table (column 3)
-			assumptions = set([]) # assumption parameter in table (column 0) (includes ex, which must be seperately eliminated)
-			origin = set([]) # possible assumptions from prolog output
-			ex = set([]) # propositions which are eliminated from assumptions
-			rule = "" # rule name
-			conclusion = "" # proposition name
-			
+			premisses_origin = set([]) 		# premiss parameter in table (column 3). Collect all premisses with origin in assumptions.
+			premisses_no_origin = set([])	# premiss parameter in table (column 3). Collect all premisses with no origin in assumptions.
+			premisses_exc_origin = set([])  # premiss parameter in table (column 3). Collect all premisses with origins to be removed. 
+			assumptions = set([]) 			# assumption parameter in table (column 0) (includes ex, which must be seperately eliminated)
+			#origin = set([]) 				# possible assumptions from prolog output
+			#ex = set([]) 					# propositions which are eliminated from assumptions
+			rule = "" 						# rule name
+			conclusion = "" 				# proposition name
+
+			for entry in inner:
+				if entry.startswith("assumptions"):
+					assumptions = get_parameters("assumptions", entry)
+				elif entry.startswith("premisses_origin"):
+					premisses_origin = get_parameters("premisses_origin", entry)
+				elif entry.startswith("premisses_no_origin"):
+					premisses_no_origin = get_parameters("premisses_no_origin", entry)
+				elif entry.startswith("premisses_exc_origin"):
+					premisses_exc_origin = get_parameters("premisses_exc_origin", entry)
+				elif entry.startswith("conclusion"): 
+					conclusion = get_parameters("conclusion", entry)[0]
+				elif entry.startswith("rule"): 
+					rule = get_parameters("rule", entry)[0]					
+
+			idx_all_assumptions = set([])
+			idx_assumptions = set([])
+			idx_exc_assumptions = set([])
+			idx_premisses_origin = set([]) 
+			idx_premisses_no_origin = set([])
+			idx_premisses_exc_origin = set([])
+			idx_premisses = set([])
+
+			try:
+				idx_all_assumptions = set([df.loc[(df['Proposition'] == assumption) &
+									  (df['Rule'] == 'A')]["Index"].item() 
+									  		for assumption in assumptions])
+			except:
+				print(f"Assumptions: {assumptions}")
+				print(f"Table at moment: {df}")
+				raise ValueError('Could not locate assumptions in a right way.')
+
+
+
+			for premiss in premisses_origin:
+				select = df.loc[(df['Proposition'] == premiss) & 
+								(df['Assumptions'].apply(lambda x: x.issubset(idx_all_assumptions)))]
+				try:
+					idx_premisses_origin = idx_premisses_origin.union(set([select["Index"].item()]))
+					idx_assumptions = idx_assumptions.union(select["Assumptions"].item())
+				except:
+					print(f"At derivation: {self.derivation}")
+					print(f"Table at moment: {df}")
+					print(f"Selection: {select}")
+					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
+					print(f"Premiss to append on table: {premiss}")
+					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
+
+			for premiss in premisses_no_origin:
+				select = df.loc[(df['Proposition'] == premiss)]
+				try:
+					idx_premisses_origin = idx_premisses_origin.union(set([select["Index"].item()]))
+				except:
+					print(f"At derivation: {self.derivation}")
+					print(f"Table at moment: {df}")
+					print(f"Selection: {select}")
+					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
+					print(f"Premiss to append on table: {premiss}")
+					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
+
+
+			for premiss in premisses_exc_origin:
+				select = df.loc[(df['Proposition'] == premiss) & 
+								(df['Assumptions'].apply(lambda x: x.issubset(idx_all_assumptions)))]
+				try:
+					idx_premisses_exc_origin = idx_premisses_exc_origin.union(set([select["Index"].item()]))
+					idx_exc_assumptions = idx_exc_assumptions.union(select["Assumptions"].item())
+				except:
+					print(f"At derivation: {self.derivation}")
+					print(f"Table at moment: {df}")
+					print(f"Selection: {select}")
+					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
+					print(f"Premiss to append on table: {premiss}")
+					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
+
+			idx_premisses = idx_premisses_origin.union(idx_premisses_no_origin)
+
+			'''
 			for entry in inner:
 				if entry.startswith("edge"): # appends premiss index and its assumption indexes to line
 					[premiss, conclusion] = get_parameters("edge", entry)
@@ -129,6 +212,7 @@ class Proof:
 					except:
 						print(f"At derivation: {self.derivation}")
 						print(f"Table at moment: {df}")
+						print(f"Selection: {select}")
 						print(f"Indexes of most possible assumptions: {origin}")
 						print(f"Premiss to append on table: {premiss}")
 						raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')
@@ -136,18 +220,30 @@ class Proof:
 				elif entry.startswith("rule"): # gets the rule name
 					rule = get_parameters("rule", entry)[0]
 				elif entry.startswith("assumptions"): # gets the possible assumptions 
-					origin = set([df.loc[(df['Proposition'] == assumption) &
-								         (df['Rule'] == 'A')]["Index"].item() 
-								  for assumption in get_parameters("assumptions", entry)])
+					param_assumptions = get_parameters("assumptions", entry)
+					try:
+						origin = set([df.loc[(df['Proposition'] == assumption) &
+									         (df['Rule'] == 'A')]["Index"].item() 
+									  for assumption in param_assumptions])
+					except:
+						print(f"Assumptions: {param_assumptions}")
+						print(f"Table at moment: {df}")
+						raise ValueError('Could not locate assumptions in a right way.')
 				elif entry.startswith("except"): # gets the exceptions which don't get the permission to be assumptions. 
-					ex = set([df.loc[(df['Proposition'] == no_assumption) &
-								  	  (df['Rule'] == 'A')]["Index"].item() 
-								  for no_assumption in get_parameters("except", entry)])
-
-			line = {'Assumptions': assumptions.difference(ex),
+					try:
+						except_assumptions = get_parameters("except", entry)
+						ex = set([df.loc[(df['Proposition'] == no_assumption) &
+									  	  (df['Rule'] == 'A')]["Index"].item() 
+									  for no_assumption in except_assumptions])
+					except:
+						print(f"Table at moment: {df}")
+						print(f"Assumptions not needed: {except_assumptions}")
+						raise ValueError("Not possible to get the assumption")
+			'''
+			line = {'Assumptions': idx_assumptions.difference(idx_exc_assumptions),
 					'Index': index,
 					'Proposition': conclusion,
-					'Premisses': premisses,
+					'Premisses': idx_premisses,
 					'Rule': rule}
 			return pd.DataFrame([line])
 
