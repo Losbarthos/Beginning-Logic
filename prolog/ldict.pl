@@ -3,12 +3,15 @@
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
-:- module(swish_chat,
-    [ list_to_dict/3,   % +Values, +Tag, -Dict
-      dict_length/2,    % +Dict, -Length
-      dict_min_index/2, % +Dict, -Min
-      dict_max_index/2, % +Dict, -Max 
-      dict_normalize/3  % +DictIn, +MinValue, -DictOut
+:- module(ldict,
+    [ list_to_dict/3,                   % +Values, +Tag, -Dict
+      dict_length/2,                    % +Dict, -Length
+      dict_min_index/2,                 % +Dict, -Min
+      dict_max_index/2,                 % +Dict, -Max 
+      dict_normalize/3,                 % +DictIn, +MinValue, -DictOut
+      dict_proof_append_assumption/3,   % +Assumption, +DictIn, -DictOut
+      dict_proof_append_last/8,         % +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +Conclusion, +Rule, +DictIn, -DictOut
+      dict_proof_append_first/8         % +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +Conclusion, +Rule, +DictIn, -DictOut
     ]).
 
 % list_to_dict(+Values, +Tag, -Dict)
@@ -79,3 +82,46 @@ keys_normalize([H|T], MinValue, N, [N|NewT]) :- % negative key
         keys_normalize(T, MinValue, NewN, NewT).
 keys_normalize([H|T], MinValue, N, [H|NewT]) :- % positive key (unchanged)
         keys_normalize(T, MinValue, N, NewT).
+
+
+% appends a simplification of a premiss or assumption at the end of the dictionary,
+% means, the simplification gets the last index in the dictionary.  
+% +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +PremissesExOrigin, +Conclusion, +Rule, +DictIn, -DictOut
+dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremmissesExcOrigin,
+                       Conclusion, Rule, DictIn, DictOut) :-
+    dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut),
+    sort(Assumptions, AssumptionsSort), term_string(assumptions(AssumptionsSort), StringAssumptions),
+    term_string(premisses_origin(PremissesOrigin), StringPremissesOrigin),
+    term_string(premisses_no_origin(PremissesNoOrigin), StringPremissesNoOrigin),
+    term_string(premisses_exc_origin(PremmissesExcOrigin), StringPremmissesExcOrigin),
+    term_string(conclusion(Conclusion), StringConclusion),
+    string_concat("rule([", Rule, RuleLeft), string_concat(RuleLeft, "])", StringRule),
+
+    DictOut = DictIn.put([AIndexOut = [StringAssumptions, 
+                          StringPremissesOrigin, StringPremissesNoOrigin, StringPremmissesExcOrigin,
+                          StringConclusion, StringRule]]).
+
+% appends a simplification of a premiss or assumption at the beginning of the dictionary,
+% means, the simplification gets the first index in the dictionary.  
+% +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +PremissesExOrigin, +Conclusion, +Rule, +DictIn, -DictOut
+dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremmissesExcOrigin,
+                        Conclusion, Rule, DictIn, DictOut) :-
+    dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
+    sort(Assumptions, AssumptionsSort), term_string(assumptions(AssumptionsSort), StringAssumptions),
+    term_string(premisses_origin(PremissesOrigin), StringPremissesOrigin),
+    term_string(premisses_no_origin(PremissesNoOrigin), StringPremissesNoOrigin),
+    term_string(premisses_exc_origin(PremmissesExcOrigin), StringPremmissesExcOrigin),
+    term_string(conclusion(Conclusion), StringConclusion),
+    string_concat("rule([", Rule, RuleLeft), string_concat(RuleLeft, "])", StringRule),
+
+    DictOut = DictIn.put([CIndexOut = [StringAssumptions, 
+                          StringPremissesOrigin, StringPremissesNoOrigin, StringPremmissesExcOrigin,
+                          StringConclusion, StringRule]]).
+
+% appends a assumption at proof dictionary.
+% +Assumption +DictIn, -DictOut
+dict_proof_append_assumption(Assumption, DictIn, DictOut) :-
+    dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
+    term_string(Assumption, StringAssumption),
+
+    DictOut = DictIn.put([AIndexOut = StringAssumption]).

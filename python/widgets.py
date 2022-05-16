@@ -95,7 +95,6 @@ class PropositionEditor(Toplevel):
 
 				if index != -1: # of form ▮)
 					index1, index2 = reverse_match(text, index)
-					print(index1,index2)
 					text = text[:index2] + '▮' + text[index1+1:]
 		return text
 
@@ -284,9 +283,9 @@ class Derivation(Frame):
 		self.bt_add_derivation = Button(inner_derivation_frame, text = "+", command=self.add_derivation)
 		self.bt_add_derivation.grid(column=2, row=0)
 
-		self.lbl_derivation = Label(inner_derivation_frame)
+		self.lbl_derivation = Entry(inner_derivation_frame, state="readonly", justify='center')
 		self.lbl_derivation.grid(column=0, row=1, columnspan=3)
-
+			
 		##
 		# Shift Control for Table view
 		##
@@ -320,7 +319,15 @@ class Derivation(Frame):
 		self.bt_add_assumption.configure(state=NORMAL)
 		self.bt_set_conclusion.configure(state=NORMAL)
 		self.bt_graph.configure(state=DISABLED)
-		
+	
+	def derivation_set_text(self, text):
+		'''
+			Resets the text of the Entry element self.lbl_derivation
+		'''
+		self.lbl_derivation['state'] = 'normal'
+		self.lbl_derivation.delete(0, 'end')
+		self.lbl_derivation.insert(0, text)
+		self.lbl_derivation['state'] = 'readonly'
 
 	def get_current_proof(self):
 		'''
@@ -333,13 +340,9 @@ class Derivation(Frame):
 		return proof
 
 	def set_derivation(self, parent_frame, proof):
-		#self.lbl_derivation = Label(parent_frame)
-		#self.lbl_derivation.grid(column=0, row=0, columnspan=2)
-		#self.lbl_derivation['text'] = proof.derivation
-
 		self.init_derivation_shift_frame(parent_frame)
-		self.lbl_derivation['text'] = proof.get_derivation()
-		
+		self.derivation_set_text(proof.get_derivation())
+
 		if proof.is_proven(): 
 			if proof.original != False: # The proof has found some valid result
 				proof = self.get_current_proof()
@@ -434,12 +437,12 @@ class Derivation(Frame):
 	def apply_assumption(self, lbl_txt):
 		proof = self.shift_derivation.data[self.shift_derivation.index_pool[0]]
 		proof.add_assumptions(lbl_txt)
-		self.lbl_derivation['text'] = proof.get_derivation()
+		self.derivation_set_text(proof.get_derivation())
 
 	def apply_conclusion(self, lbl_txt):
 		proof = self.shift_derivation.data[self.shift_derivation.index_pool[0]]
 		proof.set_conclusion(lbl_txt)
-		self.lbl_derivation['text'] = proof.get_derivation()
+		self.derivation_set_text(proof.get_derivation())
 		self.bt_calc.configure(state=NORMAL)
 
 
@@ -486,7 +489,6 @@ class AnyTreeView(Toplevel):
 
 		index = 0
 		for node in PreOrderIter(self.tree):
-			print(node.name)
 			self.treeview.insert('',f'{index}', node.name, text = separate_string(node.name, BASIC_RULES.values()))
 			index = index + 1
 
