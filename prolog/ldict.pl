@@ -49,7 +49,7 @@ dict_max_index(Dict, Max) :-
 % dict_label{-N: a(-N), -N+1: a(-N+1), ..., -1: a(-1), 1: a(1), ..., M: a(M)}.
 %
 % into some dict of form
-% dict_label{1: a(1), ..., M: a(M), M+1: a(-N), ..., M+N: a(-1) }.
+% dict_label{MindValue: a(MindValue), ..., M: a(M), M+1: a(-N), ..., M+N-MindValue: a(MindValue-1) }.
 %
 % whereby:
 %  a(j), -N≤j≤M are the values of the dictionary with keys in the integer interval [-N, M]\{0}.

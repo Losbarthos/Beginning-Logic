@@ -17,7 +17,7 @@
 :-op(803, xfy, →).
 :-op(804, xfy, ↔).
 % Derivation symbol
-:-op(799, xfy, ⊦).
+:-op(799, xfy, ⊢).
 
 
 % Operators to use for sets
@@ -30,7 +30,7 @@ binary_connective(X  ∨  Y, X, Y).
 binary_connective(X  ∧  Y, X, Y).
 binary_connective(X  → Y, X, Y).
 binary_connective(X  ↔ Y, X, Y).
-binary_derivation(X ⊦ Y, X, Y).
+binary_derivation(X ⊢ Y, X, Y).
 negation(¬(X), X).
 
 % Definition of formulas used in propositional logic
@@ -90,26 +90,35 @@ subformulas(Formula, Subformulas) :-
 % Definition of element
 X ∈ M :- member(X, M).
 X ∉ M :- not(member(X, M)).
-C := (A ∪ B) :- union(A, B, C).
-C := (A ∩ B) :- intersection(A, B, C).
+
+union_((A ∪ B), C, D) :- union_(A, B, X), union_(X, C, D).
+union_(A, (B ∪ C), D) :- union_((A ∪ B), C, D).
+union_(A, B, C) :- union(A, B, C).
+
+intersection_((A ∪ B), C, D) :- intersection_(A, B, X), intersection_(X, C, D).
+intersection_(A, (B ∪ C), D) :- intersection_((A ∪ B), C, D).
+intersection_(A, B, C) :- intersection(A, B, C).
+
+C := (A ∪ B) :- union_(A, B, C).
+C := (A ∩ B) :- intersection_(A, B, C).
 
 % Definition of derivation
 % We define some derivation as the same as the intercalation derivation 
-Tail ⊦ Head :-
+Tail ⊢ Head :-
 	Tail = (Assumptions, Premisses),
 	formula(Head),
 	forall(member(X,Assumptions), formula(X)),
 	forall(member(X,Premisses), formula(X)).
 
-derivation(X) :- X = (_ ⊦ _).
+derivation(X) :- X = (_ ⊢ _).
 derivation(X) :- binary_connective(X, A, B), derivation(A), derivation(B).
 
 % extracts Assumptions, Premisses and Conclusion from derivation
 unzip(Derivation, Assumptions, Premisses, Conclusion) :-
-	Derivation = ((Assumptions, Premisses) ⊦ Conclusion).
+	Derivation = ((Assumptions, Premisses) ⊢ Conclusion).
 
 % checks if a Derivation is valid without some use of proof steps
-isvalid(((A, P) ⊦ C)) :-
+isvalid(((A, P) ⊢ C)) :-
 	AP := A ∪ P,
 	C ∈ AP.
 
@@ -124,8 +133,8 @@ isvalid(((A, P) ⊦ C)) :-
 %    with
 % OrI = [L ∧ R]  
 ↑∨(Origin, NextStep, OrI) :-
-	Origin = ((A, P) ⊦ (L ∨ R)), 
-	NextStep = ((A, P) ⊦ L) ∨ ((A, P) ⊦ R),
+	Origin = ((A, P) ⊢ (L ∨ R)), 
+	NextStep = ((A, P) ⊢ L) ∨ ((A, P) ⊢ R),
 	OrI = [L ∨ R].
 
 % Same as
@@ -133,8 +142,8 @@ isvalid(((A, P) ⊦ C)) :-
 %    with
 % ImpI = [L → R]  
 ↑→(Origin, NextStep, ImpI) :-
-	Origin = ((A1, P) ⊦ (L → R)),
-	NextStep = ((A2, P) ⊦ R),
+	Origin = ((A1, P) ⊢ (L → R)),
+	NextStep = ((A2, P) ⊢ R),
 	append(A1, [L], A2),
 	ImpI = [L → R].
 
@@ -148,10 +157,10 @@ isvalid(((A, P) ⊦ C)) :-
 %    with
 % AndE = [L ∧ R, L or R]  
 ↓∧(Origin, NextStep, AndE) :- 
-	(Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
+	(Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 		union(A, P1, U), ((L ∧ R) ∈ U),
 	(L ∉ U), append(P1, [L], P2), AndE = [L ∧ R, L]);
-	(Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
+	(Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 		union(A, P1, U), ((L ∧ R) ∈ U),
 	(R ∉ U), append(P1, [R], P2), AndE = [L ∧ R, R]).
 
@@ -165,8 +174,8 @@ andE_s(Origin, NextStep, AndE) :-
 %    with
 % OrE = [L ∨ R]  
 ↓∨(Origin, NextStep, OrE) :-
-	Origin = ((A1, P) ⊦ C), 
-	NextStep = (((A2, P) ⊦ C) ∧ ((A3, P) ⊦ C)),
+	Origin = ((A1, P) ⊢ C), 
+	NextStep = (((A2, P) ⊢ C) ∧ ((A3, P) ⊢ C)),
 	union(A1, P, U), ((L ∨ R) ∈ U), L ∉ U, R ∉ U,
 	append(A1, [L], A2), append(A1, [R], A3),
 	OrE = [L ∨ R].
@@ -223,6 +232,18 @@ anymember_invariant_2n(Terms, Member, F) :-
 no_temp(WithTemp, NoTemp) :-
 	findall(X, (X ∈ WithTemp, not(X=temp(_))), NoTemp).
 
+% Prints dictionary varlues in a way, every value is on a seperate line in the terminal.
+% more details see: https://stackoverflow.com/questions/72238440/swi-prolog-looking-for-a-way-to-print-dictionary-values-in-seperate-lines/72267095?noredirect=1#comment127695212_72267095
+portray(Term) :-
+    is_dict(Term),
+    dict_pairs(Term, Tag, Pairs),
+    writef("%p{\n", [Tag]),
+    foreach(member(Key-Value, Pairs), writef("\t%p: %p\n", [Key, Value])),
+    write("}").
+
+
+
+
 %
 % Derivations which can used in the proof.
 %
@@ -231,8 +252,8 @@ no_temp(WithTemp, NoTemp) :-
 % A;P?L∧R → A;P?L and A;P?R   
 % RuleName: ∧I
 rule(Origin, NextStep, DictIn, DictOut) :-
-	Origin = ((A, P) ⊦ (L ∧ R)), 
-	NextStep = (((A, P) ⊦ L) ∧ ((A, P) ⊦ R)),
+	Origin = ((A, P) ⊢ (L ∧ R)), 
+	NextStep = (((A, P) ⊢ L) ∧ ((A, P) ⊢ R)),
 
 	%%
 	% Filling DictOut
@@ -248,20 +269,14 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						   Conclusion, Rule, DictIn, DictOut).
 
-%	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
-%	term_string(edge([L, L ∧ R]), Atom1), term_string(edge([R, L ∧ R]), Atom2),
-%	sort(A, ASort), term_string(assumptions(ASort), Atom3),
-%	term_string(Origin, AtomOriginDerivation), term_string(NextStep, AtomNextDerivation),
-%	DictOut = DictIn.put([CIndexOut = [Atom3, Atom1, Atom2, "rule([∧I])", AtomOriginDerivation, AtomNextDerivation]]).
-
 % Same as
 % [A;P?L→R] L ∈ (A ∪ P) → A;P?R   
 %    with
 % RuleName: →I
 rule(Origin, NextStep, DictIn, DictOut) :-
-	Origin = ((A, P) ⊦ (L → R)), 
+	Origin = ((A, P) ⊢ (L → R)), 
 	union(A, P, U), L ∈ U,
-	NextStep = ((A, P) ⊦ R), 
+	NextStep = ((A, P) ⊢ R), 
 
 	%%
 	% Filling DictOut
@@ -277,19 +292,14 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						    Conclusion, Rule, DictIn, DictOut).
 
-	%dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn), term_string(edge([L, L → R]), Atom2), term_string(edge([R, L → R]), Atom3),
-	%sort(A, ASort), term_string(assumptions(ASort), Atom4), 
-	%term_string(Origin, AtomOriginDerivation), term_string(NextStep, AtomNextDerivation),
-	%DictOut = DictIn.put([CIndexOut = [Atom4, Atom2, Atom3, "rule([→I])", AtomOriginDerivation, AtomNextDerivation]]).
-
 % Same as
 % [A;P?L→R] → A,L;P?R   
 %    with
 % RuleName: →I
 rule(Origin, NextStep, DictIn, DictOut) :-
-	Origin = ((A1, P) ⊦ (L → R)),
+	Origin = ((A1, P) ⊢ (L → R)),
 	union(A1, P, U), L ∉ U, 
-	NextStep = ((A2, P) ⊦ R),
+	NextStep = ((A2, P) ⊢ R),
 	append(A1, [L], A2), 
 
 	%%
@@ -306,19 +316,12 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						    Conclusion, Rule, DictIn, DictOut).
 
-	%dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
-	%dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
-	%term_string(L, Atom1), term_string(edge([L, L → R]), Atom2), term_string(edge([R, L → R]), Atom3),
-	%sort(A2, A2Sort), term_string(assumptions(A2Sort), Atom4), term_string(except([L]), Atom5), 
-	%term_string(Origin, AtomOriginDerivation), term_string(NextStep, AtomNextDerivation),
-	%DictOut = DictIn.put([AIndexOut = Atom1, CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([→I])", AtomOriginDerivation, AtomNextDerivation]]).
-
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L   
 %    with
 % RuleName: ∧E
 rule(Origin, NextStep, DictIn, DictOut) :- 
-	Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
+	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	union(A, P1, U), ((L ∧ R) ∈ U),
 	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, append(P1, [L], P2),
 
@@ -336,17 +339,12 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						   Conclusion, Rule, DictIn, DictOut).
 
-	%dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut),
-	%term_string(edge([L ∧ R, L]), Atom1), sort(A, ASort), term_string(assumptions(ASort), Atom2),
-	%term_string(Origin, AtomOriginDerivation), term_string(NextStep, AtomNextDerivation),
-	%DictOut = DictIn.put([AIndexOut = [Atom2, Atom1, "rule([∧E])", AtomOriginDerivation, AtomNextDerivation]]).
-
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R   
 %    with
 % RuleName: ∧E
 rule(Origin, NextStep, DictIn, DictOut) :- 
-	Origin = ((A, P1) ⊦ C), NextStep = ((A, P2) ⊦ C),
+	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	union(A, P1, U), ((L ∧ R) ∈ U),
 	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, append(P1, [R], P2),
 
@@ -364,32 +362,26 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						   Conclusion, Rule, DictIn, DictOut).
 
-	%dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut),
-	%term_string(edge([L ∧ R, R]), Atom1), sort(A, ASort), term_string(assumptions(ASort), Atom2),
-	%term_string(Origin, AtomOriginDerivation), term_string(NextStep, AtomNextDerivation),
-	%DictOut = DictIn.put([AIndexOut = [Atom2, Atom1, "rule([∧E])", AtomOriginDerivation, AtomNextDerivation]]).
-
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 % RuleName: →E
 rule(Origin, NextStep, DictIn, DictOut) :-
-	Origin = ((A1, P1) ⊦ C), 
-	NextStep1 = ((A2, P2) ⊦ L),
+	Origin = ((A1, P1) ⊢ C), 
+	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, [R]) ⊢ C)),
 	
+	U1 := (A1 ∪ P1), ((L → R) ∈ U1), R ∉ U1, not(C=L), temp(L → R) ∉ U1, temp(R) ∉ U1,
+	delete(A1, (L → R), A2), delete(P1, (L → R), P12), P2 := P12 ∪ [temp(L → R)],
 
-	union(A1, P1, U1), ((L → R) ∈ U1), R ∉ U1, not(C=L), temp(L → R) ∉ U1, temp(R) ∉ U1,
-	delete(A1, (L → R), A2), delete(P1, (L → R), P12), append(P12, [temp(L → R)], P2),
+	%dict_min_index(DictIn, IndexUntouched),
 
-	dict_min_index(DictIn, IndexUntouched),
+	%proof(NextStep1, NewAssumptions, NewPremisses, DictIn, ProofRaw),
+	%no_temp(NewAssumptions, MidAssumptions), no_temp(NewPremisses, MidPremisses),
+	%union(MidAssumptions, MidPremisses, U2), ((L → R) ∉ U2), R ∉ U2,
+	%union(A1, MidAssumptions, LastAssumptions), union(P1, MidPremisses, MidLastPremisses),
+	%append(MidLastPremisses, [R], LastPremisses), 
+	%NextStep = ((LastAssumptions, LastPremisses) ⊢ C),
 
-	proof(NextStep1, NewAssumptions, NewPremisses, DictIn, ProofRaw),
-	no_temp(NewAssumptions, MidAssumptions), no_temp(NewPremisses, MidPremisses),
-	union(MidAssumptions, MidPremisses, U2), ((L → R) ∉ U2), R ∉ U2,
-	union(A1, MidAssumptions, LastAssumptions), union(P1, MidPremisses, MidLastPremisses),
-	append(MidLastPremisses, [R], LastPremisses), 
-	NextStep = ((LastAssumptions, LastPremisses) ⊦ C),
-
-	dict_normalize(ProofRaw, IndexUntouched, Proof),
+	%dict_normalize(ProofRaw, IndexUntouched, Proof),
 
 
 	%%
@@ -404,14 +396,9 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 
 
 	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, Proof, DictOut).
+						   Conclusion, Rule, DictIn, DictOut).
 
 
-	%dict_max_index(Proof, AIndexIn), succ(AIndexIn, AIndexOut),
-	%term_string(edge([L, R]), Atom1), term_string(edge([L → R, R]), Atom2), 
-	%sort(A1, A1Sort), term_string(assumptions(A1Sort), Atom3),
-	%term_string(Origin, AtomOriginDerivation), term_string(NextStep, AtomNextDerivation),
-	%DictOut = Proof.put([AIndexOut = [Atom3, Atom1, Atom2, "rule([→E])", AtomOriginDerivation, AtomNextDerivation]]).
 
 % Same as
 % [A;P?C, (C ∧ ¬C) ∉ A, ¬C ∉ A] → (A,¬C;P?(X1 ∧ ¬X1)) ∨ (A,¬C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,¬C;P?(Xn ∧ ¬Xn))    
@@ -420,14 +407,12 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 % RuleName: ¬E 
 % Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
 c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
-	Origin = ((A1, P) ⊦ C), CAssumption = ¬(C), ContraPremiss = C,
+	Origin = ((A1, P) ⊢ C), CAssumption = ¬(C), ContraPremiss = C,
 	not(⊥(C)), union(A1, P, U), (¬(C) ∉ U), (temp(¬(C)) ∉ U), append(A1, [¬(C)], A2), not(anymember_invariant_2n(U, ¬(C), ¬)),
 	union(A2, P, U2), contradictions(U2, Contra),
-	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
+	findall(X, (member(Y, Contra), X = ((A2, P) ⊢ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
 
-%	dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
-%	dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
 	findall(X, (member(Y, Contra), 
 				%%
 				% Filling DictOut
@@ -443,15 +428,6 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 				dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, 
 										PremissesExcOrigin,
 										Conclusion, Rule, XBuffer, X)),
-
-
-%				sort(A2, A2Sort),
-%				term_string(¬(C), Atom1), term_string(edge([¬(C), C]), Atom2),
-%				term_string(edge([Y ∧ ¬(Y), C]), Atom3), term_string(assumptions(A2Sort), Atom4),
-%				term_string(except([¬(C)]), Atom5),
-%				term_string(Origin, AtomOriginDerivation), term_string(NextStep, AtomNextDerivation),
-%				X = DictIn.put([AIndexOut = Atom1, 
-%								CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([¬E])", AtomOriginDerivation, AtomNextDerivation]])),
 				NegEList),
 	disjunction_list(NegEList, DictOut).
 
@@ -461,14 +437,11 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 % ¬Xi ∈ (A ∪ P)
 % RuleName: ¬I 
 c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
-	Origin = ((A1, P) ⊦ ¬(C)), CAssumption = C, ContraPremiss = ¬(C),
+	Origin = ((A1, P) ⊢ ¬(C)), CAssumption = C, ContraPremiss = ¬(C),
 	not(⊥(C)), union(A1, P, U), (C ∉ U), temp(C) ∉ U, append(A1, [C], A2), not(anymember_invariant_2n(U, C, ¬)),
 	union(A2, P, U2), contradictions(U2, Contra),
-	findall(X, (member(Y, Contra), X = ((A2, P) ⊦ (Y ∧ ¬(Y)))), NextStepList),
+	findall(X, (member(Y, Contra), X = ((A2, P) ⊢ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
-
-	%dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
-	%dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
 	
 	findall(X, (member(Y, Contra), 
 				%%
@@ -485,42 +458,23 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 				dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, 
 										PremissesExcOrigin,
 										Conclusion, Rule, XBuffer, X)),
-
-
-				%sort(A2, A2Sort),
-				%term_string(C, Atom1), term_string(edge([C, ¬(C)]), Atom2),
-				%term_string(edge([Y ∧ ¬(Y), ¬(C)]), Atom3), term_string(assumptions(A2Sort), Atom4),
-				%term_string(except([C]), Atom5),
-				%term_string(Origin, AtomOriginDerivation), term_string(NextStep, AtomNextDerivation),
-				%X = DictIn.put([AIndexOut = Atom1, 
-				%				CIndexOut = [Atom4, Atom5, Atom2, Atom3, "rule([¬I])", AtomOriginDerivation, AtomNextDerivation]])),
 			NegIList),
 	disjunction_list(NegIList, DictOut).
+
 
 %
 % Proofs some Derivation
 %
 
 proof(Derivation, LastAssumptions, LastPremisses, Proof, Proof) :- 	
-		Derivation = ((LastAssumptions, LastPremisses) ⊦ _),
+		Derivation = ((LastAssumptions, LastPremisses) ⊢ _),
 		isvalid(Derivation),!.
 
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) 	:- 	
-		Derivation = (D1 ∧ D2),
-		D1 = ((A1, P1) ⊦ C), 
-		union(A1, A2, A), union(P1, P2, P),
-		D = ((A, P) ⊦ C),
-		proof(D2, A2, P2, ProofIn, ProofBetween),
-		proof(D, LastAssumptions, LastPremisses, ProofBetween, Proof),!.
-
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 	
-		%not(isvalid(Derivation)),
 		rule(Derivation, NextStep, ProofIn, ProofOut), 
 		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof),!.
 
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 	
-		%not(isvalid(Derivation)),
-		%not(rule(Derivation, NextStep, ProofIn, ProofOut)),
 		c_rule(Derivation, NextStep, ProofIn, ProofOut, CAssumption, Assumption), 
 		proof(NextStep, MidAssumptions, MidPremisses, ProofOut, Proof),
 		delete(MidAssumptions, CAssumption, LastAssumptions),
@@ -534,9 +488,26 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :-
 		Derivation = (_ ∨ D2),
 		ProofIn = (_ ∨ Proof2),
 		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof),!.
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) 	:- 	
+		Derivation = (D1 ∧ D2),
+		D1 = ((_, _) ⊢ C1),
+		D2 = ((A2, P2) ⊢ C),
+		D3 = ((A3, P3) ⊢ C), 
+
+		dict_min_index(ProofIn, IndexUntouched),
+
+		proof(D1, A1, P1, ProofIn, ProofBetween1),
+
+		no_temp(A1, At), no_temp(P1, Pt),
+		P3 := (Pt ∪ [C1] ∪ P2), A3 := (At ∪ A2),
+		dict_normalize(ProofBetween1, IndexUntouched, ProofBetween2),
+
+		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof),!.
+
+
 
 proof(Derivation, Proof) :- 
-	distinct([Proof], (Derivation = ((A, []) ⊦ _),
+	distinct([Proof], (Derivation = ((A, []) ⊢ _),
 	findall(X, (member(Y, A), term_string(Y,X)), AA),
 	list_to_dict(AA, proof, Assumptions),
 	proof(Derivation, _, _, Assumptions, ProofRaw),
@@ -544,7 +515,8 @@ proof(Derivation, Proof) :-
 
 
 % Examples
-% ?- proof((([¬(q),p→q], []) ⊦ ¬(p)), P).
+% ?- proof((([¬(q),p→q], []) ⊢ ¬(p)), P).
+% ?- proof(([p],[]) ⊢ ( (¬(q→r)→ ¬(p)) → (¬(r)→ ¬(q))), P).
 %
 
 
