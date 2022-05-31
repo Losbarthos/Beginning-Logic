@@ -12,7 +12,9 @@ from proof import *
 from tkinter import *
 from tkinter import ttk
 
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('GTK3Agg')
 
 import re
 from itertools import cycle, islice, dropwhile

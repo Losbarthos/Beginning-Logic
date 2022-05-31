@@ -3,6 +3,9 @@
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
+
+:- set_prolog_flag(optimise_unify, false).
+
 :-use_module(ldict).
 :-use_module(definitions).
 :-use_module(library(http/json)).
@@ -251,7 +254,7 @@ portray(Term) :-
 % Same as
 % A;P?L∧R → A;P?L and A;P?R   
 % RuleName: ∧I
-rule(Origin, NextStep, DictIn, DictOut) :-
+rule(Origin, NextStep, DictIn, DictOut, 0) :-
 	Origin = ((A, P) ⊢ (L ∧ R)), 
 	NextStep = (((A, P) ⊢ L) ∧ ((A, P) ⊢ R)),
 
@@ -273,7 +276,7 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 % [A;P?L→R] L ∈ (A ∪ P) → A;P?R   
 %    with
 % RuleName: →I
-rule(Origin, NextStep, DictIn, DictOut) :-
+rule(Origin, NextStep, DictIn, DictOut, _) :-
 	Origin = ((A, P) ⊢ (L → R)), 
 	union(A, P, U), L ∈ U,
 	NextStep = ((A, P) ⊢ R), 
@@ -296,7 +299,7 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 % [A;P?L→R] → A,L;P?R   
 %    with
 % RuleName: →I
-rule(Origin, NextStep, DictIn, DictOut) :-
+rule(Origin, NextStep, DictIn, DictOut, _) :-
 	Origin = ((A1, P) ⊢ (L → R)),
 	union(A1, P, U), L ∉ U, 
 	NextStep = ((A2, P) ⊢ R),
@@ -320,7 +323,7 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L   
 %    with
 % RuleName: ∧E
-rule(Origin, NextStep, DictIn, DictOut) :- 
+rule(Origin, NextStep, DictIn, DictOut, _) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	union(A, P1, U), ((L ∧ R) ∈ U),
 	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, append(P1, [L], P2),
@@ -343,7 +346,7 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R   
 %    with
 % RuleName: ∧E
-rule(Origin, NextStep, DictIn, DictOut) :- 
+rule(Origin, NextStep, DictIn, DictOut, _) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	union(A, P1, U), ((L ∧ R) ∈ U),
 	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, append(P1, [R], P2),
@@ -365,7 +368,7 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 % RuleName: →E
-rule(Origin, NextStep, DictIn, DictOut) :-
+rule(Origin, NextStep, DictIn, DictOut, 1) :-
 	Origin = ((A1, P1) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, [R]) ⊢ C)),
 	
@@ -395,7 +398,7 @@ rule(Origin, NextStep, DictIn, DictOut) :-
 	Rule = "→E",
 
 
-	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
+	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						   Conclusion, Rule, DictIn, DictOut).
 
 
@@ -466,43 +469,42 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 % Proofs some Derivation
 %
 
-proof(Derivation, LastAssumptions, LastPremisses, Proof, Proof) :- 	
+proof(Derivation, LastAssumptions, LastPremisses, Proof, Proof, _) :- 	
 		Derivation = ((LastAssumptions, LastPremisses) ⊢ _),
 		isvalid(Derivation),!.
 
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 	
-		rule(Derivation, NextStep, ProofIn, ProofOut), 
-		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof),!.
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 	
+		rule(Derivation, NextStep, ProofIn, ProofOut, I), 
+		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, I),!.
 
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 	
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 	
 		c_rule(Derivation, NextStep, ProofIn, ProofOut, CAssumption, Assumption), 
-		proof(NextStep, MidAssumptions, MidPremisses, ProofOut, Proof),
+		proof(NextStep, MidAssumptions, MidPremisses, ProofOut, Proof, _),
 		delete(MidAssumptions, CAssumption, LastAssumptions),
 		append(MidPremisses, [Assumption], LastPremisses).
 
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
 		Derivation = (D1 ∨ _),
 		ProofIn = (Proof1 ∨ _),
-		proof(D1, LastAssumptions, LastPremisses, Proof1, Proof).
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) :- 
+		proof(D1, LastAssumptions, LastPremisses, Proof1, Proof, _).
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
 		Derivation = (_ ∨ D2),
 		ProofIn = (_ ∨ Proof2),
-		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof),!.
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof) 	:- 	
+		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof, _),!.
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:- 	
 		Derivation = (D1 ∧ D2),
-		D1 = ((_, _) ⊢ C1),
+		D1 = ((A1, P1) ⊢ _),
 		D2 = ((A2, P2) ⊢ C),
 		D3 = ((A3, P3) ⊢ C), 
 
-		dict_min_index(ProofIn, IndexUntouched),
+		dict_min_index(ProofIn, MinIndex),
+		IndexUntouched is MinIndex + I,
 
-		proof(D1, A1, P1, ProofIn, ProofBetween1),
-
-		no_temp(A1, At), no_temp(P1, Pt),
-		P3 := (Pt ∪ [C1] ∪ P2), A3 := (At ∪ A2),
+		proof(D1, _, _, ProofIn, ProofBetween1, _),
+		A3 := (A1 ∪ A2), P3 := (P1 ∪ P2),
 		dict_normalize(ProofBetween1, IndexUntouched, ProofBetween2),
 
-		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof),!.
+		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _),!.
 
 
 
@@ -510,7 +512,7 @@ proof(Derivation, Proof) :-
 	distinct([Proof], (Derivation = ((A, []) ⊢ _),
 	findall(X, (member(Y, A), term_string(Y,X)), AA),
 	list_to_dict(AA, proof, Assumptions),
-	proof(Derivation, _, _, Assumptions, ProofRaw),
+	proof(Derivation, _, _, Assumptions, ProofRaw, _),
 	dict_normalize(ProofRaw, 1, Proof))).
 
 

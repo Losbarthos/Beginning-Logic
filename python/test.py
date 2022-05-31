@@ -1,6 +1,16 @@
-from swiplserver import PrologMQI, PrologThread
+from tkinter import *
+from tkinter import ttk
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('GTK3Agg')
 
-with PrologMQI() as mqi:
-    with mqi.create_thread() as prolog_thread:
-        result = prolog_thread.query("dict_create(Dict, Tag, [1-""a"", 2-""b""]).")
-        print(result)
+print(matplotlib.__version__)
+def helloCallBack():
+    plt.plot([1,2,3],[5,7,4])
+    plt.show()
+
+root = Tk()
+B = Button(root, text ="Hello", command = helloCallBack)
+B.pack()
+
+root.mainloop()

@@ -49,7 +49,7 @@ class Proof:
 		self.update_derivation()
 
 	def update_derivation(self):
-		self.derivation = f"([{','.join(self.assumptions)}],[]) ⊦ {self.conclusion}"
+		self.derivation = f"([{','.join(self.assumptions)}],[]) ⊢ {self.conclusion}"
 
 	def get_derivation(self):
 		if len(self.assumptions) == 0 and self.conclusion == "":
@@ -349,7 +349,6 @@ if __name__ == '__main__':
 	p.set_conclusion(conclusion)
 	
 	p.proof()
-
 	p.view_graph(1)
 
 
