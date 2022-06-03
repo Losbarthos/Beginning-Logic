@@ -267,9 +267,9 @@ class Proof:
 						   columns=['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule'])
 
 				for key in proof:
-					if type(proof[key]) is str: # assumptions are string objects
-						new_frame = [df, assume(key, proof[key])]
-					else: # general conclusions are list objects
+					if len(proof[key]) == 2: # assumptions have two elements
+						new_frame = [df, assume(key, proof[key][0])]
+					else: # general conclusions have more than two elements 
 						new_frame = [df, conclude(key, proof[key], df)]
 					df = pd.concat(new_frame)	
 
@@ -317,8 +317,11 @@ class Proof:
 		'''
 		import networkx as nx
 		from netgraph._main import EmphasizeOnHoverGraph
+		
+		import matplotlib
 		import matplotlib.pyplot as plt
-
+		matplotlib.use('GTK3Agg')
+		
 		graph = self.graphs[index][0]
 		edge_labels = self.graphs[index][1]
 		color_map = self.graphs[index][2]

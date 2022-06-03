@@ -10,9 +10,12 @@
       dict_max_index/2,                 % +Dict, -Max 
       dict_normalize/3,                 % +DictIn, +MinValue, -DictOut
       dict_proof_append_assumption/3,   % +Assumption, +DictIn, -DictOut
-      dict_proof_append_last/8,         % +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +Conclusion, +Rule, +DictIn, -DictOut
-      dict_proof_append_first/8         % +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +Conclusion, +Rule, +DictIn, -DictOut
+      dict_proof_append_last/10,        % +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +Conclusion, +Rule, +DictIn, -DictOut
+      dict_proof_append_first/10,       % +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +Conclusion, +Rule, +DictIn, -DictOut
+      dict_from_assumptions/2           % +Assumptions, -Dict
     ]).
+
+
 
 % list_to_dict(+Values, +Tag, -Dict)
 % converts some list into a prolog dict (more details see: https://stackoverflow.com/questions/71893100/prolog-convert-list-into-dictionary)
@@ -86,9 +89,10 @@ keys_normalize([H|T], MinValue, N, [H|NewT]) :- % positive key (unchanged)
 
 % appends a simplification of a premiss or assumption at the end of the dictionary,
 % means, the simplification gets the last index in the dictionary.  
-% +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +PremissesExOrigin, +Conclusion, +Rule, +DictIn, -DictOut
+% +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +PremissesExOrigin, +Conclusion, +Rule, 
+% +DerivationOrigin, +DerivationNextStep, +DictIn, -DictOut
 dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremmissesExcOrigin,
-                       Conclusion, Rule, DictIn, DictOut) :-
+                       Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut) :-
     dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut),
     sort(Assumptions, AssumptionsSort), term_string(assumptions(AssumptionsSort), StringAssumptions),
     term_string(premisses_origin(PremissesOrigin), StringPremissesOrigin),
@@ -96,16 +100,19 @@ dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, Premmiss
     term_string(premisses_exc_origin(PremmissesExcOrigin), StringPremmissesExcOrigin),
     term_string(conclusion(Conclusion), StringConclusion),
     string_concat("rule([", Rule, RuleLeft), string_concat(RuleLeft, "])", StringRule),
+    term_string(d0(DerivationOrigin), StringDerivationOrigin), term_string(d1(DerivationNextStep), StringDerivationNextStep),
+    dict_size(DictIn, S), Size is S + 1, term_string(step(Size), StringSize),
 
     DictOut = DictIn.put([AIndexOut = [StringAssumptions, 
                           StringPremissesOrigin, StringPremissesNoOrigin, StringPremmissesExcOrigin,
-                          StringConclusion, StringRule]]).
+                          StringConclusion, StringRule, StringDerivationOrigin, StringDerivationNextStep, StringSize]]).
 
 % appends a simplification of a premiss or assumption at the beginning of the dictionary,
 % means, the simplification gets the first index in the dictionary.  
-% +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +PremissesExOrigin, +Conclusion, +Rule, +DictIn, -DictOut
+% +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +PremissesExOrigin, +Conclusion, +Rule, 
+% +DerivationOrigin, +DerivationNextStep, +DictIn, -DictOut
 dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremmissesExcOrigin,
-                        Conclusion, Rule, DictIn, DictOut) :-
+                        Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut) :-
     dict_min_index(DictIn, CIndexIn), plus(CIndexOut, 1, CIndexIn),
     sort(Assumptions, AssumptionsSort), term_string(assumptions(AssumptionsSort), StringAssumptions),
     term_string(premisses_origin(PremissesOrigin), StringPremissesOrigin),
@@ -113,15 +120,30 @@ dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, Premmis
     term_string(premisses_exc_origin(PremmissesExcOrigin), StringPremmissesExcOrigin),
     term_string(conclusion(Conclusion), StringConclusion),
     string_concat("rule([", Rule, RuleLeft), string_concat(RuleLeft, "])", StringRule),
+    term_string(d0(DerivationOrigin), StringDerivationOrigin), term_string(d1(DerivationNextStep), StringDerivationNextStep),
+    dict_size(DictIn, S), Size is S + 1, term_string(step(Size), StringSize),
 
     DictOut = DictIn.put([CIndexOut = [StringAssumptions, 
                           StringPremissesOrigin, StringPremissesNoOrigin, StringPremmissesExcOrigin,
-                          StringConclusion, StringRule]]).
+                          StringConclusion, StringRule, StringDerivationOrigin, StringDerivationNextStep, StringSize]]).
 
 % appends a assumption at proof dictionary.
 % +Assumption +DictIn, -DictOut
 dict_proof_append_assumption(Assumption, DictIn, DictOut) :-
     dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
     term_string(Assumption, StringAssumption),
+    dict_size(DictIn, S), Size is S + 1, term_string(step(Size), StringSize),
 
-    DictOut = DictIn.put([AIndexOut = StringAssumption]).
+    DictOut = DictIn.put([AIndexOut = [StringAssumption, StringSize]]).
+
+% appends a assumption at proof dictionary.
+% +Assumptions -Dict
+dict_from_assumptions(Assumptions, Dict) :-
+    length(Assumptions, N), numlist(1, N, Keys),
+    findall(Y, (member(I, Keys), 
+                nth1(I, Assumptions, X),
+                term_string(X, StringX),
+                term_string(step(I), StringSize),
+                Y = [StringX, StringSize]), Values), 
+    pairs_keys_values(Pairs, Keys, Values),
+    dict_create(Dict, proof, Pairs).

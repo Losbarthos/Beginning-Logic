@@ -241,7 +241,7 @@ portray(Term) :-
     is_dict(Term),
     dict_pairs(Term, Tag, Pairs),
     writef("%p{\n", [Tag]),
-    foreach(member(Key-Value, Pairs), writef("\t%p: %p\n", [Key, Value])),
+    foreach(member(Key-Value, Pairs), writef("\t%p: %p\n\n", [Key, Value])),
     write("}").
 
 
@@ -267,10 +267,12 @@ rule(Origin, NextStep, DictIn, DictOut, 0) :-
 	PremissesExcOrigin = [],
 	Conclusion = [L ∧ R],
 	Rule = "∧I",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
 
 
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DictIn, DictOut).
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 % Same as
 % [A;P?L→R] L ∈ (A ∪ P) → A;P?R   
@@ -290,10 +292,11 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	PremissesExcOrigin = [],
 	Conclusion = [L → R],
 	Rule = "→I",
-
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
 
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						    Conclusion, Rule, DictIn, DictOut).
+						    Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 % Same as
 % [A;P?L→R] → A,L;P?R   
@@ -314,10 +317,12 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	PremissesExcOrigin = [L],
 	Conclusion = [L → R],
 	Rule = "→I",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
 
-
+	dict_proof_append_assumption(L, DictIn, DictBuffer),
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						    Conclusion, Rule, DictIn, DictOut).
+						    Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictBuffer, DictOut).
 
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L   
@@ -337,10 +342,12 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	PremissesExcOrigin = [],
 	Conclusion = [L],
 	Rule = "∧E",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
 
 
 	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DictIn, DictOut).
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R   
@@ -360,10 +367,12 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	PremissesExcOrigin = [],
 	Conclusion = [R],
 	Rule = "∧E",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
 
 
 	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DictIn, DictOut).
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
@@ -396,10 +405,11 @@ rule(Origin, NextStep, DictIn, DictOut, 1) :-
 	PremissesExcOrigin = [],
 	Conclusion = [R],
 	Rule = "→E",
-
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
 
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DictIn, DictOut).
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 
 
@@ -426,11 +436,13 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 				PremissesExcOrigin = [¬(C)],
 				Conclusion = [C],
 				Rule = "¬E",
+				DerivationOrigin = Origin,
+				DerivationNextStep = NextStep,
 
 				dict_proof_append_assumption(¬(C), DictIn, XBuffer),
 				dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, 
 										PremissesExcOrigin,
-										Conclusion, Rule, XBuffer, X)),
+										Conclusion, Rule, DerivationOrigin, DerivationNextStep, XBuffer, X)),
 				NegEList),
 	disjunction_list(NegEList, DictOut).
 
@@ -456,11 +468,13 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 				PremissesExcOrigin = [C],
 				Conclusion = [¬(C)],
 				Rule = "¬I",
+				DerivationOrigin = Origin,
+				DerivationNextStep = NextStep,
 
 				dict_proof_append_assumption(C, DictIn, XBuffer),
 				dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, 
 										PremissesExcOrigin,
-										Conclusion, Rule, XBuffer, X)),
+										Conclusion, Rule, DerivationOrigin, DerivationNextStep, XBuffer, X)),
 			NegIList),
 	disjunction_list(NegIList, DictOut).
 
@@ -506,12 +520,9 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:-
 
 		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _),!.
 
-
-
 proof(Derivation, Proof) :- 
 	distinct([Proof], (Derivation = ((A, []) ⊢ _),
-	findall(X, (member(Y, A), term_string(Y,X)), AA),
-	list_to_dict(AA, proof, Assumptions),
+	dict_from_assumptions(A, Assumptions),
 	proof(Derivation, _, _, Assumptions, ProofRaw, _),
 	dict_normalize(ProofRaw, 1, Proof))).
 
