@@ -207,7 +207,7 @@ contradictions(B, C) :-
 % Find all contradictions for some list of propositions.
 contradictions(B, C) :-
 	findall(X, (Y ∈ B, contradictions(Y, X)), SC),
-	append(SC, C).
+	append(SC, C0), sort(C0, C).
 
 % Checks, if some functor is negation invariant. More details see: 
 % https://stackoverflow.com/questions/71967110/remove-invariants-from-some-prolog-list/71980981#71980981
@@ -483,15 +483,21 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 % Proofs some Derivation
 %
 
+% Preconditions
+
+proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 	
+		once(rule(Derivation, NextStep, ProofIn, ProofOut, I)), 
+		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, I).
+
 proof(Derivation, LastAssumptions, LastPremisses, Proof, Proof, _) :- 	
 		Derivation = ((LastAssumptions, LastPremisses) ⊢ _),
 		isvalid(Derivation),!.
 
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 	
-		rule(Derivation, NextStep, ProofIn, ProofOut, I), 
-		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, I),!.
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
+		proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _).
 
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 	
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
+		not(proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _)),
 		c_rule(Derivation, NextStep, ProofIn, ProofOut, CAssumption, Assumption), 
 		proof(NextStep, MidAssumptions, MidPremisses, ProofOut, Proof, _),
 		delete(MidAssumptions, CAssumption, LastAssumptions),
@@ -504,7 +510,7 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :-
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
 		Derivation = (_ ∨ D2),
 		ProofIn = (_ ∨ Proof2),
-		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof, _),!.
+		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof, _).
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:- 	
 		Derivation = (D1 ∧ D2),
 		D1 = ((A1, P1) ⊢ _),
@@ -518,7 +524,7 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:-
 		A3 := (A1 ∪ A2), P3 := (P1 ∪ P2),
 		dict_normalize(ProofBetween1, IndexUntouched, ProofBetween2),
 
-		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _),!.
+		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _).
 
 proof(Derivation, Proof) :- 
 	distinct([Proof], (Derivation = ((A, []) ⊢ _),
