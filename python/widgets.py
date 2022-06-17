@@ -403,8 +403,9 @@ class Derivation(Frame):
 
 
 		if GET_PROTOCOLL == True:
-			atv = AnyTreeView(root, self.proof.derivation_tree)
-			atv.generate()
+			proof.print_all_debug()
+			#atv = AnyTreeView(root, self.proof.derivation_tree)
+			#atv.generate()
 
 
 	def graph(self):

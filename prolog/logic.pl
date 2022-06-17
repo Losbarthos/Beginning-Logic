@@ -235,6 +235,13 @@ anymember_invariant_2n(Terms, Member, F) :-
 no_temp(WithTemp, NoTemp) :-
 	findall(X, (X ∈ WithTemp, not(X=temp(_))), NoTemp).
 
+temp_invariant(WithTemp, TempInvariant) :-
+	no_temp(WithTemp, NoTemp),
+	findall(X, (temp(X) ∈ WithTemp), Invariant),
+	TempInvariant := (NoTemp ∪ Invariant).
+
+
+
 % Prints dictionary varlues in a way, every value is on a seperate line in the terminal.
 % more details see: https://stackoverflow.com/questions/72238440/swi-prolog-looking-for-a-way-to-print-dictionary-values-in-seperate-lines/72267095?noredirect=1#comment127695212_72267095
 portray(Term) :-
@@ -255,13 +262,15 @@ portray(Term) :-
 % A;P?L∧R → A;P?L and A;P?R   
 % RuleName: ∧I
 rule(Origin, NextStep, DictIn, DictOut, 0) :-
-	Origin = ((A, P) ⊢ (L ∧ R)), 
-	NextStep = (((A, P) ⊢ L) ∧ ((A, P) ⊢ R)),
+	Origin = ((A, P) ⊢ (L ∧ R)), P1 := P ∪ [L],
+	NextStep = (((A, P) ⊢ L) ∧ ((A, P1) ⊢ R)),
+
 
 	%%
 	% Filling DictOut
 	%%
-	Assumptions = A,
+	temp_invariant(A, Ai),
+	Assumptions = Ai,
 	PremissesOrigin = [L, R],
 	PremissesNoOrigin = [],
 	PremissesExcOrigin = [],
@@ -286,7 +295,8 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	%%
 	% Filling DictOut
 	%%
-	Assumptions = A,
+	temp_invariant(A, Ai),
+	Assumptions = Ai,
 	PremissesOrigin = [L, R],
 	PremissesNoOrigin = [],
 	PremissesExcOrigin = [],
@@ -311,7 +321,8 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	%%
 	% Filling DictOut
 	%%
-	Assumptions = A2,
+	temp_invariant(A2, A2i),
+	Assumptions = A2i,
 	PremissesOrigin = [R],
 	PremissesNoOrigin = [],
 	PremissesExcOrigin = [L],
@@ -336,7 +347,8 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	%%
 	% Filling DictOut
 	%%
-	Assumptions = A,
+	temp_invariant(A, Ai),
+	Assumptions = Ai,
 	PremissesOrigin = [L ∧ R],
 	PremissesNoOrigin = [],
 	PremissesExcOrigin = [],
@@ -361,7 +373,8 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	%%
 	% Filling DictOut
 	%%
-	Assumptions = A,
+	temp_invariant(A, Ai),
+	Assumptions = Ai,
 	PremissesOrigin = [L ∧ R],
 	PremissesNoOrigin = [],
 	PremissesExcOrigin = [],
@@ -382,7 +395,7 @@ rule(Origin, NextStep, DictIn, DictOut, 1) :-
 	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, [R]) ⊢ C)),
 	
 	U1 := (A1 ∪ P1), ((L → R) ∈ U1), R ∉ U1, not(C=L), temp(L → R) ∉ U1, temp(R) ∉ U1,
-	delete(A1, (L → R), A2), delete(P1, (L → R), P12), P2 := P12 ∪ [temp(L → R)],
+	replace(L → R, temp(L → R), A1, A2), replace(L → R, temp(L → R), P1, P2),
 
 	%dict_min_index(DictIn, IndexUntouched),
 
@@ -399,7 +412,8 @@ rule(Origin, NextStep, DictIn, DictOut, 1) :-
 	%%
 	% Filling DictOut
 	%%
-	Assumptions = A1,
+	temp_invariant(A1, A1i),
+	Assumptions = A1i,
 	PremissesOrigin = [L, L → R],
 	PremissesNoOrigin = [],
 	PremissesExcOrigin = [],
@@ -430,8 +444,9 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 				%%
 				% Filling DictOut
 				%%
-				Assumptions = A2,
-				PremissesOrigin = [Y ∧ ¬(Y)],
+				temp_invariant(A2, A2i),
+				Assumptions = A2i,
+				PremissesOrigin = [¬(C), Y ∧ ¬(Y)],
 				PremissesNoOrigin = [],
 				PremissesExcOrigin = [¬(C)],
 				Conclusion = [C],
@@ -462,8 +477,9 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 				%%
 				% Filling DictOut
 				%%
-				Assumptions = A2,
-				PremissesOrigin = [Y ∧ ¬(Y)],
+				temp_invariant(A2, A2i),
+				Assumptions = A2i,
+				PremissesOrigin = [C, Y ∧ ¬(Y)],
 				PremissesNoOrigin = [],
 				PremissesExcOrigin = [C],
 				Conclusion = [¬(C)],

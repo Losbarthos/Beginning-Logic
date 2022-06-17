@@ -4,7 +4,9 @@
 %    Copyright (c)  2022, Martin Kunze
 
 :- module(ldict,
-    [ list_to_dict/3,                   % +Values, +Tag, -Dict
+    [ is_value_in_dict/2,               % +V, +D
+      replace/4,                        % +O, +R, +ListOrigin, -ListReplacement
+      list_to_dict/3,                   % +Values, +Tag, -Dict
       dict_length/2,                    % +Dict, -Length
       dict_min_index/2,                 % +Dict, -Min
       dict_max_index/2,                 % +Dict, -Max 
@@ -15,7 +17,22 @@
       dict_from_assumptions/2           % +Assumptions, -Dict
     ]).
 
+% +V, +D
+% checks if some value is in dict
+%
+is_value_in_dict(V, D) :-
+  dict_pairs(D, _, P),
+  pairs_keys_values(P, _, Vs),
+  member(V, Vs).
 
+% replace +O, +R, +ListOrigin, -ListReplacement
+% write Prolog script for replacement any given element in lists by an another given element. For example:
+% replace( 3, a,[1,2,3,4,3,5], [1,2,a,4,a,5])=true
+% source: https://stackoverflow.com/questions/5850937/prolog-element-in-lists-replacement
+
+replace(_, _, [], []).
+replace(O, R, [O|T], [R|T2]) :- replace(O, R, T, T2).
+replace(O, R, [H|T], [H|T2]) :- H \= O, replace(O, R, T, T2).
 
 % list_to_dict(+Values, +Tag, -Dict)
 % converts some list into a prolog dict (more details see: https://stackoverflow.com/questions/71893100/prolog-convert-list-into-dictionary)
@@ -130,10 +147,15 @@ dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, Premmis
 % appends a assumption at proof dictionary.
 % +Assumption +DictIn, -DictOut
 dict_proof_append_assumption(Assumption, DictIn, DictOut) :-
+    term_string(Assumption, StringAssumption),
+    is_value_in_dict([StringAssumption, _], DictIn), 
+    DictOut = DictIn.
+
+dict_proof_append_assumption(Assumption, DictIn, DictOut) :-
     dict_max_index(DictIn, AIndexIn), succ(AIndexIn, AIndexOut), 
     term_string(Assumption, StringAssumption),
     dict_size(DictIn, S), Size is S + 1, term_string(step(Size), StringSize),
-
+    not(is_value_in_dict([StringAssumption, _], DictIn)), 
     DictOut = DictIn.put([AIndexOut = [StringAssumption, StringSize]]).
 
 % appends a assumption at proof dictionary.

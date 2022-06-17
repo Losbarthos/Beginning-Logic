@@ -1,16 +1,14 @@
-from tkinter import *
-from tkinter import ttk
-import matplotlib
-import matplotlib.pyplot as plt
-matplotlib.use('GTK3Agg')
-
-print(matplotlib.__version__)
-def helloCallBack():
-    plt.plot([1,2,3],[5,7,4])
-    plt.show()
-
-root = Tk()
-B = Button(root, text ="Hello", command = helloCallBack)
-B.pack()
-
-root.mainloop()
+import tkinter as tk
+class Application(tk.Frame):
+    def __init__(self, master):
+        tk.Frame.__init__(self, master)
+        self.text = tk.Text(master)        
+        self.text.pack()
+    def show_dict(self, d):
+        for k, v in d.items():
+            self.text.insert(tk.END, "key = {}, val = {}\n".format(k, v))
+     
+root = tk.Tk()
+app = Application(root)
+app.show_dict({'Username': 0, 'Username2': 2})
+app.mainloop()

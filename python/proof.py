@@ -14,6 +14,12 @@ class Proof:
 		Core class for prooving theorems.
 	'''
 	def __init__(self):
+		# full output of tables
+		pd.set_option('display.max_rows', None)
+		pd.set_option('display.max_columns', None)
+		pd.set_option('display.width', None)
+		pd.set_option('display.max_colwidth', -1)
+		
 		# Constants
 		self.NODE = "origin_node"
 		self.EDGE = "edge"
@@ -89,6 +95,25 @@ class Proof:
 			self.tables = self.init_tables()
 			self.graphs = self.init_graphs()
 
+
+	def print_all_debug(self):
+		ln = len(self.proof_derivations)
+		for i in range(ln):
+			print(f"Proof {i+1} from {ln}:")
+			self.print_debug(i)
+			print()
+
+	def print_debug(self, i):
+		'''
+			For printing some debug dictionary of form {key: value} in form key : value, where every (key, value) pair is in seperate line.
+
+		'''
+		debug = self.proof_derivations[i]
+
+		for key, value in debug.items():
+			print(key, ' : ', value)
+
+
 	def init_debug(self):
 		def conclude(index, inner, df):
 			'''
@@ -98,9 +123,11 @@ class Proof:
 				'''
 					Gets the parameter p of some function of type f(p).
 				'''
-				inner = function.removeprefix(name)[2:-2]
+				inner = function.removeprefix(name)[1:-1]
 				if(inner == ''):	
 					return []
+				elif inner[0] == '[':
+					return inner[1:-1]
 				else: 
 					return inner
 			'''
@@ -134,6 +161,52 @@ class Proof:
 
 			return to_append
 
+		def derivation_table_to_dict(table):
+			'''
+				converts a derivation table with columns Index, LastConclusion, NextConclusion, Rule, Step in some 
+				dict with 
+				case 1: value same as LastConclusion
+					Index same as column Index 
+					Dict position same as column Step
+				case 2: value same as NextConclusion and NextConclusion is not equal to LastConclusion
+					Index same as column Index minus 0.5
+					Dict position same as column Step, but lower than LastConclusion
+
+			'''
+			dct = []
+			for prf in table.values():
+				res = {}
+				ln = len(prf)
+				
+				nxt = None
+				for i in range(1, ln + 1):
+					row = prf.loc[prf['Step'] == f'{i}']
+					if row['LastConclusion'].tolist()[0] != '':
+						lst = row['LastConclusion'].tolist()[0]
+
+						if nxt != None:
+							if i > 1 and lst != nxt and nxt != '':
+								d = idx - 0.5
+								res[d] = nxt
+
+
+						idx = row['Index'].tolist()[0]
+						
+						if lst != '': 
+							res[idx] = lst
+
+
+
+						nxt = row['NextConclusion'].tolist()[0]
+
+						if i == ln and nxt != '':
+							d = idx - 0.5
+							res[d] = nxt
+				dct.append(res)
+
+			return dct
+
+
 
 		def main():
 			'''
@@ -155,7 +228,7 @@ class Proof:
 					table[i] = df
 					i = i + 1
 
-			return table
+			return derivation_table_to_dict(table)
 		
 		# Body of function init_debug(self)
 		return main()
@@ -228,7 +301,8 @@ class Proof:
 			except:
 				print(f"Assumptions: {assumptions}")
 				print(f"Table at moment: {df}")
-				print(f"Development of derivations: {self.proof_derivations}")
+				print(f"Development of derivations: ")
+				self.print_debug(debug)
 				raise ValueError('Could not locate assumptions in a right way.')
 
 
@@ -240,18 +314,13 @@ class Proof:
 					idx_premisses_origin = idx_premisses_origin.union(set([select["Index"].item()]))
 					idx_assumptions = idx_assumptions.union(select["Assumptions"].item())
 				except:
-					pd.set_option('display.max_rows', None)
-					pd.set_option('display.max_columns', None)
-					pd.set_option('display.width', None)
-					pd.set_option('display.max_colwidth', -1)
-
-
 					print(f"At derivation: {self.derivation}")
 					print(f"Table at moment: {df}")
 					print(f"Selection: {select}")
 					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
 					print(f"Premiss to append on table: {premiss}")
-					print(f"Development of derivations: {debug}")
+					print(f"Development of derivations: ")
+					self.print_debug(debug)
 					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
 
 			for premiss in premisses_no_origin:
@@ -259,17 +328,13 @@ class Proof:
 				try:
 					idx_premisses_origin = idx_premisses_origin.union(set([select["Index"].item()]))
 				except:
-					pd.set_option('display.max_rows', None)
-					pd.set_option('display.max_columns', None)
-					pd.set_option('display.width', None)
-					pd.set_option('display.max_colwidth', -1)
-
 					print(f"At derivation: {self.derivation}")
 					print(f"Table at moment: {df}")
 					print(f"Selection: {select}")
 					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
 					print(f"Premiss to append on table: {premiss}")
-					print(f"Development of derivations: {debug}")
+					print(f"Development of derivations: ")
+					self.print_debug(debug)
 					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
 
 
@@ -280,17 +345,13 @@ class Proof:
 					idx_premisses_exc_origin = idx_premisses_exc_origin.union(set([select["Index"].item()]))
 					idx_exc_assumptions = idx_exc_assumptions.union(select["Assumptions"].item())
 				except:
-					pd.set_option('display.max_rows', None)
-					pd.set_option('display.max_columns', None)
-					pd.set_option('display.width', None)
-					pd.set_option('display.max_colwidth', -1)
-
 					print(f"At derivation: {self.derivation}")
 					print(f"Table at moment: {df}")
 					print(f"Selection: {select}")
 					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
 					print(f"Premiss to append on table: {premiss}")
-					print(f"Development of derivations: {debug}")
+					print(f"Development of derivations: ")
+					self.print_debug(debug)
 					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
 
 			idx_premisses = idx_premisses_origin.union(idx_premisses_no_origin)
@@ -325,7 +386,7 @@ class Proof:
 					if len(proof[key]) == 2: # assumptions have two elements
 						new_frame = [df, assume(key, proof[key][0])]
 					else: # general conclusions have more than two elements 
-						new_frame = [df, conclude(key, proof[key], df, self.proof_derivations[i])]
+						new_frame = [df, conclude(key, proof[key], df, i)]
 					df = pd.concat(new_frame)	
 
 				df.index = df['Index'] # sets key
@@ -349,6 +410,57 @@ class Proof:
 			g = nx.DiGraph()
 			edge_labels = {}
 			color_map = {}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 			for index, row in table.iterrows():
 				if(row["Rule"] == 'A'):

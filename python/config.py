@@ -7,7 +7,7 @@ from enum import Enum
 from pathlib import Path
 
 
-GET_PROTOCOLL = False
+GET_PROTOCOLL = True
 
 # Conventions of Table headlines
 ASSUMPTION = "Assumption"
