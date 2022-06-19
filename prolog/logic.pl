@@ -116,6 +116,11 @@ Tail ⊢ Head :-
 derivation(X) :- X = (_ ⊢ _).
 derivation(X) :- binary_connective(X, A, B), derivation(A), derivation(B).
 
+% removes all elements from LIn, which are not derivations
+find_derivations(LIn, LOut) :-
+	findall(X, (X ∈ LIn, derivation(X)), LOut).
+
+
 % extracts Assumptions, Premisses and Conclusion from derivation
 unzip(Derivation, Assumptions, Premisses, Conclusion) :-
 	Derivation = ((Assumptions, Premisses) ⊢ Conclusion).

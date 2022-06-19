@@ -11,6 +11,7 @@ from proof import *
 
 from tkinter import *
 from tkinter import ttk
+from tkinter.ttk import Progressbar
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -22,6 +23,43 @@ from collections import deque
 
 import pandas as pd
 
+class ProgressBarWindow(Toplevel):
+	def __init__(self, master = None, max_value=None):
+		super().__init__(master = master)
+		self.protocol("WM_DELETE_WINDOW", self.nothing)
+
+		self.title('ProgressBar')
+		self.size = max_value
+		self.step = 0
+		
+		##
+		# ProgressBar
+		##
+		self.prog_bar = Progressbar(self, orient=HORIZONTAL, mode='determinate')
+		self.prog_bar.grid(column=0, row=0)
+
+		self.lbl = Label(self) 
+		self.lbl.grid(column=1,row=0)
+
+	def nothing(self):
+		"dummy function"
+		pass
+	
+	def quit(self):
+		self.destroy()
+
+	def update(self):
+		'''
+			Gets one step further in progress bar.
+		'''
+		self.step = self.step + 1
+		current_value = self.prog_bar['value']
+		prog_length =  int(self.prog_bar['length'].string)
+
+		self.prog_bar['value'] = current_value + prog_length / self.size 
+
+		self.lbl['text'] = f'{self.step} from {self.size}'
+		self.update_idletasks()
 
 class PropositionEditor(Toplevel):
 	#SQUARES = '▯▮'
@@ -254,27 +292,33 @@ class Derivation(Frame):
 		self.bt_calc.grid(column=0, row=0)
 		self.bt_calc.configure(state=DISABLED)
 
+
+		self.i_calc_all = PhotoImage(file=I_QED_ALL)
+		self.bt_calc_all = Button(self.toolbar, image=self.i_calc_all, bg='white', command=self.proof_all)
+		self.bt_calc_all.grid(column=1, row=0)
+		self.bt_calc_all.configure(state=DISABLED)
+
 		self.i_graph = PhotoImage(file=I_GRAPH)
 		self.bt_graph = Button(self.toolbar, image=self.i_graph, bg='lightblue', command=self.graph)
-		self.bt_graph.grid(column=1, row=0)
+		self.bt_graph.grid(column=2, row=0)
 		self.bt_graph.configure(state=DISABLED)
 
 
 		self.i_open = PhotoImage(file=I_OPEN_FILE)
 		self.bt_open = Button(self.toolbar, image=self.i_open, bg='white', command=self.import_derivations)
-		self.bt_open.grid(column=2, row=0)
+		self.bt_open.grid(column=3, row=0)
 
 		self.i_reset = PhotoImage(file=I_RESET)
 		self.bt_reset = Button(self.toolbar, image=self.i_reset, bg='white', command=self.reset)
-		self.bt_reset.grid(column=3, row=0)
-
+		self.bt_reset.grid(column=4, row=0)
+		
 		##
 		# Derivation representation
 		##
 		self.derivation_shift_frame = Frame(self.main_frame)
-		self.derivation_shift_frame.grid(column=0, row=1, sticky='w')
+		self.derivation_shift_frame.grid(column=0, row=2, sticky='w')
 		self.derivation_shift_child_frame = Frame(self.derivation_shift_frame)
-		self.derivation_shift_child_frame.grid(column=0, row=1, columnspan=3, sticky='w')
+		self.derivation_shift_child_frame.grid(column=0, row=2, columnspan=3, sticky='w')
 
 		self.shift_derivation = ShiftControl(self.derivation_shift_frame, self.derivation_shift_child_frame, self.set_derivation, self.p, "Derivation")
 
@@ -298,7 +342,7 @@ class Derivation(Frame):
 		# Shift Control for Table view
 		##
 		self.table_shift_frame = Frame(inner_derivation_frame)
-		self.table_shift_frame.grid(column=0, row=2, columnspan=5, sticky='w')
+		self.table_shift_frame.grid(column=0, row=3, columnspan=5, sticky='w')
 
 		self.table_shift_child_frame = Frame(self.table_shift_frame)
 		self.table_shift_child_frame.grid(column=0, row=1)
@@ -310,6 +354,7 @@ class Derivation(Frame):
 			Setup of the toolbar under the condition of some proofed proposition.
 		'''
 		self.bt_calc.configure(state=DISABLED)
+		self.bt_calc_all.configure(state=DISABLED)
 		self.bt_add_assumption.configure(state=DISABLED)
 		self.bt_set_conclusion.configure(state=DISABLED)
 		if(len(proof.graphs[index][1]) > 0):
@@ -318,12 +363,14 @@ class Derivation(Frame):
 
 	def init_toolbar_state_not_proofed(self):
 		self.bt_calc.configure(state=NORMAL)
+		self.bt_calc_all.configure(state=NORMAL)
 		self.bt_add_assumption.configure(state=NORMAL)
 		self.bt_set_conclusion.configure(state=NORMAL)
 		self.bt_graph.configure(state=DISABLED)
 
 	def init_toolbar_state_no_derivation(self):
 		self.bt_calc.configure(state=DISABLED)
+		self.bt_calc_all.configure(state=DISABLED)
 		self.bt_add_assumption.configure(state=NORMAL)
 		self.bt_set_conclusion.configure(state=NORMAL)
 		self.bt_graph.configure(state=DISABLED)
@@ -337,8 +384,10 @@ class Derivation(Frame):
 				listl=[]
 
 				for line in f:
-					strip_line=line.strip()
-					listl.append(strip_line)
+					if line.find("#") == -1: # for comments
+						strip_line=line.strip()
+						if strip_line != "":
+							listl.append(strip_line)
 				return listl
 
 		def add_derivation(derivation):
@@ -346,17 +395,20 @@ class Derivation(Frame):
 				Adds some derivation into proof.
 			'''
 			new_proof = Proof()
-			new_proof.set_derivation(s)
+			try:
+				new_proof.set_derivation(s)
 
-			self.add_derivation(new_proof)
+				self.add_derivation(new_proof)
+			except:
+				None
 
 
 		from tkinter import filedialog
 		from tkinter import messagebox
 
-		file_path = filedialog.askopenfilename()
+		file_path = filedialog.askopenfilename(initialdir=DATA_DIR)
 
-		if(file_path.endswith('txt')):
+		if(file_path != () and file_path.endswith('txt')):
 			file = file_to_list(file_path)
 
 
@@ -371,8 +423,9 @@ class Derivation(Frame):
 						add_derivation(s)
 				else:
 					add_derivation(s)
-		else:
+		elif file_path != ():
 			messagebox.showinfo("Info", "Can import .txt-files only.")
+		self.init_toolbar_state_not_proofed()
 
 
 	
@@ -398,6 +451,7 @@ class Derivation(Frame):
 	def set_derivation(self, parent_frame, proof):
 		self.init_derivation_shift_frame(parent_frame)
 		self.derivation_set_text(proof.get_derivation())
+		self.lbl_derivation['width'] = 0
 
 		if proof.is_proven(): 
 			if proof.original != False: # The proof has found some valid result
@@ -410,11 +464,12 @@ class Derivation(Frame):
 				self.init_toolbar_state_no_derivation()
 			else:
 				self.init_toolbar_state_not_proofed()
-				
+
 
 	def add_derivation(self, element):
 		self.p.append(element)
 		self.shift_derivation.append_data(element)
+		self.reset_lbl_derivation_width()
 
 
 	def init_table(self, parent_frame, table):
@@ -441,6 +496,25 @@ class Derivation(Frame):
 	        # Rule
 	        lbl = Label(parent_frame, text= table['Rule'][index])
 	        lbl.grid(column=4, row=index, sticky='w')
+
+	def proof_all(self):
+		'''
+		 	Generates proofs of all derivations by natural deduction.
+		'''
+		prog_bar = ProgressBarWindow(self.parent, len(self.p))
+
+
+		for proof in self.p:
+			if proof.is_proven != True:
+				proof.proof()
+			prog_bar.update()
+		
+		current_proof = self.get_current_proof()
+		if current_proof.original != False:
+			self.init_toolbar_state_proofed(current_proof, 0)
+		prog_bar.quit()
+
+
 
 	def proof(self):
 		'''
@@ -501,60 +575,6 @@ class Derivation(Frame):
 		proof.set_conclusion(lbl_txt)
 		self.derivation_set_text(proof.get_derivation())
 		self.bt_calc.configure(state=NORMAL)
-
-
-class AnyTreeView(Toplevel):
-	'''
-		Illustrates some anytree treeview into some 
-	'''
-	def __init__(self, master, tree ):	
-		super().__init__(master = master)
-		
-		self.main_frame = Frame(self)
-		self.main_frame.grid(row=1,column=1,sticky="ew")
-		self.columnconfigure(1, weight=1)
-
-
-		self.title('AnyTreeView')
-		
-		self.tree = tree
-		h = len([node.name for node in PreOrderIter(tree)])
-		self.treeview = ttk.Treeview(self.main_frame, column=("c1"), height = h)
-		self.treeview.column("# 1",anchor=CENTER, stretch=YES)
-
-		# Streching treeview after right atjust the window
-		self.columnconfigure(1, weight=1)
-		self.treeview.pack(expand=True, fill='x')
-
-	def generate(self):
-
-		def separate_string(data, seps):
-			'''
-				Separates strings by seperators constist of more than one char saved in the variable seps.
-				Receive the last separated string s1 and the last separator which has s1 on his right hand side.
-				https://stackoverflow.com/questions/71630052/python-separate-string-by-multiple-separators-and-return-separators-and-separat
-			'''
-			import re
-
-			pattern = "|".join(re.escape(sep) for sep in seps)
-			try:
-				start, end = [m.span() for m in re.finditer(pattern, data)][-1]
-				return f"{data[start:end]},{data[end:]}"
-			except IndexError:
-				return data
-		
-
-		index = 0
-		for node in PreOrderIter(self.tree):
-			self.treeview.insert('',f'{index}', node.name, text = separate_string(node.name, BASIC_RULES.values()))
-			index = index + 1
-
-		for node in PreOrderIter(self.tree):
-			for child in node.children:
-				self.treeview.move(child.name, node.name, 'end')
-
-
-
 
 root = Tk()
 root.title("Beginning Logic")

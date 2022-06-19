@@ -24,13 +24,13 @@ BINARY_CONNECTIVES = [AND, OR, IMP, EQV]
 
 # Conventions of Filenames
 ROOT_DIR = Path(__file__).parent.parent
-CSV_THEOREMS = f"{ROOT_DIR}/data/theorems.csv"
-CSV_PROBLEMS = f"{ROOT_DIR}/data/problems.csv"
+DATA_DIR = f"{ROOT_DIR}/data/"
 PL_LOGIC = f"{ROOT_DIR}/prolog/logic.pl"
 
 I_OPEN_FILE = f"{ROOT_DIR}/icons/open_file.png"
 I_GRAPH = f"{ROOT_DIR}/icons/graph.png"
 I_QED = f"{ROOT_DIR}/icons/qed.png"
+I_QED_ALL = f"{ROOT_DIR}/icons/qed_all.png"
 I_TBL = f"{ROOT_DIR}/icons/table.png"
 I_RESET = f"{ROOT_DIR}/icons/reset.png"
 

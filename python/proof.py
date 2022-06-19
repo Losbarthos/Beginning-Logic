@@ -18,7 +18,7 @@ class Proof:
 		pd.set_option('display.max_rows', None)
 		pd.set_option('display.max_columns', None)
 		pd.set_option('display.width', None)
-		pd.set_option('display.max_colwidth', -1)
+		pd.set_option('display.max_colwidth', None)
 		
 		# Constants
 		self.NODE = "origin_node"
@@ -59,14 +59,15 @@ class Proof:
 		'''
 			The variable derivation is a string of form '[a1, a2, ..., an] ⊢ c'.
 		'''
-		[assumptions, conclusion] = derivation.split('⊢')
-		assumptions = assumptions.strip()
-		assumptions = assumptions.strip('][').split(', ')
-		conclusion = conclusion.strip()
-		
-		self.add_assumptions(assumptions)
-		self.set_conclusion(conclusion)
-
+		try:
+			[assumptions, conclusion] = derivation.split('⊢')
+			assumptions = assumptions.strip()
+			assumptions = assumptions.strip('][').split(', ')
+			conclusion = conclusion.strip()
+			self.add_assumptions(assumptions)
+			self.set_conclusion(conclusion)
+		except:
+			raise ValueError(f"derivation {derivation} could not be converted!")
 
 	def update_derivation(self):
 		self.derivation = f"([{','.join(self.assumptions)}],[]) ⊢ {self.conclusion}"
