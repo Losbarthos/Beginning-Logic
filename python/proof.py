@@ -55,6 +55,19 @@ class Proof:
 		self.conclusion = conclusion
 		self.update_derivation()
 
+	def set_derivation(self, derivation):
+		'''
+			The variable derivation is a string of form '[a1, a2, ..., an] ⊢ c'.
+		'''
+		[assumptions, conclusion] = derivation.split('⊢')
+		assumptions = assumptions.strip()
+		assumptions = assumptions.strip('][').split(', ')
+		conclusion = conclusion.strip()
+		
+		self.add_assumptions(assumptions)
+		self.set_conclusion(conclusion)
+
+
 	def update_derivation(self):
 		self.derivation = f"([{','.join(self.assumptions)}],[]) ⊢ {self.conclusion}"
 
@@ -411,57 +424,6 @@ class Proof:
 			edge_labels = {}
 			color_map = {}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 			for index, row in table.iterrows():
 				if(row["Rule"] == 'A'):
 					color_map[index] = "red"
@@ -512,11 +474,7 @@ if __name__ == '__main__':
 
 	p = Proof()
 
-	assumptions = ["(p→q)", "¬(q)"]
-	conclusion = "¬(p)"
-
-	p.add_assumptions(assumptions)
-	p.set_conclusion(conclusion)
+	p.set_derivation('[¬(q),p→q] ⊢ ¬(p)')
 	
 	p.proof()
 	p.view_graph(1)

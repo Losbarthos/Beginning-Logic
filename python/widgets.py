@@ -190,6 +190,7 @@ class ShiftControl(Frame):
     	self.index_pool.rotate(-neg_rotate + 1)
     	self.max = self.max + 1
     	self.inner["text"] = self.get_label_text(self.label_key_text)
+    	self.data[self.max - 1] = element
 
     def get_label_text(self, switch_name):
         return f"{switch_name} {self.index_pool[0] + 1} from {self.max}"
@@ -258,6 +259,11 @@ class Derivation(Frame):
 		self.bt_graph.grid(column=1, row=0)
 		self.bt_graph.configure(state=DISABLED)
 
+
+		self.i_open = PhotoImage(file=I_OPEN_FILE)
+		self.bt_open = Button(self.toolbar, image=self.i_open, bg='white', command=self.import_derivations)
+		self.bt_open.grid(column=2, row=0)
+
 		self.i_reset = PhotoImage(file=I_RESET)
 		self.bt_reset = Button(self.toolbar, image=self.i_reset, bg='white', command=self.reset)
 		self.bt_reset.grid(column=3, row=0)
@@ -282,7 +288,7 @@ class Derivation(Frame):
 		self.bt_add_assumption.grid(column=0, row=0)
 		self.bt_set_conclusion = Button(inner_derivation_frame, text = "Add Conclusion", command=lambda: self.new_FormulaEditor(self.apply_conclusion))
 		self.bt_set_conclusion.grid(column=1, row=0)
-		self.bt_add_derivation = Button(inner_derivation_frame, text = "+", command=self.add_derivation)
+		self.bt_add_derivation = Button(inner_derivation_frame, text = "+", command=lambda: self.add_derivation(Proof()))
 		self.bt_add_derivation.grid(column=2, row=0)
 
 		self.lbl_derivation = Entry(inner_derivation_frame, state="readonly", justify='center')
@@ -321,6 +327,54 @@ class Derivation(Frame):
 		self.bt_add_assumption.configure(state=NORMAL)
 		self.bt_set_conclusion.configure(state=NORMAL)
 		self.bt_graph.configure(state=DISABLED)
+
+	def import_derivations(self):
+		def file_to_list(file_name):
+			'''
+				Stores the derivations of the file into some list.
+			'''
+			with open(file_name,'r') as f:
+				listl=[]
+
+				for line in f:
+					strip_line=line.strip()
+					listl.append(strip_line)
+				return listl
+
+		def add_derivation(derivation):
+			'''
+				Adds some derivation into proof.
+			'''
+			new_proof = Proof()
+			new_proof.set_derivation(s)
+
+			self.add_derivation(new_proof)
+
+
+		from tkinter import filedialog
+		from tkinter import messagebox
+
+		file_path = filedialog.askopenfilename()
+
+		if(file_path.endswith('txt')):
+			file = file_to_list(file_path)
+
+
+			loop_start = True
+			for s in file:
+				if loop_start == True:
+					loop_start = False
+					if self.p[0].derivation == "":
+						self.p[0].set_derivation(s)
+						self.derivation_set_text(s)
+					else:
+						add_derivation(s)
+				else:
+					add_derivation(s)
+		else:
+			messagebox.showinfo("Info", "Can import .txt-files only.")
+
+
 	
 	def derivation_set_text(self, text):
 		'''
@@ -358,9 +412,9 @@ class Derivation(Frame):
 				self.init_toolbar_state_not_proofed()
 				
 
-	def add_derivation(self):
-		self.p.append(Proof())
-		self.shift_derivation.append_data("")
+	def add_derivation(self, element):
+		self.p.append(element)
+		self.shift_derivation.append_data(element)
 
 
 	def init_table(self, parent_frame, table):

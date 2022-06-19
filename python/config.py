@@ -28,6 +28,7 @@ CSV_THEOREMS = f"{ROOT_DIR}/data/theorems.csv"
 CSV_PROBLEMS = f"{ROOT_DIR}/data/problems.csv"
 PL_LOGIC = f"{ROOT_DIR}/prolog/logic.pl"
 
+I_OPEN_FILE = f"{ROOT_DIR}/icons/open_file.png"
 I_GRAPH = f"{ROOT_DIR}/icons/graph.png"
 I_QED = f"{ROOT_DIR}/icons/qed.png"
 I_TBL = f"{ROOT_DIR}/icons/table.png"
