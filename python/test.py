@@ -1,51 +1,20 @@
-import tkinter as tk
-import tkinter.ttk as ttk
-import threading
+import matplotlib.pyplot as plt
+import networkx as nx
 
-
-class ProgressbarApp(threading.Thread):
-
-    def __init__(self, max_value: int):
-        self.max_value = max_value
-
-        self.root = None
-        self.pb = None
-
-        threading.Thread.__init__(self)
-        self.lock = threading.Lock()    # (1)
-        self.lock.acquire()             # (2)
-        self.start()
-
-        # (1) Makes sure progressbar is fully loaded before executing anything
-        with self.lock:
-            return
-
-    def close(self):
-        self.root.quit()
-
-    def run(self):
-
-        self.root = tk.Tk()
-        self.root.protocoll("WM_DELETE_WINDOW", disable_event)
-
-        self.pb = ttk.Progressbar(self.root, orient='horizontal', length=400, mode='determinate')
-        self.pb['value'] = 0
-        self.pb['maximum'] = self.max_value
-        self.pb.pack()
-
-        self.lock.release()             # (2) Will release lock when finished
-        self.root.mainloop()
-
-    def update(self, value: int):
-        self.pb['value'] = value
+from netgraph._main import EmphasizeOnHoverGraph
 
 if __name__ == '__main__':
-    interval = 100000
-    my_pb = ProgressbarApp(interval)
 
-    for i in range(interval):
-        my_pb.update(i)
+    node_labels = {1: 'p→q', 2: '¬q', 3: '¬ (¬p)', 4: '¬p', 5: '¬p∧ ¬ (¬p)', 6: 'p', 7: 'q', 8: 'q∧ ¬q', 9: '¬p'}
+    color_map = {1: 'red', 2: 'red', 3: 'red', 4: 'red', 5: 'lightblue', 6: 'lightblue', 7: 'lightblue', 8: 'lightblue', 9: 'blue'}
+    edge_labels = {(3, 5): '∧I', (4, 5): '∧I', (4, 6): '¬E', (5, 6): '¬E', (1, 7): '→E', (6, 7): '→E', (2, 8): '∧I', (7, 8): '∧I', (8, 9): '¬E', (3, 9): '¬E'}
+    highlight = {1: [1], 2: [2], 3: [3], 4: [4], 5: [3, 4, 5], 6: [3, 6], 7: [1, 3, 7], 8: [1, 2, 3, 8], 9: [1, 2, 9]}
 
-    my_pb.close()
 
-    # Other stuff goes on . . .
+    graph = nx.from_edgelist(edge_labels, nx.DiGraph()) 
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    g = EmphasizeOnHoverGraph(graph, node_layout='dot', 
+        node_color=color_map, mouseover_highlight_mapping=highlight, edge_label_fontdict=dict(size=14), 
+        node_label_fontdict=dict(size=21), node_labels=node_labels, edge_labels=edge_labels, ax=ax)
+    plt.show()

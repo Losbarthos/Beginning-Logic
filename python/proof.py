@@ -1,3 +1,4 @@
+
 #  Basic libary to prove theorems
 #    Author:        Martin Kunze
 #    E-mail:        mkunze86@gmail.com
@@ -120,7 +121,6 @@ class Proof:
 	def print_debug(self, i):
 		'''
 			For printing some debug dictionary of form {key: value} in form key : value, where every (key, value) pair is in seperate line.
-
 		'''
 		debug = self.proof_derivations[i]
 
@@ -185,7 +185,6 @@ class Proof:
 				case 2: value same as NextConclusion and NextConclusion is not equal to LastConclusion
 					Index same as column Index minus 0.5
 					Dict position same as column Step, but lower than LastConclusion
-
 			'''
 			dct = []
 			for prf in table.values():
@@ -238,9 +237,9 @@ class Proof:
 
 				df.index = df['Index'] # sets key
 
-				if is_unique_value(table, i, df):
-					table[i] = df
-					i = i + 1
+				#if is_unique_value(table, i, df):
+				table[i] = df
+				i = i + 1
 
 			return derivation_table_to_dict(table)
 		
@@ -405,9 +404,9 @@ class Proof:
 
 				df.index = df['Index'] # sets key
 
-				if is_unique_value(table, i, df):
-					table[i] = df
-					i = i + 1
+				#if is_unique_value(table, i, df):
+				table[i] = df
+				i = i + 1
 
 			return table
 		# Body of function init_tables(self)

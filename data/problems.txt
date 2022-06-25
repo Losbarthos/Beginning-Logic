@@ -3,6 +3,7 @@
 # [a1, a2, ..., an] ⊢ c, wherby
 # ai are the assumptions for 1 ≤ i ≤ n and c is the conclusion
 
-
-[¬(q),p→q] ⊢ ¬(p)
-[p] ⊢ ((¬(q→r)→ ¬(p)) → (¬(r)→ ¬(q)))
+p→q,p ⊢ q 													# Problem 1
+(¬q),((¬q)→((¬p)→q)) ⊢ ((¬p)→q)								# Problem 2
+¬(q),p→q ⊢ ¬(p)												# Problem 5
+p ⊢ ((¬(q→r)→ ¬(p)) → (¬(r)→ ¬(q)))							# Excercise 1n

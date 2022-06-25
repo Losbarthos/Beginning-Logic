@@ -214,6 +214,9 @@ contradictions(B, C) :-
 	findall(X, (Y ∈ B, contradictions(Y, X)), SC),
 	append(SC, C0), sort(C0, C).
 
+% checks, if the set S has contradictions. 
+has_contradictions(S) :- A ∈ S, ¬(A) ∈ S.
+
 % Checks, if some functor is negation invariant. More details see: 
 % https://stackoverflow.com/questions/71967110/remove-invariants-from-some-prolog-list/71980981#71980981
 % invariant_2n(+X,+Y,+Fun)
@@ -269,6 +272,9 @@ portray(Term) :-
 rule(Origin, NextStep, DictIn, DictOut, 0) :-
 	Origin = ((A, P) ⊢ (L ∧ R)), P1 := P ∪ [L],
 	NextStep = (((A, P) ⊢ L) ∧ ((A, P1) ⊢ R)),
+	
+	U := A ∪ P,
+	not(has_contradictions(U)),
 
 
 	%%
@@ -294,8 +300,10 @@ rule(Origin, NextStep, DictIn, DictOut, 0) :-
 % RuleName: →I
 rule(Origin, NextStep, DictIn, DictOut, _) :-
 	Origin = ((A, P) ⊢ (L → R)), 
-	union(A, P, U), L ∈ U,
+	U:= A ∪ P, L ∈ U,
 	NextStep = ((A, P) ⊢ R), 
+
+	not(has_contradictions(U)),
 
 	%%
 	% Filling DictOut
@@ -319,10 +327,12 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 % RuleName: →I
 rule(Origin, NextStep, DictIn, DictOut, _) :-
 	Origin = ((A1, P) ⊢ (L → R)),
-	union(A1, P, U), L ∉ U, 
+	U:= A1 ∪ P, L ∉ U, 
 	NextStep = ((A2, P) ⊢ R),
 	append(A1, [L], A2), 
 
+	not(has_contradictions(U)),
+	
 	%%
 	% Filling DictOut
 	%%
@@ -346,8 +356,10 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 % RuleName: ∧E
 rule(Origin, NextStep, DictIn, DictOut, _) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
-	union(A, P1, U), ((L ∧ R) ∈ U),
+	U:= A ∪ P1, ((L ∧ R) ∈ U),
 	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, append(P1, [L], P2),
+
+	not(has_contradictions(U)),
 
 	%%
 	% Filling DictOut
@@ -372,8 +384,10 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 % RuleName: ∧E
 rule(Origin, NextStep, DictIn, DictOut, _) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
-	union(A, P1, U), ((L ∧ R) ∈ U),
+	U:= A ∪ P1, ((L ∧ R) ∈ U),
 	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, append(P1, [R], P2),
+	
+	not(has_contradictions(U)),
 
 	%%
 	% Filling DictOut
@@ -397,10 +411,12 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 % RuleName: →E
 rule(Origin, NextStep, DictIn, DictOut, 1) :-
 	Origin = ((A1, P1) ⊢ C), 
-	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, [R]) ⊢ C)),
+	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, P3) ⊢ C)),
 	
 	U1 := (A1 ∪ P1), ((L → R) ∈ U1), R ∉ U1, not(C=L), temp(L → R) ∉ U1, temp(R) ∉ U1,
-	replace(L → R, temp(L → R), A1, A2), replace(L → R, temp(L → R), P1, P2),
+	replace(L → R, temp(L → R), A1, A2), replace(L → R, temp(L → R), P1, P2), P3 := P2 ∪ [L, R],
+
+	not(has_contradictions(U1)),
 
 	%dict_min_index(DictIn, IndexUntouched),
 
@@ -440,7 +456,7 @@ rule(Origin, NextStep, DictIn, DictOut, 1) :-
 % Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
 c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 	Origin = ((A1, P) ⊢ C), CAssumption = ¬(C), ContraPremiss = C,
-	not(⊥(C)), union(A1, P, U), (¬(C) ∉ U), (temp(¬(C)) ∉ U), append(A1, [¬(C)], A2), not(anymember_invariant_2n(U, ¬(C), ¬)),
+	not(⊥(C)), U:= A1 ∪ P, (¬(C) ∉ U), (temp(¬(C)) ∉ U), append(A1, [¬(C)], A2), not(anymember_invariant_2n(U, ¬(C), ¬)),
 	union(A2, P, U2), contradictions(U2, Contra),
 	findall(X, (member(Y, Contra), X = ((A2, P) ⊢ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
@@ -473,7 +489,7 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 % RuleName: ¬I 
 c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 	Origin = ((A1, P) ⊢ ¬(C)), CAssumption = C, ContraPremiss = ¬(C),
-	not(⊥(C)), union(A1, P, U), (C ∉ U), temp(C) ∉ U, append(A1, [C], A2), not(anymember_invariant_2n(U, C, ¬)),
+	not(⊥(C)), U:= A1 ∪ P, (C ∉ U), temp(C) ∉ U, append(A1, [C], A2), not(anymember_invariant_2n(U, C, ¬)),
 	union(A2, P, U2), contradictions(U2, Contra),
 	findall(X, (member(Y, Contra), X = ((A2, P) ⊢ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
@@ -507,7 +523,7 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 % Preconditions
 
 proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 	
-		once(rule(Derivation, NextStep, ProofIn, ProofOut, I)), 
+		rule(Derivation, NextStep, ProofIn, ProofOut, I), 
 		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, I).
 
 proof(Derivation, LastAssumptions, LastPremisses, Proof, Proof, _) :- 	

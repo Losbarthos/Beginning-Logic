@@ -384,10 +384,10 @@ class Derivation(Frame):
 				listl=[]
 
 				for line in f:
-					if line.find("#") == -1: # for comments
-						strip_line=line.strip()
-						if strip_line != "":
-							listl.append(strip_line)
+					code_line = line.split("#")[0] # removes comments
+					strip_line = code_line.strip() # removes blanks 
+					if strip_line != "":
+						listl.append(strip_line)
 				return listl
 
 		def add_derivation(derivation):
