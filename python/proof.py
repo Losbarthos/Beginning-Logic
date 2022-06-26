@@ -86,6 +86,70 @@ class Proof:
 			which illustrate the proof-graph.
 		'''
 
+		def remove_dublicates():
+			'''
+				Removes duplicate elements occures in self.table 
+			'''
+			def in_list(element, list):
+				'''
+					checks if some element that has method equals (e.g. pandas dataframe) is in list
+				'''
+				for e in list:
+					if element.equals(e):
+						return True
+				return False
+
+
+			new_original = []
+			new_proof_derivations = []
+			new_tables = []
+			new_graphs = []
+			rng = len(self.original)
+
+			self.tables = [k for k in self.tables.values()]
+
+			for a,b,c,d in zip(self.original, self.proof_derivations, self.tables, self.graphs):
+				if not(in_list(c, new_tables)):
+					new_original.append(a)
+					new_proof_derivations.append(b)
+					new_tables.append(c)
+					new_graphs.append(d)
+
+			self.original = new_original
+			self.proof_derivations = new_proof_derivations
+			self.tables = dict(zip(range(len(new_tables)), new_tables))
+			self.graphs = new_graphs
+
+		def sort_values():
+			'''
+				Sorts the values of the tuble (self.tables, self.original, self.proof_derivations, self.graphs)
+				by length of self.tables. 
+			'''
+			self.tables = [k for k in self.tables.values()]
+			
+			#  Input here: [(1, df1), (2, df2), (3, df3)]
+			#  Output here: [(3, df3), (1, df1), (2, df2)]  (or whatever is the correct order)
+			lst_sort = sorted(enumerate(self.tables, start=0), key=lambda tup: len(tup[1]))
+
+			# now split the index and dataframe lists apart again if needed
+			# by using a trick where it feels like we use zip in reverse
+			indexes, self.tables = zip(*lst_sort)
+
+
+			new_original = []
+			new_proof_derivations = []
+			new_graphs = []
+
+			for i in indexes:
+				new_original.append(self.original[i])
+				new_proof_derivations.append(self.proof_derivations[i])
+				new_graphs.append(self.graphs[i])
+			
+			self.original = new_original
+			self.proof_derivations = new_proof_derivations
+			self.tables = dict(zip(range(len(self.tables)), self.tables))
+			self.graphs = new_graphs
+
 		def main(derivation):
 			'''
 				This function is called from proof(self, derivation)
@@ -110,6 +174,8 @@ class Proof:
 			self.tables = self.init_tables()
 			self.graphs = self.init_graphs()
 
+			remove_dublicates()
+			sort_values()
 
 	def print_all_debug(self):
 		ln = len(self.proof_derivations)
@@ -167,13 +233,13 @@ class Proof:
 					'Step': step}
 			return pd.DataFrame([line])
 
-		def is_unique_value(dictionary, key, value):
-			to_append = True
-			for index in dictionary:
-				if dictionary[index].equals(value):
-					to_append = False
+		#def is_unique_value(dictionary, key, value):
+		#	to_append = True
+		#	for index in dictionary:
+		#		if dictionary[index].equals(value):
+		#			to_append = False
 
-			return to_append
+		#	return to_append
 
 		def derivation_table_to_dict(table):
 			'''
@@ -376,13 +442,13 @@ class Proof:
 					'Rule': rule}
 			return pd.DataFrame([line])
 
-		def is_unique_value(dictionary, key, value):
-			to_append = True
-			for index in dictionary:
-				if dictionary[index].equals(value):
-					to_append = False
-
-			return to_append
+		#def is_unique_value(dictionary, key, value):
+		#	to_append = True
+		#	for index in dictionary:
+		#		if dictionary[index].equals(value):
+		#			to_append = False
+		#
+		#	return to_append
 
 
 		def main():
@@ -477,7 +543,7 @@ if __name__ == '__main__':
 	p.set_derivation('[¬(q),p→q] ⊢ ¬(p)')
 	
 	p.proof()
-	p.view_graph(1)
+	p.view_graph(0)
 
 
 # MTT

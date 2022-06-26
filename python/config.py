@@ -25,9 +25,11 @@ BINARY_CONNECTIVES = [AND, OR, IMP, EQV]
 # Conventions of Filenames
 ROOT_DIR = Path(__file__).parent.parent
 DATA_DIR = f"{ROOT_DIR}/data/"
+LATEX_DIR = f"{ROOT_DIR}/latex/"
 PL_LOGIC = f"{ROOT_DIR}/prolog/logic.pl"
 
 I_OPEN_FILE = f"{ROOT_DIR}/icons/open_file.png"
+I_LATEX = f"{ROOT_DIR}/icons/latex.png"
 I_GRAPH = f"{ROOT_DIR}/icons/graph.png"
 I_QED = f"{ROOT_DIR}/icons/qed.png"
 I_QED_ALL = f"{ROOT_DIR}/icons/qed_all.png"

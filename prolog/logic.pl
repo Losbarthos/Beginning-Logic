@@ -406,6 +406,7 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
+%
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 % RuleName: →E

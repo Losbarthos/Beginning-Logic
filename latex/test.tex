@@ -1,0 +1,188 @@
+\documentclass[a4paper,12pt]{book}
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+\pagestyle{headings}
+
+\begin{document}
+	\chapter{Sample Chapter}
+	\section{New section}
+
+	
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &         p→q &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &           p &        \{\} &    A \\
+     \{1, 2\} &     3 &           q &    \{1, 2\} &   →E \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &          ¬q &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &    ¬q→ ¬p→q &        \{\} &    A \\
+     \{1, 2\} &     3 &        ¬p→q &    \{1, 2\} &   →E \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &          ¬q &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &    ¬q→ ¬p→q &        \{\} &    A \\
+        \{3\} &     3 &          ¬p &        \{\} &    A \\
+     \{1, 2\} &     4 &        ¬p→q &    \{1, 2\} &   →E \\
+  \{1, 2, 3\} &     5 &           q &    \{3, 4\} &   →E \\
+     \{1, 2\} &     6 &        ¬p→q &       \{5\} &   →I \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &         p→q &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &         q→r &        \{\} &    A \\
+        \{3\} &     3 &           p &        \{\} &    A \\
+     \{1, 3\} &     4 &           q &    \{1, 3\} &   →E \\
+  \{1, 2, 3\} &     5 &           r &    \{2, 4\} &   →E \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &       p→q→r &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &         p→q &        \{\} &    A \\
+        \{3\} &     3 &           p &        \{\} &    A \\
+     \{1, 3\} &     4 &         q→r &    \{1, 3\} &   →E \\
+     \{2, 3\} &     5 &           q &    \{2, 3\} &   →E \\
+  \{1, 2, 3\} &     6 &           r &    \{4, 5\} &   →E \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &       p→q→r &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &         p→q &        \{\} &    A \\
+        \{3\} &     3 &           p &        \{\} &    A \\
+     \{2, 3\} &     4 &           q &    \{2, 3\} &   →E \\
+     \{1, 3\} &     5 &         q→r &    \{1, 3\} &   →E \\
+  \{1, 2, 3\} &     6 &           r &    \{4, 5\} &   →E \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &          ¬q &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &         p→q &        \{\} &    A \\
+        \{3\} &     3 &           p &        \{\} &    A \\
+     \{2, 3\} &     4 &           q &    \{2, 3\} &   →E \\
+  \{1, 2, 3\} &     5 &       $q\wedge ¬q$ &    \{1, 4\} &   $\wedge$I \\
+     \{1, 2\} &     6 &          ¬p &    \{3, 5\} &   ¬I \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+ Assumptions & Index & Proposition & Premisses & Rule \\
+         \{1\} &     1 &       p→q→r &        \{\} &    A \\
+\midrule
+         \{2\} &     2 &           p &        \{\} &    A \\
+         \{3\} &     3 &          ¬r &        \{\} &    A \\
+      \{1, 2\} &     4 &         q→r &    \{1, 2\} &   →E \\
+         \{5\} &     5 &           q &        \{\} &    A \\
+   \{1, 2, 5\} &     6 &           r &    \{4, 5\} &   →E \\
+\{1, 2, 3, 5\} &     7 &       r$\wedge$ ¬r &    \{3, 6\} &   $\wedge$I \\
+   \{1, 2, 3\} &     8 &          ¬q &    \{5, 7\} &   ¬I \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &       p→ ¬q &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &           q &        \{\} &    A \\
+        \{3\} &     3 &           p &        \{\} &    A \\
+     \{1, 3\} &     4 &          ¬q &    \{1, 3\} &   →E \\
+  \{1, 2, 3\} &     5 &       q$\wedge$ ¬q &    \{2, 4\} &   $\wedge$I \\
+     \{1, 2\} &     6 &          ¬p &    \{3, 5\} &   ¬I \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &        ¬p→q &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &          ¬q &        \{\} &    A \\
+        \{3\} &     3 &          ¬p &        \{\} &    A \\
+     \{1, 3\} &     4 &           q &    \{1, 3\} &   →E \\
+  \{1, 2, 3\} &     5 &       q $\wedge$ ¬q &    \{2, 4\} &   $\wedge$I \\
+     \{1, 2\} &     6 &           p &    \{3, 5\} &   ¬E \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &         p→q &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &          ¬q &        \{\} &    A \\
+        \{3\} &     3 &           p &        \{\} &    A \\
+     \{1, 3\} &     4 &           q &    \{1, 3\} &   →E \\
+  \{1, 2, 3\} &     5 &       q $\wedge$ ¬q &    \{2, 4\} &   $\wedge$I \\
+     \{1, 2\} &     6 &          ¬p &    \{3, 5\} &   ¬I \\
+        \{1\} &     7 &      ¬q→ ¬p &       \{6\} &   →I \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index & Proposition & Premisses & Rule \\
+        \{1\} &     1 &       p→q→r &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &           q &        \{\} &    A \\
+        \{3\} &     3 &           p &        \{\} &    A \\
+     \{1, 3\} &     4 &         q→r &    \{1, 3\} &   →E \\
+  \{1, 2, 3\} &     5 &           r &    \{2, 4\} &   →E \\
+     \{1, 2\} &     6 &         p→r &       \{5\} &   →I \\
+        \{1\} &     7 &       q→p→r &       \{6\} &   →I \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+Assumptions & Index &  Proposition & Premisses & Rule \\
+        \{1\} &     1 &          q→r &        \{\} &    A \\
+\midrule
+        \{2\} &     2 &       ¬q→ ¬p &        \{\} &    A \\
+        \{3\} &     3 &            p &        \{\} &    A \\
+        \{4\} &     4 &           ¬q &        \{\} &    A \\
+     \{2, 4\} &     5 &           ¬p &    \{2, 4\} &   →E \\
+  \{2, 3, 4\} &     6 &        p $\wedge$ ¬p &    \{3, 5\} &   $\wedge$I \\
+     \{2, 3\} &     7 &            q &    \{4, 6\} &   ¬E \\
+  \{1, 2, 3\} &     8 &            r &    \{1, 7\} &   →E \\
+     \{1, 2\} &     9 &          p→r &       \{8\} &   →I \\
+        \{1\} &    10 & (¬q→ ¬p)→p→r &       \{9\} &   →I \\
+\bottomrule
+\end{tabular}
+\begin{tabular}{lllll}
+\toprule
+ Assumptions & Index &           Proposition & Premisses & Rule \\
+         \{1\} &     1 &                     p &        \{\} &    A \\
+\midrule
+         \{2\} &     2 &           ¬ (q→r)→ ¬p &        \{\} &    A \\
+         \{3\} &     3 &                    ¬r &        \{\} &    A \\
+         \{4\} &     4 &                     q &        \{\} &    A \\
+         \{5\} &     5 &                   q→r &        \{\} &    A \\
+      \{4, 5\} &     6 &                     r &    \{4, 5\} &   →E \\
+   \{3, 4, 5\} &     7 &                 r$\wedge$ ¬r &    \{3, 6\} &   $\wedge$I \\
+      \{3, 4\} &     8 &               ¬ (q→r) &    \{5, 7\} &   ¬I \\
+   \{2, 3, 4\} &     9 &                    ¬p &    \{8, 2\} &   →E \\
+\{1, 2, 3, 4\} &    10 &                 p$\wedge$ ¬p &    \{1, 9\} &   $\wedge$I \\
+   \{1, 2, 3\} &    11 &                    ¬q &   \{10, 4\} &   ¬I \\
+      \{1, 2\} &    12 &                ¬r→ ¬q &      \{11\} &   →I \\
+         \{1\} &    13 & (¬ (q→r)→ ¬p)→ ¬r→ ¬q &      \{12\} &   →I \\
+\bottomrule
+\end{tabular}
+\end{document}

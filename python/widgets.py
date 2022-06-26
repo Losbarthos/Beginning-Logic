@@ -308,9 +308,13 @@ class Derivation(Frame):
 		self.bt_open = Button(self.toolbar, image=self.i_open, bg='white', command=self.import_derivations)
 		self.bt_open.grid(column=3, row=0)
 
+		self.i_latex = PhotoImage(file=I_LATEX)
+		self.bt_latex = Button(self.toolbar, image=self.i_latex, bg='white', command=self.to_latex)
+		self.bt_latex.grid(column=4, row=0)
+
 		self.i_reset = PhotoImage(file=I_RESET)
 		self.bt_reset = Button(self.toolbar, image=self.i_reset, bg='white', command=self.reset)
-		self.bt_reset.grid(column=4, row=0)
+		self.bt_reset.grid(column=5, row=0)
 		
 		##
 		# Derivation representation
@@ -427,7 +431,20 @@ class Derivation(Frame):
 			messagebox.showinfo("Info", "Can import .txt-files only.")
 		self.init_toolbar_state_not_proofed()
 
+	def to_latex(self):
+		from tkinter import filedialog
 
+		f = filedialog.asksaveasfile(mode='w', defaultextension=".tex", initialdir=LATEX_DIR)
+		if f is None: # asksaveasfile return `None` if dialog closed with "cancel".
+			return
+
+
+		for proof in self.p:
+			for table in proof.tables.values():
+				latex_table = table.to_latex(index=False)
+				f.write(latex_table)
+
+		f.close()
 	
 	def derivation_set_text(self, text):
 		'''
