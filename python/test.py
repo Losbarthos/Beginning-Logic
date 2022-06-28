@@ -1,35 +1,29 @@
+
 import pandas as pd
 import numpy as np
 
-df1 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]]),
-                   columns=['a', 'b', 'c'])
-df2 = pd.DataFrame(np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9], [11, 12, 13]]),
-                   columns=['a', 'b', 'c'])
-df3 = pd.DataFrame(np.array([[1, 2, 3], ['x', 'y', 'z']]),
-                   columns=['a', 'b', 'c'])
+def generate_tables():
+    with open('tables.tex', 'w') as f:
+        # header
 
-idx = [1,2,3]
+        f.write("% !TeX TS-program = lualatex\n") 
+        f.write("\\documentclass{article}\n")
+        f.write("\\usepackage{booktabs}\n")
+        f.write("\\usepackage{unicode-math}\n")
+        f.write("\\begin{document}\n")
 
+        fooder = "\\end{document}\n"
 
-lst = []
+        for i in range(10):
+            df = pd.DataFrame(np.random.random((5, 5)))
+            latex_table = df.to_latex(index=False,header=False,escape=False)
+            f.write(f"Table {i}:")
+            f.write("\n\\\\\n")
+            f.write(latex_table)
+            f.write("\\\\[2\\baselineskip]\n")
 
-lst.append(df1)
-lst.append(df2)
-lst.append(df3)
+        f.write(fooder)
 
+generate_tables()
 
-lst_srt = sorted(lst, key=len)
-
-i = 0
-idx_lst = []
-for a in lst_srt:
-    i = 0   
-    for b in lst:
-        i = i + 1
-        if a.equals(b):
-            idx_lst.append(i)
-            break
-
-print(idx_lst)
-
-print(lst_srt)
+print(f"{{}}")

@@ -437,13 +437,32 @@ class Derivation(Frame):
 		f = filedialog.asksaveasfile(mode='w', defaultextension=".tex", initialdir=LATEX_DIR)
 		if f is None: # asksaveasfile return `None` if dialog closed with "cancel".
 			return
+		# header
 
+		f.write("% !TeX TS-program = lualatex\n") 
+		f.write("\\documentclass{article}\n")
+		f.write("\\usepackage{booktabs}\n")
+		f.write("\\usepackage{caption}\n")
+		f.write("\\usepackage{unicode-math}\n")
+		f.write("\\begin{document}\n")
+
+		fooder = "\\end{document}\n"
 
 		for proof in self.p:
+			derivation = "$" + proof.get_derivation() +"$"
 			for table in proof.tables.values():
-				latex_table = table.to_latex(index=False)
-				f.write(latex_table)
+				tbl_cpy = table
+				tbl_cpy['Proposition'] = "$" + tbl_cpy['Proposition'] + "$" 
+				tbl_cpy['Rule'] = "$" + tbl_cpy['Rule'] + "$"
+				latex_table = tbl_cpy.style.hide(axis='index').hide(axis='columns').to_latex()#index=False,header=False,escape=False)
+				#df.style.apply(highlight, axis=None).hide(axis='index').hide(axis='columns')
+				f.write("\\begin{table}[htbp]")
+				f.write(f"\\caption*{{{derivation}}}")
+				f.write(f"\\centering")
+				f.write(latex_table.replace("set()","{}"))
+				f.write("\\end{table}")
 
+		f.write(fooder)
 		f.close()
 	
 	def derivation_set_text(self, text):
