@@ -1,30 +1,36 @@
+% Prints dictionary varlues in a way, every value is on a seperate line in the terminal.
+portray(Term) :-
+	is_list(Term),
+	write_term(Term, [max_depth(0)]).
+portray(Term) :-
+    is_dict(Term),
+    dict_pairs(Term, Tag, Pairs),
+    writef("%p{\n", [Tag]),
+    foreach(member(Key-Value, Pairs), writef("\t%p: %p\n\n", [Key, Value])),
+    write("}").
 
 
-nextA("Terra", "Michelle").
-nextA("Terra", "Max").
-nextA("Marie", "Claudia").
-nextA("Ed", "Larissa").
+% Converts some string into some dictionary.  
+alphabeth(ABC, IndexList, Dict) :-
+	string_length(ABC, N), numlist(1, N, IndexList), 
+	string_chars(ABC, V), 
+	pairs_keys_values(KV, IndexList, V),
+	dict_pairs(Dict, alphabeth, KV).
 
+go(I, D) :- 	
+	set_prolog_flag(answer_write_options,[max_depth(0)]),
+	alphabeth("abcdefghijklmnopqrstuvwxyz", I, D).
 
-nextB("Terra", "Tom").
-nextB("Tom", "Bob").
-nextB("Tom", "Karl").
-nextB("Michelle", "Tom").
-nextB("Michelle", "Ed").
-nextB("Michelle", "Stephane").
-
-cond1(Step, Solution) :-
-	once(nextA(Step, NextStep)),
-	relations(NextStep, Solution0),
-	union([Step], Solution0, Solution).
-
-relations(Step, Solution) :-
-	cond1(Step, Solution).
-
-relations(Step, Solution) :-
-	not(cond1(Step, Solution)),
-	nextB(Step, NextStep),
-	relations(NextStep, Solution0),
-	union([Step], Solution0, Solution).
-
-relations(Step, [Step]) :- not(nextA(Step, S)), not(nextB(Step, S)).
+go_debug :-
+    %set_prolog_flag(color_term, false),
+    protocol('test.txt'),
+    %leash(-all),
+    trace(numlist/3),
+    trace(alphabeth/3),
+    alphabeth("abcdefghijklmnopqrstuvwxyz", _I, _D),
+    !,
+    nodebug,
+    noprotocol.
+go_debug :-
+    nodebug,
+    noprotocol.

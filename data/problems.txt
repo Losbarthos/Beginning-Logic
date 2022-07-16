@@ -14,4 +14,28 @@ p→ ¬(q), q ⊢ ¬(p)											# Problem 7
 p→q ⊢ (¬(q)→ ¬(p)) 											# Problem 9
 p→(q→r) ⊢ (q→(p→r))											# Problem 10
 q→r ⊢ ((¬(q)→ ¬(p))→ (p→r))									# Problem 11
-p ⊢ ((¬(q→r)→ ¬(p))→ (¬(r)→ ¬(q)))							# Excercise 1n
+p → (p → q), p ⊢ q 											# Exercise 1a
+q → (p → r), ¬(r), q ⊢ ¬(p) 								# Exercise 1b
+p → ¬(¬(q)), p ⊢ q											# Exercise 1c
+¬(¬(q)) → p, ¬(p) ⊢ ¬(q)									# Exercise 1d
+(¬(p) → ¬(q)), q ⊢ p 										# Exercise 1e
+(p → ¬(q)) ⊢ (q → ¬(p)) 									# Exercise 1f
+(¬(p) → q) ⊢ (¬(q) → p) 									# Exercise 1g
+(¬(p) → ¬(q)) ⊢ (q → p) 									# Exercise 1h
+(p → q), (q → r) ⊢ (p → r)									# Exercise 1i
+(p → (q → r)) ⊢ ((p → q) → (p → r)) 						# Exercise 1j
+(p → (q → (r → s))) ⊢ (r → (p → (q → s))) 					# Exercise 1k
+(p → q) ⊢ ((q → r) → (p → r)) 								# Exercise 1l
+p ⊢ ((p → q) → q) 											# Exercise 1m
+p ⊢ ((¬(q→r)→ ¬(p))→ (¬(r)→ ¬(q)))							# Exercise 1n
+
+p, q ⊢ (p ∧ q)												# Problem 12
+((p ∧ q) → r) ⊢ (p → (q → r)) 								# Problem 13
+(p ∧ q) ⊢ p 												# Problem 14
+(p ∧ q) ⊢ q 												# Problem 15
+p → (q → r) ⊢ ((p ∧ q) → r)									# Problem 16
+(p ∧ q) ⊢ (q ∧ p) 											# Problem 17
+(q → r) ⊢ ((p ∧ q) → (p ∧ r))  								# Problem 18 
+(p∨q) ⊢ (q∨p)												# Problem 19
+(q→r) ⊢ ((p∨q)→(p∨r))										# Problem 20
+(p∨(q∨r)) ⊢ (q∨(p∨r))										# Problem 21

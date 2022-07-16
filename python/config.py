@@ -7,7 +7,7 @@ from enum import Enum
 from pathlib import Path
 
 
-GET_PROTOCOLL = True
+GET_PROTOCOLL = False
 
 # Conventions of Table headlines
 ASSUMPTION = "Assumption"
@@ -26,6 +26,7 @@ BINARY_CONNECTIVES = [AND, OR, IMP, EQV]
 ROOT_DIR = Path(__file__).parent.parent
 DATA_DIR = f"{ROOT_DIR}/data/"
 LATEX_DIR = f"{ROOT_DIR}/latex/"
+PL_DIR = f"{ROOT_DIR}/prolog/"
 PL_LOGIC = f"{ROOT_DIR}/prolog/logic.pl"
 
 I_OPEN_FILE = f"{ROOT_DIR}/icons/open_file.png"

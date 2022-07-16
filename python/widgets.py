@@ -505,7 +505,7 @@ class Derivation(Frame):
 	def add_derivation(self, element):
 		self.p.append(element)
 		self.shift_derivation.append_data(element)
-		self.reset_lbl_derivation_width()
+		#self.reset_lbl_derivation_width()
 
 
 	def init_table(self, parent_frame, table):

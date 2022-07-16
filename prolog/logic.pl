@@ -214,6 +214,28 @@ contradictions(B, C) :-
 	findall(X, (Y ∈ B, contradictions(Y, X)), SC),
 	append(SC, C0), sort(C0, C).
 
+% checks, if it is some derivation route from "From" to "To"
+derivation_route(From, To) :-
+	From = To.
+derivation_route(From, To) :-
+	binary_connective(To, X, _), derivation_route(From, X).
+derivation_route(From, To) :-
+	binary_connective(To, _, Y), derivation_route(From, Y).
+
+% Checks whether a case C occurs as disjunct in the disjunction d1 ∨ d2 ∨ ... ∨ dn 
+is_case_of(C, D) :-
+	C = D.
+is_case_of(C, D) :-
+	D = (D1 ∨ _),
+	is_case_of(C, D1).
+is_case_of(C, D) :-
+	D = (_ ∨ D2),
+	is_case_of(C, D2).
+
+% Checks if the set S has at least one X with is_case_of(X, D)
+has_cases(S, D) :-
+	member(X, S), is_case_of(X, D).
+
 % checks, if the set S has contradictions. 
 has_contradictions(S) :- A ∈ S, ¬(A) ∈ S.
 
@@ -258,9 +280,9 @@ portray(Term) :-
     writef("%p{\n", [Tag]),
     foreach(member(Key-Value, Pairs), writef("\t%p: %p\n\n", [Key, Value])),
     write("}").
-
-
-
+portray(Term) :-
+	is_list(Term),
+	write_term(Term, [max_depth(0)]).
 
 %
 % Derivations which can used in the proof.
@@ -275,7 +297,6 @@ rule(Origin, NextStep, DictIn, DictOut, 0) :-
 	
 	U := A ∪ P,
 	not(has_contradictions(U)),
-
 
 	%%
 	% Filling DictOut
@@ -350,6 +371,7 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						    Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictBuffer, DictOut).
 
+
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L   
 %    with
@@ -360,6 +382,7 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, append(P1, [L], P2),
 
 	not(has_contradictions(U)),
+	derivation_route(C, L),
 
 	%%
 	% Filling DictOut
@@ -388,6 +411,7 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, append(P1, [R], P2),
 	
 	not(has_contradictions(U)),
+	derivation_route(C, R),
 
 	%%
 	% Filling DictOut
@@ -418,17 +442,7 @@ rule(Origin, NextStep, DictIn, DictOut, 1) :-
 	replace(L → R, temp(L → R), A1, A2), replace(L → R, temp(L → R), P1, P2), P3 := P2 ∪ [L, R],
 
 	not(has_contradictions(U1)),
-
-	%dict_min_index(DictIn, IndexUntouched),
-
-	%proof(NextStep1, NewAssumptions, NewPremisses, DictIn, ProofRaw),
-	%no_temp(NewAssumptions, MidAssumptions), no_temp(NewPremisses, MidPremisses),
-	%union(MidAssumptions, MidPremisses, U2), ((L → R) ∉ U2), R ∉ U2,
-	%union(A1, MidAssumptions, LastAssumptions), union(P1, MidPremisses, MidLastPremisses),
-	%append(MidLastPremisses, [R], LastPremisses), 
-	%NextStep = ((LastAssumptions, LastPremisses) ⊢ C),
-
-	%dict_normalize(ProofRaw, IndexUntouched, Proof),
+	derivation_route(C, R),
 
 
 	%%
@@ -441,6 +455,98 @@ rule(Origin, NextStep, DictIn, DictOut, 1) :-
 	PremissesExcOrigin = [],
 	Conclusion = [R],
 	Rule = "→E",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
+
+	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+
+%
+% Same as
+% [A;P?C, (L ∨ R) ∈ (A ∪ P)] → A\(L ∨ R),P\(L ∨ R)?((L → C) ∧ (R → C))    
+% RuleName: ∨E
+rule(Origin, NextStep, DictIn, DictOut, 0) :-
+	Origin = ((A1, P1) ⊢ C), 
+	NextStep = (((A2, P2) ⊢ (L → C)) ∧ ((A2, P2) ⊢ (R → C))),
+	%NextStep = (((A2, P2) ⊢ ((L → C) ∧ (R → C)))),
+
+	
+	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1), temp(L ∨ R) ∉ U1,
+	replace(L ∨ R, temp(L ∨ R), A1, A2), replace(L ∨ R, temp(L ∨ R), P1, P2),
+
+	not(has_contradictions(U1)),
+
+
+	%%
+	% Filling DictOut
+	%%
+	temp_invariant(A1, A1i),
+	Assumptions = A1i,
+	PremissesOrigin = [L ∨ R, L → C, R → C],
+	PremissesNoOrigin = [],
+	PremissesExcOrigin = [],
+	Conclusion = [C],
+	Rule = "∨E",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
+
+	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+
+
+
+
+
+% Same as
+% [A;P?L∨R,] → [A;P?L]   
+%    with
+% RuleName: ∨I
+c_rule(Origin, NextStep, DictIn, DictOut) :-
+	Origin = ((A, P) ⊢ (L ∨ R)),
+	NextStep = ((A, P) ⊢ L), 
+	U:= A ∪ P, 
+
+	not(has_contradictions(U)),
+	%has_no_cases(U),
+
+	%%
+	% Filling DictOut
+	%%
+	temp_invariant(A, Ai),
+	Assumptions = Ai,
+	PremissesOrigin = [L],
+	PremissesNoOrigin = [],
+	PremissesExcOrigin = [],
+	Conclusion = [L ∨ R],
+	Rule = "∨I",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
+
+	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+
+% Same as
+% [A;P?L∨R] → [A;P?R]   
+%    with
+% RuleName: ∨I
+c_rule(Origin, NextStep, DictIn, DictOut) :-
+	Origin = ((A, P) ⊢ (L ∨ R)),
+	NextStep = ((A, P) ⊢ R), 
+	U:= A ∪ P, 
+
+	not(has_contradictions(U)),
+	%has_no_cases(U),
+
+	%%
+	% Filling DictOut
+	%%
+	temp_invariant(A, Ai),
+	Assumptions = Ai,
+	PremissesOrigin = [R],
+	PremissesNoOrigin = [],
+	PremissesExcOrigin = [],
+	Conclusion = [L ∨ R],
+	Rule = "∨I",
 	DerivationOrigin = Origin,
 	DerivationNextStep = NextStep,
 
@@ -524,6 +630,9 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 % Preconditions
 
 proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 	
+		Derivation = ((A, P) ⊢ C),
+		U := (A ∪ P),
+		not(has_cases(U, C)),
 		rule(Derivation, NextStep, ProofIn, ProofOut, I), 
 		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, I).
 
@@ -536,8 +645,15 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :-
 
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
 		not(proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _)),
+		c_rule(Derivation, NextStep, ProofIn, ProofOut), 
+		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, _).
+
+proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
+		not(proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _)),
+		not(c_rule(Derivation, NextStep, ProofIn, ProofOut)),
 		c_rule(Derivation, NextStep, ProofIn, ProofOut, CAssumption, Assumption), 
 		proof(NextStep, MidAssumptions, MidPremisses, ProofOut, Proof, _),
+		not(CAssumption = Assumption), 
 		delete(MidAssumptions, CAssumption, LastAssumptions),
 		append(MidPremisses, [Assumption], LastPremisses).
 
@@ -551,18 +667,18 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :-
 		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof, _).
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:- 	
 		Derivation = (D1 ∧ D2),
-		D1 = ((A1, P1) ⊢ _),
-		D2 = ((A2, P2) ⊢ C),
-		D3 = ((A3, P3) ⊢ C), 
+		D1 = ((_, _) ⊢ _),
+		D2 = ((_, _) ⊢ _),
+		%D3 = ((A3, P3) ⊢ C), 
 
 		dict_min_index(ProofIn, MinIndex),
 		IndexUntouched is MinIndex + I,
 
 		proof(D1, _, _, ProofIn, ProofBetween1, _),
-		A3 := (A1 ∪ A2), P3 := (P1 ∪ P2),
+		%A3 := (A1 ∪ A2), P3 := (P1 ∪ P2),
 		dict_normalize(ProofBetween1, IndexUntouched, ProofBetween2),
 
-		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _).
+		proof(D2, LastAssumptions, LastPremisses, ProofBetween2, Proof, _).
 
 proof(Derivation, Proof) :- 
 	distinct([Proof], (Derivation = ((A, []) ⊢ _),
@@ -584,3 +700,18 @@ proof_py(Derivation, Proof) :-
 proof_t(Derivation, Proof) :-
 	proof(Derivation, Proof1),
 	Proof = Proof1._.
+
+
+
+go_debug :-
+    set_prolog_flag(color_term, false),
+    protocol('p.txt'),
+    leash(-all),
+    trace(proof/6),
+    proof((([p∨(q∨r)], []) ⊢ (q∨(p∨r))), _),
+    !,
+    nodebug,
+    noprotocol.
+go_debug :-
+    nodebug,
+    noprotocol.

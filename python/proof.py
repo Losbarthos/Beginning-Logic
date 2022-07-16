@@ -77,7 +77,7 @@ class Proof:
 		if len(self.assumptions) == 0 and self.conclusion == "":
 			return ""
 		else:
-			return f"{','.join(self.assumptions)} ⊦ {self.conclusion}"
+			return f"{','.join(self.assumptions)} ⊢ {self.conclusion}"
 
 	def proof(self):
 		'''
