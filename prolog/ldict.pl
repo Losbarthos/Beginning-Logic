@@ -4,7 +4,8 @@
 %    Copyright (c)  2022, Martin Kunze
 
 :- module(ldict,
-    [ is_value_in_dict/2,               % +V, +D
+    [ same_elements/2,                  % +L1, +L2
+      is_value_in_dict/2,               % +V, +D
       replace/4,                        % +O, +R, +ListOrigin, -ListReplacement
       list_to_dict/3,                   % +Values, +Tag, -Dict
       dict_length/2,                    % +Dict, -Length
@@ -16,6 +17,13 @@
       dict_proof_append_first/10,       % +Assumptions, +PremissesOrigin, +PremissesNoOrigin, +Conclusion, +Rule, +DictIn, -DictOut
       dict_from_assumptions/2           % +Assumptions, -Dict
     ]).
+
+
+
+% check if two lists have the same elements
+same_elements([X],[X]).
+same_elements([X|_],Y):- member(X,Y).
+same_elements([_|Tail],Y):- same_elements(Tail,Y).
 
 % +V, +D
 % checks if some value is in dict

@@ -39,3 +39,8 @@ p → (q → r) ⊢ ((p ∧ q) → r)									# Problem 16
 (p∨q) ⊢ (q∨p)												# Problem 19
 (q→r) ⊢ ((p∨q)→(p∨r))										# Problem 20
 (p∨(q∨r)) ⊢ (q∨(p∨r))										# Problem 21
+(p→q),(p→(¬q)) ⊢ (¬p)										# Problem 22
+(p→(¬p)) ⊢ (¬p)												# Problem 23
+
+p ⊢ (q→(p∧q))												# Excercise 1a
+(p∧(q∧r)) ⊢ (q∧(p∧r))										# Excercise 1b

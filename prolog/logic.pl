@@ -96,7 +96,7 @@ X ∉ M :- not(member(X, M)).
 
 union_((A ∪ B), C, D) :- union_(A, B, X), union_(X, C, D).
 union_(A, (B ∪ C), D) :- union_((A ∪ B), C, D).
-union_(A, B, C) :- union(A, B, C).
+union_(A, B, C) :- is_list(A), is_list(B), union(A, B, C).
 
 intersection_((A ∪ B), C, D) :- intersection_(A, B, X), intersection_(X, C, D).
 intersection_(A, (B ∪ C), D) :- intersection_((A ∪ B), C, D).
@@ -649,13 +649,14 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :-
 		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, _).
 
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
+		NextStep = ((A, P) ⊢ _),
 		not(proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _)),
 		not(c_rule(Derivation, NextStep, ProofIn, ProofOut)),
 		c_rule(Derivation, NextStep, ProofIn, ProofOut, CAssumption, Assumption), 
-		proof(NextStep, MidAssumptions, MidPremisses, ProofOut, Proof, _),
+		proof(NextStep, _, _, ProofOut, Proof, _),
 		not(CAssumption = Assumption), 
-		delete(MidAssumptions, CAssumption, LastAssumptions),
-		append(MidPremisses, [Assumption], LastPremisses).
+		delete(A, CAssumption, LastAssumptions),
+		append(P, [Assumption], LastPremisses).
 
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
 		Derivation = (D1 ∨ _),
@@ -667,19 +668,18 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :-
 		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof, _).
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:- 	
 		Derivation = (D1 ∧ D2),
-		D1 = ((_, _) ⊢ _),
-		D2 = ((_, _) ⊢ _),
-		%D3 = ((A3, P3) ⊢ C), 
+		D1 = ((A1, P1) ⊢ _),
+		D2 = ((A1, P2) ⊢ C),
+		D3 = ((A1, P3) ⊢ C), 
 
 		dict_min_index(ProofIn, MinIndex),
 		IndexUntouched is MinIndex + I,
 
-		proof(D1, _, _, ProofIn, ProofBetween1, _),
-		%A3 := (A1 ∪ A2), P3 := (P1 ∪ P2),
+		proof(D1, A1L, P1L, ProofIn, ProofBetween1, _),
+		same_elements(A1, A1L), P3 := (P1 ∪ (P2 ∪ P1L)),
 		dict_normalize(ProofBetween1, IndexUntouched, ProofBetween2),
 
-		proof(D2, LastAssumptions, LastPremisses, ProofBetween2, Proof, _).
-
+		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _).
 proof(Derivation, Proof) :- 
 	distinct([Proof], (Derivation = ((A, []) ⊢ _),
 	dict_from_assumptions(A, Assumptions),
@@ -708,7 +708,7 @@ go_debug :-
     protocol('p.txt'),
     leash(-all),
     trace(proof/6),
-    proof((([p∨(q∨r)], []) ⊢ (q∨(p∨r))), _),
+    proof(([(p∧(q∧r))],[]) ⊢ (q∧(p∧r)), _P),
     !,
     nodebug,
     noprotocol.
