@@ -292,7 +292,7 @@ portray(Term) :-
 % A;P?L∧R → A;P?L and A;P?R   
 % RuleName: ∧I
 rule(Origin, NextStep, DictIn, DictOut, 0) :-
-	Origin = ((A, P) ⊢ (L ∧ R)), P1 := P ∪ [L],
+	Origin = ((A, P) ⊢ (L ∧ R)), P1 := P ∪ [L, temp(L ∧ R)],
 	NextStep = (((A, P) ⊢ L) ∧ ((A, P1) ⊢ R)),
 	
 	U := A ∪ P,
@@ -321,8 +321,8 @@ rule(Origin, NextStep, DictIn, DictOut, 0) :-
 % RuleName: →I
 rule(Origin, NextStep, DictIn, DictOut, _) :-
 	Origin = ((A, P) ⊢ (L → R)), 
-	U:= A ∪ P, L ∈ U,
-	NextStep = ((A, P) ⊢ R), 
+	U:= A ∪ P, L ∈ U, Pn := P ∪ [temp(L → R)],
+	NextStep = ((A, Pn) ⊢ R), 
 
 	not(has_contradictions(U)),
 
@@ -348,9 +348,9 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 % RuleName: →I
 rule(Origin, NextStep, DictIn, DictOut, _) :-
 	Origin = ((A1, P) ⊢ (L → R)),
-	U:= A1 ∪ P, L ∉ U, 
-	NextStep = ((A2, P) ⊢ R),
-	append(A1, [L], A2), 
+	U:= A1 ∪ P, L ∉ U, Pn := P ∪ [temp(L → R)], A2 := A1 ∪ [L],
+	merge_premisses([A2, Pn], [_, MPn]),
+	NextStep = ((A2, MPn) ⊢ R),
 
 	not(has_contradictions(U)),
 	
@@ -468,8 +468,6 @@ rule(Origin, NextStep, DictIn, DictOut, 1) :-
 rule(Origin, NextStep, DictIn, DictOut, 0) :-
 	Origin = ((A1, P1) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ (L → C)) ∧ ((A2, P2) ⊢ (R → C))),
-	%NextStep = (((A2, P2) ⊢ ((L → C) ∧ (R → C)))),
-
 	
 	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1), temp(L ∨ R) ∉ U1,
 	replace(L ∨ R, temp(L ∨ R), A1, A2), replace(L ∨ R, temp(L ∨ R), P1, P2),
@@ -492,10 +490,6 @@ rule(Origin, NextStep, DictIn, DictOut, 0) :-
 
 	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
-
-
-
-
 
 % Same as
 % [A;P?L∨R,] → [A;P?L]   
@@ -666,17 +660,36 @@ proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :-
 		Derivation = (_ ∨ D2),
 		ProofIn = (_ ∨ Proof2),
 		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof, _).
+%proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:- 	
+%		Derivation = (D1 ∧ D2),
+%		D1 = ((A1, P1) ⊢ _),
+%		D2 = ((A1, P2) ⊢ C),
+%		D3 = (AP ⊢ C), 
+%
+%		dict_min_index(ProofIn, MinIndex),
+%		IndexUntouched is MinIndex + I,
+%
+%		proof(D1, A1L, P1L, ProofIn, ProofBetween1, _),
+%		Px := P2 ∪ [[A1L, P1L]], 
+%		involve_equivalent_list_pairs([A1, P2], AP, Px, ResultListElements),
+%
+%		same_elements(A1, A1L), P3 := (P1 ∪ (P2 ∪ P1L)),
+%		dict_normalize(ProofBetween1, IndexUntouched, ProofBetween2),
+
+%		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _).
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:- 	
 		Derivation = (D1 ∧ D2),
 		D1 = ((A1, P1) ⊢ _),
-		D2 = ((A1, P2) ⊢ C),
-		D3 = ((A1, P3) ⊢ C), 
+		D2 = ((A1, P) ⊢ C),
+		D3 = ((A1, P2) ⊢ C), 
 
 		dict_min_index(ProofIn, MinIndex),
 		IndexUntouched is MinIndex + I,
 
 		proof(D1, A1L, P1L, ProofIn, ProofBetween1, _),
-		same_elements(A1, A1L), P3 := (P1 ∪ (P2 ∪ P1L)),
+		Px := (P1 ∪ P) ∪ [[A1L, P1L]],
+		merge_premisses([A1, Px], [A1, P2]),
+
 		dict_normalize(ProofBetween1, IndexUntouched, ProofBetween2),
 
 		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _).

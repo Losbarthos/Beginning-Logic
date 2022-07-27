@@ -44,3 +44,11 @@ p → (q → r) ⊢ ((p ∧ q) → r)									# Problem 16
 
 p ⊢ (q→(p∧q))												# Excercise 1a
 (p∧(q∧r)) ⊢ (q∧(p∧r))										# Excercise 1b
+((p→q)∧(p→r)) ⊢ (p→(q∧r))									# Excercise 1c
+q ⊢ (p∨q)													# Excercise 1d
+(p∧q) ⊢ (p∨q)												# Excercise 1e
+((p→r)∧(q→r)) ⊢ ((p∨q)→r)									# Excercise 1f
+(p→q),(r→s) ⊢ ((p∧r)→(q∧s))									# Excercise 1g
+(p→q),(r→s) ⊢ ((p∨r)→(q∨s))									# Excercise 1h
+(p→q),(r→s) ⊢ ((p∨r)→(q∨s))									# Excercise 1i
+((¬p)→p) ⊢ p 												# Excercise 1j

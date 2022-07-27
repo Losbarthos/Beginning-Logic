@@ -5,6 +5,8 @@
 
 :- module(ldict,
     [ same_elements/2,                  % +L1, +L2
+      merge_premisses/2,                % +BasePair, -ResultPair
+      merge_premisses/3,                % +BasePair, -ResultPair, +ToMerge
       is_value_in_dict/2,               % +V, +D
       replace/4,                        % +O, +R, +ListOrigin, -ListReplacement
       list_to_dict/3,                   % +Values, +Tag, -Dict
@@ -21,9 +23,52 @@
 
 
 % check if two lists have the same elements
-same_elements([X],[X]).
-same_elements([X|_],Y):- member(X,Y).
-same_elements([_|Tail],Y):- same_elements(Tail,Y).
+same_elements(X,Y):-subset(X,Y), subset(Y,X).
+
+%%%
+% BasePair is of Form [A1, P1] with P1 = {ai1, ..., aik, [[Aj1, Pj1],...,[Ajn, Pjn]]} 
+% {[[Aj1, Pj1],...,[Ajn, Pjn]]} is seperated by:
+%       1. {[Ajl1, Pjl1], ... [Ajln, Pjln]}, with Ajlo ⊆ A1 
+%       2. {[Ajp1, Pjp1], ... [Ajpq, Pjpq]}, whereby condition 1 is not satisfied 
+% ResultPair is of Form [A1, P2] with P2 = {ai1, ..., aik} and
+%%%
+merge_premisses(BasePair, ResultPair) :-
+    BasePair = [A1, P1], ResultPair = [A1, P],
+    findall(Y, (member(X, P1),
+                X = [_, _], merge_premisses(BasePair, [_, Y], X)), ToInvolve),
+    append(ToInvolve, ToAppend1),
+    findall(Y, (member(Y, P1),
+                not(is_list(Y))), ToAppend2),
+    union(P1, ToAppend1, P11), union(P11, ToAppend2, P112), sort(P112, Px),
+    findall(Y, (member(Y, P1),
+                Y = [A, _], subset(A, A1)), ToDelete),
+    subtract(Px, ToDelete, P).    
+
+
+%%%
+%  ToMerge is a pair of assumptions A and premisses P = {ai1, ..., aik, [Aj1, Pj1], ..., [Ajn, Pjn]}, means ToMerge = [A, P]. 
+%  BasePair has form [A1, P1].
+%  ResultPair has form [A1, P2].
+%  Now find all [Aj, Pj] ∈ ToMerge with Aj ⊆ A1 and collect the Pj in an set [Pj1, Pj2, ..., Pjn]
+%  P2 = P1 ∪ Pj1 ∪ ... ∪ Pjn ∪ [ai1, ai2, ..., aik]
+%%%
+merge_premisses(BasePair, ResultPair, ToMerge) :-
+    BasePair = [A1, P1], ResultPair = [A1, P],
+    ToMerge = [A2, P2], subset(A2, A1),
+    findall(Y, (member(Y, P2),
+                Y = [A, _], not(subset(A, A1))), ToAppend1),
+    findall(Y, (member(Y, P2),
+                Y = [A, _], subset(A, A1)), ToInvolve),
+    findall(Y, (member(X, ToInvolve),
+                merge_premisses(BasePair, [_, Y], X)), InvolvedPairwise),
+    append(InvolvedPairwise, ToAppend2),
+    findall(Y, (member(Y, P2),
+                not(is_list(Y))), ToAppend3),
+    union(P1, ToAppend3, P3), union(P3, ToAppend2, P23), union(P23, ToAppend1, P123), sort(P123, P).
+merge_premisses(BasePair, ResultPair, ToMerge) :-
+    BasePair = [A1, P1], ResultPair = [A1, P],
+    ToMerge = [A2, P2], not(subset(A2, A1)),
+    union(P1, [ToMerge], P2), sort(P2, P).
 
 % +V, +D
 % checks if some value is in dict
