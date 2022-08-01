@@ -134,61 +134,6 @@ isvalid(((A, P) ⊢ C)) :-
 ⊥(A):- A = (X ∧ ¬X), formula(X).
 ⊥(A):- A = (¬X ∧ X), formula(X).
 
-% Rules of simplification (need improvement)
-
-% Same as
-% A;P?L∨R → A;P?L or A;P?R   
-%    with
-% OrI = [L ∧ R]  
-↑∨(Origin, NextStep, OrI) :-
-	Origin = ((A, P) ⊢ (L ∨ R)), 
-	NextStep = ((A, P) ⊢ L) ∨ ((A, P) ⊢ R),
-	OrI = [L ∨ R].
-
-% Same as
-% [A;P?L→R] → A,L;P?R   
-%    with
-% ImpI = [L → R]  
-↑→(Origin, NextStep, ImpI) :-
-	Origin = ((A1, P) ⊢ (L → R)),
-	NextStep = ((A2, P) ⊢ R),
-	append(A1, [L], A2),
-	ImpI = [L → R].
-
-%
-% Rules from the assumptions towards the prposed theorem (top-down rules)
-%
-
-
-% Same as
-% [A;P?C, (L ∧ R) ∈ (A ∪ P), L or R ∉ (A ∪ P)] → A;P,L or R?C   
-%    with
-% AndE = [L ∧ R, L or R]  
-↓∧(Origin, NextStep, AndE) :- 
-	(Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
-		union(A, P1, U), ((L ∧ R) ∈ U),
-	(L ∉ U), append(P1, [L], P2), AndE = [L ∧ R, L]);
-	(Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
-		union(A, P1, U), ((L ∧ R) ∈ U),
-	(R ∉ U), append(P1, [R], P2), AndE = [L ∧ R, R]).
-
-andE_s(Origin, NextStep, AndE) :-
-	↓∧(Origin_old, NextStep_old, AndE_old),
-	term_to_atom(Origin_old, Origin), term_to_atom(NextStep_old, NextStep), term_to_atom(AndE_old, AndE). 
-
-
-% Same as
-% [A;P?C, (L ∨ R) ∈ (A ∪ P), L, R ∉ (A ∪ P)] → A,L;P?C and A,R;P?C    
-%    with
-% OrE = [L ∨ R]  
-↓∨(Origin, NextStep, OrE) :-
-	Origin = ((A1, P) ⊢ C), 
-	NextStep = (((A2, P) ⊢ C) ∧ ((A3, P) ⊢ C)),
-	union(A1, P, U), ((L ∨ R) ∈ U), L ∉ U, R ∉ U,
-	append(A1, [L], A2), append(A1, [R], A3),
-	OrE = [L ∨ R].
-
-
 % contradictions(+B, -C)
 % Gets all possible contradictions withhin negation elemination and introduction
 
@@ -211,7 +156,7 @@ contradictions(B, C) :-
 	C = [].
 % Find all contradictions for some list of propositions.
 contradictions(B, C) :-
-	findall(X, (Y ∈ B, contradictions(Y, X)), SC),
+	findall(X, (Y ∈ B, not(is_list(Y)), contradictions(Y, X)), SC),
 	append(SC, C0), sort(C0, C).
 
 % checks, if it is some derivation route from "From" to "To"
@@ -555,11 +500,12 @@ c_rule(Origin, NextStep, DictIn, DictOut) :-
 % ¬Xi ∈ (A ∪ P)
 % RuleName: ¬E 
 % Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
-c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
-	Origin = ((A1, P) ⊢ C), CAssumption = ¬(C), ContraPremiss = C,
-	not(⊥(C)), U:= A1 ∪ P, (¬(C) ∉ U), (temp(¬(C)) ∉ U), append(A1, [¬(C)], A2), not(anymember_invariant_2n(U, ¬(C), ¬)),
-	union(A2, P, U2), contradictions(U2, Contra),
-	findall(X, (member(Y, Contra), X = ((A2, P) ⊢ (Y ∧ ¬(Y)))), NextStepList),
+c_rule(Origin, NextStep, DictIn, DictOut, LastStep) :-
+	Origin = ((A1, P1) ⊢ C), 
+	LastStep = ((A1, P2) ⊢ C),
+	not(⊥(C)), U:= A1 ∪ P1, (¬(C) ∉ U), (temp(¬(C)) ∉ U), A2 := A1 ∪ [¬(C)], P2 := P1 ∪ [C], not(anymember_invariant_2n(U, ¬(C), ¬)),
+	U2 := A2 ∪ P1, contradictions(U2, Contra),
+	findall(X, (member(Y, Contra), X = ((A2, P1) ⊢ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
 
 	findall(X, (member(Y, Contra), 
@@ -588,11 +534,12 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 %    with
 % ¬Xi ∈ (A ∪ P)
 % RuleName: ¬I 
-c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
-	Origin = ((A1, P) ⊢ ¬(C)), CAssumption = C, ContraPremiss = ¬(C),
-	not(⊥(C)), U:= A1 ∪ P, (C ∉ U), temp(C) ∉ U, append(A1, [C], A2), not(anymember_invariant_2n(U, C, ¬)),
-	union(A2, P, U2), contradictions(U2, Contra),
-	findall(X, (member(Y, Contra), X = ((A2, P) ⊢ (Y ∧ ¬(Y)))), NextStepList),
+c_rule(Origin, NextStep, DictIn, DictOut, LastStep) :-
+	Origin = ((A1, P1) ⊢ ¬(C)), 
+	LastStep = ((A1, P2) ⊢ ¬(C)),
+	not(⊥(C)), U:= A1 ∪ P1, (C ∉ U), temp(C) ∉ U, A2 := A1 ∪ [C], P2 := P1 ∪ [¬(C)], not(anymember_invariant_2n(U, C, ¬)),
+	U2 := A2 ∪ P1, contradictions(U2, Contra),
+	findall(X, (member(Y, Contra), X = ((A2, P1) ⊢ (Y ∧ ¬(Y)))), NextStepList),
 	disjunction_list(NextStepList, NextStep),
 	
 	findall(X, (member(Y, Contra), 
@@ -623,34 +570,31 @@ c_rule(Origin, NextStep, DictIn, DictOut, CAssumption, ContraPremiss) :-
 
 % Preconditions
 
-proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 	
+proof_rule(Derivation, NextStep, ProofIn, ProofOut, I) :- 	
 		Derivation = ((A, P) ⊢ C),
 		U := (A ∪ P),
 		not(has_cases(U, C)),
-		rule(Derivation, NextStep, ProofIn, ProofOut, I), 
-		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, I).
+		rule(Derivation, NextStep, ProofIn, ProofOut, I).
 
 proof(Derivation, LastAssumptions, LastPremisses, Proof, Proof, _) :- 	
 		Derivation = ((LastAssumptions, LastPremisses) ⊢ _),
 		isvalid(Derivation),!.
 
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
-		proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _).
+		proof_rule(Derivation, NextStep, ProofIn, ProofOut, I),
+		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, I),!.
 
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
-		not(proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _)),
+		%not(proof_rule(Derivation, _, ProofIn, _, _)),
 		c_rule(Derivation, NextStep, ProofIn, ProofOut), 
-		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, _).
+		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, _),!.
 
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
-		NextStep = ((A, P) ⊢ _),
-		not(proof_rule(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _)),
-		not(c_rule(Derivation, NextStep, ProofIn, ProofOut)),
-		c_rule(Derivation, NextStep, ProofIn, ProofOut, CAssumption, Assumption), 
-		proof(NextStep, _, _, ProofOut, Proof, _),
-		not(CAssumption = Assumption), 
-		delete(A, CAssumption, LastAssumptions),
-		append(P, [Assumption], LastPremisses).
+		LastStep = ((LastAssumptions, LastPremisses) ⊢ _),
+		%not(proof_rule(Derivation, _, ProofIn, _, _)),
+		%not(c_rule(Derivation, _, ProofIn, ProofOut)),
+		c_rule(Derivation, NextStep, ProofIn, ProofOut, LastStep), 
+		proof(NextStep, _, _, ProofOut, Proof, _).
 
 proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
 		Derivation = (D1 ∨ _),
@@ -721,7 +665,7 @@ go_debug :-
     protocol('p.txt'),
     leash(-all),
     trace(proof/6),
-    proof(([(p∧(q∧r))],[]) ⊢ (q∧(p∧r)), _P),
+    proof(([(p→(¬p))],[]) ⊢ (¬p), _P),
     !,
     nodebug,
     noprotocol.

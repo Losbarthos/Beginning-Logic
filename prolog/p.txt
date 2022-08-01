@@ -1,0 +1,101 @@
+%         proof/6: [all]
+ T [14] Call: proof(([p→ ¬p], [])⊢('¬'p), _16000, _16002, proof{
+	1: [p→ ¬p,step(1)]
+
+}, _16006, _16008)
+ T [23] Call: proof(([temp(p→ ¬p)], [])⊢p∧([temp(p→ ¬p)], [p,¬p])⊢('¬'p), _16000, _16002, proof{
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+}, _16006, 1)
+ T [32] Call: proof(([temp(p→ ¬p)], [])⊢p, _30132, _30134, proof{
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+}, _30136, _30166)
+ T [41] Call: proof(([temp(p→ ¬p),¬p], [])⊢(p∧'¬'p), _32828, _32830, proof{
+	-1: [assumptions([¬p,p→ ¬p]),premisses_origin([¬p,p∧ ¬p]),premisses_no_origin([]),premisses_exc_origin([¬p]),conclusion([p]),rule([¬E]),d0(([temp(p→ ¬p)],[])⊢p),d1(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),step(4)]
+
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+	2: [¬p,step(3)]
+
+}, _30136, _32836)
+ T [50] Call: proof(([temp(p→ ¬p),¬p], [])⊢p∧([temp(p→ ¬p),¬p], [p,temp(p∧ ¬p)])⊢('¬'p), _32828, _32830, proof{
+	-2: [assumptions([¬p,p→ ¬p]),premisses_origin([p,¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([p∧ ¬p]),rule([∧I]),d0(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),d1(([temp(p→ ¬p),¬p],[])⊢p∧([temp(p→ ¬p),¬p],[p,temp(p∧ ¬p)])⊢(¬p)),step(5)]
+
+	-1: [assumptions([¬p,p→ ¬p]),premisses_origin([¬p,p∧ ¬p]),premisses_no_origin([]),premisses_exc_origin([¬p]),conclusion([p]),rule([¬E]),d0(([temp(p→ ¬p)],[])⊢p),d1(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),step(4)]
+
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+	2: [¬p,step(3)]
+
+}, _30136, 0)
+ T [59] Call: proof(([temp(p→ ¬p),¬p], [])⊢p, _35240, _35242, proof{
+	-2: [assumptions([¬p,p→ ¬p]),premisses_origin([p,¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([p∧ ¬p]),rule([∧I]),d0(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),d1(([temp(p→ ¬p),¬p],[])⊢p∧([temp(p→ ¬p),¬p],[p,temp(p∧ ¬p)])⊢(¬p)),step(5)]
+
+	-1: [assumptions([¬p,p→ ¬p]),premisses_origin([¬p,p∧ ¬p]),premisses_no_origin([]),premisses_exc_origin([¬p]),conclusion([p]),rule([¬E]),d0(([temp(p→ ¬p)],[])⊢p),d1(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),step(4)]
+
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+	2: [¬p,step(3)]
+
+}, _35244, _35274)
+ T [59] Fail: proof(([temp(p→ ¬p),¬p], [])⊢p, _35240, _35242, proof{
+	-2: [assumptions([¬p,p→ ¬p]),premisses_origin([p,¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([p∧ ¬p]),rule([∧I]),d0(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),d1(([temp(p→ ¬p),¬p],[])⊢p∧([temp(p→ ¬p),¬p],[p,temp(p∧ ¬p)])⊢(¬p)),step(5)]
+
+	-1: [assumptions([¬p,p→ ¬p]),premisses_origin([¬p,p∧ ¬p]),premisses_no_origin([]),premisses_exc_origin([¬p]),conclusion([p]),rule([¬E]),d0(([temp(p→ ¬p)],[])⊢p),d1(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),step(4)]
+
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+	2: [¬p,step(3)]
+
+}, _35244, _35274)
+ T [50] Fail: proof(([temp(p→ ¬p),¬p], [])⊢p∧([temp(p→ ¬p),¬p], [p,temp(p∧ ¬p)])⊢('¬'p), _32828, _32830, proof{
+	-2: [assumptions([¬p,p→ ¬p]),premisses_origin([p,¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([p∧ ¬p]),rule([∧I]),d0(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),d1(([temp(p→ ¬p),¬p],[])⊢p∧([temp(p→ ¬p),¬p],[p,temp(p∧ ¬p)])⊢(¬p)),step(5)]
+
+	-1: [assumptions([¬p,p→ ¬p]),premisses_origin([¬p,p∧ ¬p]),premisses_no_origin([]),premisses_exc_origin([¬p]),conclusion([p]),rule([¬E]),d0(([temp(p→ ¬p)],[])⊢p),d1(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),step(4)]
+
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+	2: [¬p,step(3)]
+
+}, _30136, 0)
+ T [41] Fail: proof(([temp(p→ ¬p),¬p], [])⊢(p∧'¬'p), _32828, _32830, proof{
+	-1: [assumptions([¬p,p→ ¬p]),premisses_origin([¬p,p∧ ¬p]),premisses_no_origin([]),premisses_exc_origin([¬p]),conclusion([p]),rule([¬E]),d0(([temp(p→ ¬p)],[])⊢p),d1(([temp(p→ ¬p),¬p],[])⊢(p∧ ¬p)),step(4)]
+
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+	2: [¬p,step(3)]
+
+}, _30136, _32836)
+ T [32] Fail: proof(([temp(p→ ¬p)], [])⊢p, _30132, _30134, proof{
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+}, _30136, _30166)
+ T [23] Fail: proof(([temp(p→ ¬p)], [])⊢p∧([temp(p→ ¬p)], [p,¬p])⊢('¬'p), _16000, _16002, proof{
+	0: [assumptions([p→ ¬p]),premisses_origin([p,p→ ¬p]),premisses_no_origin([]),premisses_exc_origin([]),conclusion([¬p]),rule([→E]),d0(([p→ ¬p],[])⊢(¬p)),d1(([temp(p→ ¬p)],[])⊢p∧([temp(p→ ¬p)],[p,¬p])⊢(¬p)),step(2)]
+
+	1: [p→ ¬p,step(1)]
+
+}, _16006, 1)
+ T [14] Fail: proof(([p→ ¬p], [])⊢('¬'p), _16000, _16002, proof{
+	1: [p→ ¬p,step(1)]
+
+}, _16006, _16008)

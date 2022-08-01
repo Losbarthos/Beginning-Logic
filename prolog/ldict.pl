@@ -20,10 +20,15 @@
       dict_from_assumptions/2           % +Assumptions, -Dict
     ]).
 
+:-use_module(invariant).
 
 
 % check if two lists have the same elements
 same_elements(X,Y):-subset(X,Y), subset(Y,X).
+
+
+union_temp(Set1, Set2, Set3) :- union_inv(Set1, Set2, Set3, temp, 1).
+subset_temp(Set1, Set2) :- subset_inv(Set1, Set2, temp).
 
 %%%
 % BasePair is of Form [A1, P1] with P1 = {ai1, ..., aik, [[Aj1, Pj1],...,[Ajn, Pjn]]} 
@@ -39,9 +44,9 @@ merge_premisses(BasePair, ResultPair) :-
     append(ToInvolve, ToAppend1),
     findall(Y, (member(Y, P1),
                 not(is_list(Y))), ToAppend2),
-    union(P1, ToAppend1, P11), union(P11, ToAppend2, P112), sort(P112, Px),
+    union_temp(P1, ToAppend1, P11), union_temp(P11, ToAppend2, P112), sort(P112, Px),
     findall(Y, (member(Y, P1),
-                Y = [A, _], subset(A, A1)), ToDelete),
+                Y = [A, _], subset_temp(A, A1)), ToDelete),
     subtract(Px, ToDelete, P).    
 
 
@@ -54,21 +59,21 @@ merge_premisses(BasePair, ResultPair) :-
 %%%
 merge_premisses(BasePair, ResultPair, ToMerge) :-
     BasePair = [A1, P1], ResultPair = [A1, P],
-    ToMerge = [A2, P2], subset(A2, A1),
+    ToMerge = [A2, P2], subset_temp(A2, A1),
     findall(Y, (member(Y, P2),
-                Y = [A, _], not(subset(A, A1))), ToAppend1),
+                Y = [A, _], not(subset_temp(A, A1))), ToAppend1),
     findall(Y, (member(Y, P2),
-                Y = [A, _], subset(A, A1)), ToInvolve),
+                Y = [A, _], subset_temp(A, A1)), ToInvolve),
     findall(Y, (member(X, ToInvolve),
                 merge_premisses(BasePair, [_, Y], X)), InvolvedPairwise),
     append(InvolvedPairwise, ToAppend2),
     findall(Y, (member(Y, P2),
                 not(is_list(Y))), ToAppend3),
-    union(P1, ToAppend3, P3), union(P3, ToAppend2, P23), union(P23, ToAppend1, P123), sort(P123, P).
+    union_temp(P1, ToAppend3, P3), union_temp(P3, ToAppend2, P23), union_temp(P23, ToAppend1, P123), sort(P123, P).
 merge_premisses(BasePair, ResultPair, ToMerge) :-
     BasePair = [A1, P1], ResultPair = [A1, P],
-    ToMerge = [A2, P2], not(subset(A2, A1)),
-    union(P1, [ToMerge], P2), sort(P2, P).
+    ToMerge = [A2, P2], not(subset_temp(A2, A1)),
+    union_temp(P1, [ToMerge], P2), sort(P2, P).
 
 % +V, +D
 % checks if some value is in dict

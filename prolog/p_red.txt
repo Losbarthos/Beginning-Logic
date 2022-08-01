@@ -1,0 +1,12 @@
+ T [14] Call: ([p→ ¬p], [])⊢('¬'p)
+ T [23] Call: ([temp(p→ ¬p)], [])⊢p∧([temp(p→ ¬p)], [p,¬p])⊢('¬'p)
+ T [32] Call: ([temp(p→ ¬p)], [])⊢p
+ T [41] Call: ([temp(p→ ¬p),¬p], [])⊢(p∧'¬'p)
+ T [50] Call: ([temp(p→ ¬p),¬p], [])⊢p∧([temp(p→ ¬p),¬p], [p,temp(p∧ ¬p)])⊢('¬'p)
+ T [59] Call: ([temp(p→ ¬p),¬p], [])⊢p
+ T [59] Fail: ([temp(p→ ¬p),¬p], [])⊢p
+ T [50] Fail: ([temp(p→ ¬p),¬p], [])⊢p∧([temp(p→ ¬p),¬p], [p,temp(p∧ ¬p)])⊢('¬'p)
+ T [41] Fail: ([temp(p→ ¬p),¬p], [])⊢(p∧'¬'p)
+ T [32] Fail: ([temp(p→ ¬p)], [])⊢p
+ T [23] Fail: ([temp(p→ ¬p)], [])⊢p∧([temp(p→ ¬p)], [p,¬p])⊢('¬'p)
+ T [14] Fail: ([p→ ¬p], [])⊢('¬'p)
