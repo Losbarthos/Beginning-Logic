@@ -1,5 +1,5 @@
 # Beginning-Logic
-Build a Theorem Prover based on book  Beginning Logic by Lemmon
+Build a theorem prover based on book  Beginning Logic by Lemmon
 
 This project is in development. 
 
