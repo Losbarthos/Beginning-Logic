@@ -52,3 +52,6 @@ q ⊢ (p∨q)													# Excercise 1d
 (p→q),(r→s) ⊢ ((p∨r)→(q∨s))									# Excercise 1h
 (p→(q∧r)) ⊢ ((p→q)∧(p→r))									# Excercise 1i
 ((¬p)→p) ⊢ p 												# Excercise 1j
+
+(p↔q) ⊢ (q↔p)												# Problem 24
+p,(p↔q) ⊢ q													# Problem 25

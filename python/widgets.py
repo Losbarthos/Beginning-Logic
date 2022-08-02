@@ -71,8 +71,8 @@ class PropositionEditor(Toplevel):
 		self.disp = Label(self, text='▮')
 		self.disp.grid(column=0, row=0, columnspan=4)
 
-		keys = '-+<C¬∧∨→pqrs✔'
-		self.bt_list = [self.bt_draw(keys[n], n%4, n//4) for n in range(13)]
+		keys = '-+<C∧∨→↔¬pqrs✔'
+		self.bt_list = [self.bt_draw(keys[n], n%4, n//4) for n in range(len(keys))]
 
 	def replace_section(self, text):
 		'''
@@ -179,7 +179,7 @@ class PropositionEditor(Toplevel):
 	def bt_press(self, key):
 		if   key == 'C': self.disp['text'] = '▮'
 		elif key == '<': self.disp['text'] = self.replace_section(self.disp['text'])
-		elif key in ['∧', '∨', '→']: self.disp['text'] = self.disp['text'].replace('▮', f'(▮{key}▯)')
+		elif key in ['∧', '∨', '→', '↔']: self.disp['text'] = self.disp['text'].replace('▮', f'(▮{key}▯)')
 		elif key == '¬': self.disp['text'] = self.disp['text'].replace('▮', '(¬▮)')
 		elif key == '+': self.disp['text'] = self.switch(1, '▯', self.disp['text'])
 		elif key == '-': self.disp['text'] = self.switch(-1, '▯', self.disp['text'])

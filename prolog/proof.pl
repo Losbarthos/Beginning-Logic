@@ -60,6 +60,33 @@ rule(Origin, NextStep, DictIn, DictOut, 0) :-
 						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 % Same as
+% A;P?L↔R → A;P?L→R and A;P?R→L   
+% RuleName: ↔I
+rule(Origin, NextStep, DictIn, DictOut, 0) :-
+	Origin = ((A, P) ⊢ (L ↔ R)), P1 := P ∪ [L → R, temp(L ↔ R)],
+	NextStep = (((A, P) ⊢ (L → R)) ∧ ((A, P1) ⊢ (R → L))),
+	
+	U := A ∪ P,
+	not(has_contradictions(U)),
+
+	%%
+	% Filling DictOut
+	%%
+	temp_invariant(A, Ai),
+	Assumptions = Ai,
+	PremissesOrigin = [L → R, R → L],
+	PremissesNoOrigin = [],
+	PremissesExcOrigin = [],
+	Conclusion = [L ↔ R],
+	Rule = "↔I",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
+
+
+	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+
+% Same as
 % [A;P?L→R] L ∈ (A ∪ P) → A;P?R   
 %    with
 % RuleName: →I
@@ -117,13 +144,13 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 
 
 % Same as
-% [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L   
+% [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L?C   
 %    with
 % RuleName: ∧E
 rule(Origin, NextStep, DictIn, DictOut, _) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
-	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, append(P1, [L], P2),
+	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, P2 := P1 ∪ [L],
 
 	not(has_contradictions(U)),
 	derivation_route(C, L),
@@ -145,14 +172,16 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
 						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
+
+
 % Same as
-% [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R   
+% [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R?C   
 %    with
 % RuleName: ∧E
 rule(Origin, NextStep, DictIn, DictOut, _) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
-	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, append(P1, [R], P2),
+	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, P2 := P1 ∪ [R],
 	
 	not(has_contradictions(U)),
 	derivation_route(C, R),
@@ -167,6 +196,36 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	PremissesExcOrigin = [],
 	Conclusion = [R],
 	Rule = "∧E",
+	DerivationOrigin = Origin,
+	DerivationNextStep = NextStep,
+
+
+	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
+						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+
+
+% Same as
+% [A;P?C, (L ↔ R) ∈ (A ∪ P), (L → R) ∧ (R → L) ∉ (A ∪ P)] → A;P,(L → R) ∧ (R → L)?C   
+%    with
+% RuleName: ↔E
+rule(Origin, NextStep, DictIn, DictOut, _) :- 
+	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
+	U:= A ∪ P1, ((L ↔ R) ∈ U),
+	(((L → R) ∧ (R → L)) ∉ U), temp(L ↔ R) ∉ U, temp(((L → R) ∧ (R → L))) ∉ U, P2 := P1 ∪ [(L → R) ∧ (R → L)],
+
+	not(has_contradictions(U)),
+	derivation_route(C, (L → R) ∧ (R → L)),
+
+	%%
+	% Filling DictOut
+	%%
+	temp_invariant(A, Ai),
+	Assumptions = Ai,
+	PremissesOrigin = [L ↔ R],
+	PremissesNoOrigin = [],
+	PremissesExcOrigin = [],
+	Conclusion = [(L → R) ∧ (R → L)],
+	Rule = "↔E",
 	DerivationOrigin = Origin,
 	DerivationNextStep = NextStep,
 
