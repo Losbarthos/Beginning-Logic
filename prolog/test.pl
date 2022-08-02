@@ -1,36 +1,21 @@
-% Prints dictionary varlues in a way, every value is on a seperate line in the terminal.
-portray(Term) :-
-	is_list(Term),
-	write_term(Term, [max_depth(0)]).
-portray(Term) :-
-    is_dict(Term),
-    dict_pairs(Term, Tag, Pairs),
-    writef("%p{\n", [Tag]),
-    foreach(member(Key-Value, Pairs), writef("\t%p: %p\n\n", [Key, Value])),
-    write("}").
+%  Basic libary to introduce set operators
+%    Author:        Martin Kunze
+%    E-mail:        mkunze86@gmail.com
+%    Copyright (c)  2022, Martin Kunze
 
+:- module(test, [
+    (:=)/2, op(699, xfx, :=),
+    op(598, xfy, ∪),
+    op(597, xfy, ∩)
+]).
 
-% Converts some string into some dictionary.  
-alphabeth(ABC, IndexList, Dict) :-
-	string_length(ABC, N), numlist(1, N, IndexList), 
-	string_chars(ABC, V), 
-	pairs_keys_values(KV, IndexList, V),
-	dict_pairs(Dict, alphabeth, KV).
+union_((A ∪ B), C, D) :- union_(A, B, X), union_(X, C, D).
+union_(A, (B ∪ C), D) :- union_((A ∪ B), C, D).
+union_(A, B, C) :- is_list(A), is_list(B), union(A, B, C).
 
-go(I, D) :- 	
-	set_prolog_flag(answer_write_options,[max_depth(0)]),
-	alphabeth("abcdefghijklmnopqrstuvwxyz", I, D).
+intersection_((A ∪ B), C, D) :- intersection_(A, B, X), intersection_(X, C, D).
+intersection_(A, (B ∪ C), D) :- intersection_((A ∪ B), C, D).
+intersection_(A, B, C) :- intersection(A, B, C).
 
-go_debug :-
-    %set_prolog_flag(color_term, false),
-    protocol('test.txt'),
-    %leash(-all),
-    trace(numlist/3),
-    trace(alphabeth/3),
-    alphabeth("abcdefghijklmnopqrstuvwxyz", _I, _D),
-    !,
-    nodebug,
-    noprotocol.
-go_debug :-
-    nodebug,
-    noprotocol.
+C := (A ∪ B) :- union_(A, B, C).
+C := (A ∩ B) :- intersection_(A, B, C).

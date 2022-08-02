@@ -27,7 +27,7 @@ ROOT_DIR = Path(__file__).parent.parent
 DATA_DIR = f"{ROOT_DIR}/data/"
 LATEX_DIR = f"{ROOT_DIR}/latex/"
 PL_DIR = f"{ROOT_DIR}/prolog/"
-PL_LOGIC = f"{ROOT_DIR}/prolog/logic.pl"
+PL_PROOF = f"{ROOT_DIR}/prolog/proof.pl"
 
 I_OPEN_FILE = f"{ROOT_DIR}/icons/open_file.png"
 I_LATEX = f"{ROOT_DIR}/icons/latex.png"

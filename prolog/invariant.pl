@@ -10,12 +10,12 @@
     	generator_inv/3,				% +Set, -Generator, +Inv)
     	generator_inv/4,				% +ListIn, -ListOut, +Inv, +Order
     	subset_inv/3,					% +Set, +SubSet, +Inv
-    	union_inv/5						% +Set1, +Set2, -Set3, +Inv, +Order
+    	union_inv/5,					% +Set1, +Set2, -Set3, +Inv, +Order
+    	temp_invariant/2 				% +WithTemp, -NoTemp
     ]).
 
 :-use_module(set).
 :-use_module(function).
-
 
 
 
@@ -54,9 +54,9 @@ generator_inv(ListIn, ListOut, Inv, Order) :-
 	findall(X, ( Y ∈ ListIn,  
 				 Z ∈ ListIn, 
 				 not(Y = Z), 
-				 calc_power(Y, X , Inv, _),
-				 calc_power(Z, X , Inv, _),
-				 preimage(X)), Roots),
+				 calc_power(Y, W , Inv, _),
+				 calc_power(Z, W , Inv, _),
+				 root(Y, X, Inv)), Roots),
 	findall(X, (Y ∈ Roots,
 				X ∈ ListIn,
 				calc_power(X, Y , Inv, _)), ListSub),
@@ -83,3 +83,7 @@ subset_inv(Set, SubSet, Inv) :-
 union_inv(Set1, Set2, Set3, Inv, Order) :-
 	Buffer := (Set1 ∪ Set2),
 	generator_inv(Buffer, Set3, Inv, Order).
+
+
+% We apply generator_inv of module invariant on special invariant with name temp used in proof predicate below.
+temp_invariant(WithTemp, NoTemp) :- generator_inv(WithTemp, NoTemp, temp).

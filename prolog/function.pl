@@ -1,11 +1,11 @@
-%  Basic libary for invariant operations
+%  Basic libary for function operations
 %    Author:        Martin Kunze
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
 :- module(function,[ 	
 		calc_power/4,	% +Value, -Argument, +Function, -Power
-		preimage/1      % +X
+		root/3      	% +Image, -Preimage, +Function
     ]).
 
 :- use_module(library(clpfd)).
@@ -18,6 +18,9 @@ calc_power(Value, Argument, Function, Power) :-
 	Value =..[Function, Buffer],
 	calc_power(Buffer, Argument, Function, Power_m1).
 
-% checks if +X is a preimage, means their is no function +Fun with +Fun(Y) is X for some Y. 
-preimage(X) :-
-	not(X=..[_, _]).
+% checks if +Image is Function(Function(...(Function(Preimage))). 
+root(Image, Image, Function) :-
+	not(Image=..[Function, _]).
+root(Image, Preimage, Function) :-
+	Image=..[Function, Buffer],
+	root(Buffer, Preimage, Function).

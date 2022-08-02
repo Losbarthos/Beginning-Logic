@@ -160,7 +160,7 @@ class Proof:
 
 			with PrologMQI() as mqi:
 				with mqi.create_thread() as prolog_thread:
-					prolog_thread.query(f"consult('{PL_LOGIC}').")
+					prolog_thread.query(f"consult('{PL_PROOF}').")
 					result = prolog_thread.query(f"proof_py({derivation}, Proof).")
 					if result == False:
 						return False
