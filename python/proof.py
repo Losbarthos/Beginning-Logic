@@ -30,7 +30,8 @@ class Proof:
 		self.conclusion = ""
 
 		self.derivation = ""
-		self.original = None
+		self.s_graph = None
+		self.s_table = None
 		self.proof_derivations = None
 		self.tables = None
 		self.graphs = None
@@ -40,10 +41,7 @@ class Proof:
 			True, if prove is already done.
 		'''
 
-		if self.original == None:
-			return False
-		else:
-			return True
+		return self.s_graph
 
 	def add_assumptions(self, assumptions):
 		if(type(assumptions) == str ):
@@ -71,7 +69,7 @@ class Proof:
 			raise ValueError(f"derivation {derivation} could not be converted!")
 
 	def update_derivation(self):
-		self.derivation = f"([{','.join(self.assumptions)}],[]) ⊢ {self.conclusion}"
+		self.derivation = f"[{','.join(self.assumptions)}] ⊢ {self.conclusion}"
 
 	def get_derivation(self):
 		if len(self.assumptions) == 0 and self.conclusion == "":
@@ -86,70 +84,6 @@ class Proof:
 			which illustrate the proof-graph.
 		'''
 
-		def remove_dublicates():
-			'''
-				Removes duplicate elements occures in self.table 
-			'''
-			def in_list(element, list):
-				'''
-					checks if some element that has method equals (e.g. pandas dataframe) is in list
-				'''
-				for e in list:
-					if element.equals(e):
-						return True
-				return False
-
-
-			new_original = []
-			new_proof_derivations = []
-			new_tables = []
-			new_graphs = []
-			rng = len(self.original)
-
-			self.tables = [k for k in self.tables.values()]
-
-			for a,b,c,d in zip(self.original, self.proof_derivations, self.tables, self.graphs):
-				if not(in_list(c, new_tables)):
-					new_original.append(a)
-					new_proof_derivations.append(b)
-					new_tables.append(c)
-					new_graphs.append(d)
-
-			self.original = new_original
-			self.proof_derivations = new_proof_derivations
-			self.tables = dict(zip(range(len(new_tables)), new_tables))
-			self.graphs = new_graphs
-
-		def sort_values():
-			'''
-				Sorts the values of the tuble (self.tables, self.original, self.proof_derivations, self.graphs)
-				by length of self.tables. 
-			'''
-			self.tables = [k for k in self.tables.values()]
-			
-			#  Input here: [(1, df1), (2, df2), (3, df3)]
-			#  Output here: [(3, df3), (1, df1), (2, df2)]  (or whatever is the correct order)
-			lst_sort = sorted(enumerate(self.tables, start=0), key=lambda tup: len(tup[1]))
-
-			# now split the index and dataframe lists apart again if needed
-			# by using a trick where it feels like we use zip in reverse
-			indexes, self.tables = zip(*lst_sort)
-
-
-			new_original = []
-			new_proof_derivations = []
-			new_graphs = []
-
-			for i in indexes:
-				new_original.append(self.original[i])
-				new_proof_derivations.append(self.proof_derivations[i])
-				new_graphs.append(self.graphs[i])
-			
-			self.original = new_original
-			self.proof_derivations = new_proof_derivations
-			self.tables = dict(zip(range(len(self.tables)), self.tables))
-			self.graphs = new_graphs
-
 		def main(derivation):
 			'''
 				This function is called from proof(self, derivation)
@@ -161,322 +95,60 @@ class Proof:
 			with PrologMQI() as mqi:
 				with mqi.create_thread() as prolog_thread:
 					prolog_thread.query(f"consult('{PL_PROOF}').")
-					result = prolog_thread.query(f"proof_py({derivation}, Proof).")
+					result = prolog_thread.query(f"proof_py({derivation}, Graph, Table).")
 					if result == False:
-						return False
+						return [False, False]
 					else:
-						return [ast.literal_eval(item["Proof"].replace("proof","")) for item in result]
+						graph = [item["Graph"] for item in result]
+						table = [item["Table"] for item in result]
+						return [graph, table]
 		derivation = self.derivation
 
-		self.original = main(derivation)
-		if self.original != False:
-			self.proof_derivations = self.init_debug()
+		[self.s_graph, self.s_table] = main(derivation)
+		if self.s_graph != False:
 			self.tables = self.init_tables()
 			self.graphs = self.init_graphs()
 
-			remove_dublicates()
-			sort_values()
-
-	def print_all_debug(self):
-		ln = len(self.proof_derivations)
-		for i in range(ln):
-			print(f"Proof {i+1} from {ln}:")
-			self.print_debug(i)
-			print()
-
-	def print_debug(self, i):
-		'''
-			For printing some debug dictionary of form {key: value} in form key : value, where every (key, value) pair is in seperate line.
-		'''
-		debug = self.proof_derivations[i]
-
-		for key, value in debug.items():
-			print(key, ' : ', value)
-
-
-	def init_debug(self):
-		def conclude(index, inner, df):
-			'''
-				Returns the derivation sequence of some line in proof table.
-			'''
-			def get_parameter(name, function):
-				'''
-					Gets the parameter p of some function of type f(p).
-				'''
-				inner = function.removeprefix(name)[1:-1]
-				if(inner == ''):	
-					return []
-				elif inner[0] == '[':
-					return inner[1:-1]
-				else: 
-					return inner
-			'''
-				Body of function conclude
-			'''		
-
-			d0 = d1 = rule = step = "" 
-
-			for entry in inner:
-				if entry.startswith("d0"):
-					d0 = get_parameter("d0", entry)
-				elif entry.startswith("d1"):
-					d1 = get_parameter("d1", entry)
-				elif entry.startswith("rule"): 
-					rule = get_parameter("rule", entry)
-				elif entry.startswith("step"):					
-					step = get_parameter("step", entry)
-
-			line = {'Index':index,
-					'LastConclusion': d0,
-					'NextConclusion': d1,
-					'Rule': rule,
-					'Step': step}
-			return pd.DataFrame([line])
-
-		#def is_unique_value(dictionary, key, value):
-		#	to_append = True
-		#	for index in dictionary:
-		#		if dictionary[index].equals(value):
-		#			to_append = False
-
-		#	return to_append
-
-		def derivation_table_to_dict(table):
-			'''
-				converts a derivation table with columns Index, LastConclusion, NextConclusion, Rule, Step in some 
-				dict with 
-				case 1: value same as LastConclusion
-					Index same as column Index 
-					Dict position same as column Step
-				case 2: value same as NextConclusion and NextConclusion is not equal to LastConclusion
-					Index same as column Index minus 0.5
-					Dict position same as column Step, but lower than LastConclusion
-			'''
-			dct = []
-			for prf in table.values():
-				res = {}
-				ln = len(prf)
-				
-				nxt = None
-				for i in range(1, ln + 1):
-					row = prf.loc[prf['Step'] == f'{i}']
-					if row['LastConclusion'].tolist()[0] != '':
-						lst = row['LastConclusion'].tolist()[0]
-
-						if nxt != None:
-							if i > 1 and lst != nxt and nxt != '':
-								d = idx - 0.5
-								res[d] = nxt
-
-
-						idx = row['Index'].tolist()[0]
-						
-						if lst != '': 
-							res[idx] = lst
-
-
-
-						nxt = row['NextConclusion'].tolist()[0]
-
-						if i == ln and nxt != '':
-							d = idx - 0.5
-							res[d] = nxt
-				dct.append(res)
-
-			return dct
-
-
-
-		def main():
-			'''
-				Function init_tables(self) is called from here
-			'''
-			table = {}
-			i = 0
-			for proof in self.original:
-				df = pd.DataFrame(
-						   columns=['Index', 'LastConclusion', 'NextConclusion', 'Rule', 'Step'])
-
-				for key in proof:
-					new_frame = [df, conclude(key, proof[key], df)]
-					df = pd.concat(new_frame)	
-
-				df.index = df['Index'] # sets key
-
-				#if is_unique_value(table, i, df):
-				table[i] = df
-				i = i + 1
-
-			return derivation_table_to_dict(table)
-		
-		# Body of function init_debug(self)
-		return main()
-
+	# From prolog-graph to python pandas-dataframe table 
+	# More details see: https://stackoverflow.com/questions/73519055/convert-string-which-illustrates-some-list-into-pandas-dataframe
 	def init_tables(self):
-		def assume(index, assumption):
-			'''
-				Returns some assumption line in table.
-			'''
-			line = {'Assumptions': set([index]),
-					'Index': index,
-					'Proposition': assumption,
-					'Premisses': set([]),
-					'Rule': 'A'}
-			return pd.DataFrame([line])
+		import re
+		from ast import literal_eval
 
-		def conclude(index, inner, df, debug):
-			'''
-				Returns some conclusion line different frome assumption line in table.
-			'''
-			def get_parameters(name, function):
-				'''
-					Gets the parameters [a1, a2, ..., an] in form of a list
-					of some function of type f1(a1, a2, ..., an).
-				'''
-				inner = function.removeprefix(name)[2:-2]
-				inner = inner.split(",")
-				if(inner[0] == ''):	
-					return []
-				else: 
-					return inner
-			'''
-				Body of function conclude
-			'''
-			premisses_origin = set([]) 		# premiss parameter in table (column 3). Collect all premisses with origin in assumptions.
-			premisses_no_origin = set([])	# premiss parameter in table (column 3). Collect all premisses with no origin in assumptions.
-			premisses_exc_origin = set([])  # premiss parameter in table (column 3). Collect all premisses with origins to be removed. 
-			assumptions = set([]) 			# assumption parameter in table (column 0) (includes ex, which must be seperately eliminated)
-			#origin = set([]) 				# possible assumptions from prolog output
-			#ex = set([]) 					# propositions which are eliminated from assumptions
-			rule = "" 						# rule name
-			conclusion = "" 				# proposition name
+		rows = []
+		table = {}
 
-			for entry in inner:
-				if entry.startswith("assumptions"):
-					assumptions = get_parameters("assumptions", entry)
-				elif entry.startswith("premisses_origin"):
-					premisses_origin = get_parameters("premisses_origin", entry)
-				elif entry.startswith("premisses_no_origin"):
-					premisses_no_origin = get_parameters("premisses_no_origin", entry)
-				elif entry.startswith("premisses_exc_origin"):
-					premisses_exc_origin = get_parameters("premisses_exc_origin", entry)
-				elif entry.startswith("conclusion"): 
-					conclusion = get_parameters("conclusion", entry)[0]
-				elif entry.startswith("rule"): 
-					rule = get_parameters("rule", entry)[0]					
+		i = 0
 
-			idx_all_assumptions = set([])
-			idx_assumptions = set([])
-			idx_exc_assumptions = set([])
-			idx_premisses_origin = set([]) 
-			idx_premisses_no_origin = set([])
-			idx_premisses_exc_origin = set([])
-			idx_premisses = set([])
+		for tbl in self.s_table:
+			# split at ',' followed by two closing ]]
+			for x in re.split(r"(?<=\]\]),", tbl[1:-1]):
+			    
+			    # split at ',' after closing ] OR between '"' and opening [ 
+			    left, middle, right = re.split(r"(?<=\]),(?=\d)|(?<=\"),(?=\[)", x[1:-1])
 
-			try:
-				idx_all_assumptions = set([df.loc[(df['Proposition'] == assumption) &
-									  (df['Rule'] == 'A')]["Index"].item() 
-									  		for assumption in assumptions])
-			except:
-				print(f"Assumptions: {assumptions}")
-				print(f"Table at moment: {df}")
-				print(f"Development of derivations: ")
-				self.print_debug(debug)
-				raise ValueError('Could not locate assumptions in a right way.')
+			    # split the middle part at ','
+			    middle = middle.split(",")
+			    
+			    rows.append([literal_eval(left), *middle, literal_eval(right)])
+			    
 
 
+			df = pd.DataFrame(rows, columns=['Assumptions', 'Index', 'Proposition', 'Rule', 'Premisses'])
 
-			for premiss in premisses_origin:
-				select = df.loc[(df['Proposition'] == premiss) & 
-								(df['Assumptions'].apply(lambda x: x.issubset(idx_all_assumptions)))]
-				try:
-					idx_premisses_origin = idx_premisses_origin.union(set([select["Index"].item()]))
-					idx_assumptions = idx_assumptions.union(select["Assumptions"].item())
-				except:
-					print(f"At derivation: {self.derivation}")
-					print(f"Table at moment: {df}")
-					print(f"Selection: {select}")
-					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
-					print(f"Premiss to append on table: {premiss}")
-					print(f"Development of derivations: ")
-					self.print_debug(debug)
-					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
+			columns_titles = ['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule']
+			df=df.reindex(columns=columns_titles)
 
-			for premiss in premisses_no_origin:
-				select = df.loc[(df['Proposition'] == premiss)]
-				try:
-					idx_premisses_origin = idx_premisses_origin.union(set([select["Index"].item()]))
-				except:
-					print(f"At derivation: {self.derivation}")
-					print(f"Table at moment: {df}")
-					print(f"Selection: {select}")
-					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
-					print(f"Premiss to append on table: {premiss}")
-					print(f"Development of derivations: ")
-					self.print_debug(debug)
-					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
+			df["Index"] = df.Index.astype(int)
+			df["Assumptions"] = df.apply(lambda row: set(row["Assumptions"]), axis=1)
+			df["Premisses"] = df.apply(lambda row: set(row["Premisses"]), axis=1)
+			df["Rule"] = df.Rule.str.strip('"')
+			df.index = df["Index"] # sets key
+			table[i] = df
+			i = i + 1
 
+		return table
 
-			for premiss in premisses_exc_origin:
-				select = df.loc[(df['Proposition'] == premiss) & 
-								(df['Assumptions'].apply(lambda x: x.issubset(idx_all_assumptions)))]
-				try:
-					idx_premisses_exc_origin = idx_premisses_exc_origin.union(set([select["Index"].item()]))
-					idx_exc_assumptions = idx_exc_assumptions.union(select["Assumptions"].item())
-				except:
-					print(f"At derivation: {self.derivation}")
-					print(f"Table at moment: {df}")
-					print(f"Selection: {select}")
-					print(f"Indexes of most possible assumptions: {idx_all_assumptions}")
-					print(f"Premiss to append on table: {premiss}")
-					print(f"Development of derivations: ")
-					self.print_debug(debug)
-					raise ValueError('Proof table could not be created. The last index occurs at least 2 times in the previous propositions.')		
-
-			idx_premisses = idx_premisses_origin.union(idx_premisses_no_origin)
-
-			line = {'Assumptions': idx_assumptions.difference(idx_exc_assumptions),
-					'Index': index,
-					'Proposition': conclusion,
-					'Premisses': idx_premisses,
-					'Rule': rule}
-			return pd.DataFrame([line])
-
-		#def is_unique_value(dictionary, key, value):
-		#	to_append = True
-		#	for index in dictionary:
-		#		if dictionary[index].equals(value):
-		#			to_append = False
-		#
-		#	return to_append
-
-
-		def main():
-			'''
-				Function init_tables(self) is called from here
-			'''
-			table = {}
-			i = 0
-			for proof in self.original:
-				df = pd.DataFrame(
-						   columns=['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule'])
-
-				for key in proof:
-					if len(proof[key]) == 2: # assumptions have two elements
-						new_frame = [df, assume(key, proof[key][0])]
-					else: # general conclusions have more than two elements 
-						new_frame = [df, conclude(key, proof[key], df, i)]
-					df = pd.concat(new_frame)	
-
-				df.index = df['Index'] # sets key
-
-				#if is_unique_value(table, i, df):
-				table[i] = df
-				i = i + 1
-
-			return table
-		# Body of function init_tables(self)
-		return main()
 
 	def init_graphs(self):
 		import networkx as nx
@@ -543,6 +215,8 @@ if __name__ == '__main__':
 	p.set_derivation('[¬(q),p→q] ⊢ ¬(p)')
 	
 	p.proof()
+
+	print(p.tables)
 	p.view_graph(0)
 
 

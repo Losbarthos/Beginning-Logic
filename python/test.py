@@ -2,28 +2,13 @@
 import pandas as pd
 import numpy as np
 
-def generate_tables():
-    with open('tables.tex', 'w') as f:
-        # header
+import json
 
-        f.write("% !TeX TS-program = lualatex\n") 
-        f.write("\\documentclass{article}\n")
-        f.write("\\usepackage{booktabs}\n")
-        f.write("\\usepackage{unicode-math}\n")
-        f.write("\\begin{document}\n")
+from ast import literal_eval
 
-        fooder = "\\end{document}\n"
 
-        for i in range(10):
-            df = pd.DataFrame(np.random.random((5, 5)))
-            latex_table = df.to_latex(index=False,header=False,escape=False)
-            f.write(f"Table {i}:")
-            f.write("\n\\\\\n")
-            f.write(latex_table)
-            f.write("\\\\[2\\baselineskip]\n")
+s = '[[[1],1,p,"A",[]],[[2],2,¬q,"A",[]],[[3],3,p→q,"A",[]],[[1,3],4,q,"→E",[1,3]],[[1,2,3],5,q∧ ¬q,"∧I",[2,4]],[[2,3],6,¬p,"¬I",[1,5]]]'
 
-        f.write(fooder)
 
-generate_tables()
 
-print(f"{{}}")
+print(s)

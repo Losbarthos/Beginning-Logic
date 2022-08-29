@@ -3,19 +3,13 @@
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
-:- module(test, [
-    (:=)/2, op(699, xfx, :=),
-    op(598, xfy, ∪),
-    op(597, xfy, ∩)
-]).
+portray(Term) :-
+  of_type_A(Term),
+  writef("\n", []),
+  foreach(member([X1, X2, X3, X4, X5], Term), writef("%p (%p) %p %p %p\n", [X1, X2, X3, X4, X5])).
 
-union_((A ∪ B), C, D) :- union_(A, B, X), union_(X, C, D).
-union_(A, (B ∪ C), D) :- union_((A ∪ B), C, D).
-union_(A, B, C) :- is_list(A), is_list(B), union(A, B, C).
 
-intersection_((A ∪ B), C, D) :- intersection_(A, B, X), intersection_(X, C, D).
-intersection_(A, (B ∪ C), D) :- intersection_((A ∪ B), C, D).
-intersection_(A, B, C) :- intersection(A, B, C).
+of_type_A(L) :- 
+    forall(member(X, L), (X = [X1 , _, _, _, _], is_list(X1))).
 
-C := (A ∪ B) :- union_(A, B, C).
-C := (A ∩ B) :- intersection_(A, B, C).
+write_type_A(L)

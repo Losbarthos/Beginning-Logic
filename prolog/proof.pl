@@ -6,12 +6,17 @@
 
 :- set_prolog_flag(optimise_unify, false).
 
+:-use_module(extend_list).
 :-use_module(set).
 :-use_module(invariant).
 :-use_module(proposition).
 :-use_module(derivation).
 
-:-use_module(ldict).
+:-use_module(graph).
+:-use_module(graph_proof).
+
+
+:-use_module(proof_table).
 
 :-use_module(library(http/json)).
 
@@ -25,152 +30,66 @@ portray(Term) :-
     foreach(member(Key-Value, Pairs), writef("\t%p: %p\n\n", [Key, Value])),
     write("}").
 portray(Term) :-
+	is_proof_table(Term),
+	write_proof_table(Term), !.
+portray(Term) :-
 	is_list(Term),
 	write_term(Term, [max_depth(0)]).
+
 
 %
 % Derivations which can used in the proof.
 %
 
 % Same as
-% A;P?L∧R → A;P?L and A;P?R   
+% A;P?L∧R → A;P?L and A;P?R
 % RuleName: ∧I
-rule(Origin, NextStep, DictIn, DictOut, 0) :-
-	Origin = ((A, P) ⊢ (L ∧ R)), P1 := P ∪ [L, temp(L ∧ R)],
+rule(Origin, NextStep, GIn, GOut) :-
+	Origin = ((A, P) ⊢ (L ∧ R)), %not(var(L)), not(var(R)), 
+	P1 := P ∪ [L, temp(L ∧ R)],
 	NextStep = (((A, P) ⊢ L) ∧ ((A, P1) ⊢ R)),
+
 	
 	U := A ∪ P,
 	not(has_contradictions(U)),
-
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A, Ai),
-	Assumptions = Ai,
-	PremissesOrigin = [L, R],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [L ∧ R],
-	Rule = "∧I",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-
-	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+	merge_rule([L, R], L ∧ R, "∧I", GIn, GOut).
 
 % Same as
 % A;P?L↔R → A;P?L→R and A;P?R→L   
 % RuleName: ↔I
-rule(Origin, NextStep, DictIn, DictOut, 0) :-
+rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A, P) ⊢ (L ↔ R)), P1 := P ∪ [L → R, temp(L ↔ R)],
 	NextStep = (((A, P) ⊢ (L → R)) ∧ ((A, P1) ⊢ (R → L))),
 	
 	U := A ∪ P,
 	not(has_contradictions(U)),
-
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A, Ai),
-	Assumptions = Ai,
-	PremissesOrigin = [L → R, R → L],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [L ↔ R],
-	Rule = "↔I",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-
-	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+	merge_rule([L → R, R → L], L ↔ R, "↔I", GIn, GOut).
 
 % Same as
 % [A;P?L→R] L ∈ (A ∪ P) → A;P?R   
 %    with
 % RuleName: →I
-rule(Origin, NextStep, DictIn, DictOut, _) :-
+rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A, P) ⊢ (L → R)), 
 	U:= A ∪ P, L ∈ U, Pn := P ∪ [temp(L → R)],
 	NextStep = ((A, Pn) ⊢ R), 
 
 	not(has_contradictions(U)),
-
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A, Ai),
-	Assumptions = Ai,
-	PremissesOrigin = [L, R],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [L → R],
-	Rule = "→I",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						    Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
-
-% Same as
-% [A;P?L→R] → A,L;P?R   
-%    with
-% RuleName: →I
-rule(Origin, NextStep, DictIn, DictOut, _) :-
-	Origin = ((A1, P) ⊢ (L → R)),
-	U:= A1 ∪ P, L ∉ U, Pn := P ∪ [temp(L → R)], A2 := A1 ∪ [L],
-	merge_premisses([A2, Pn], [_, MPn]),
-	NextStep = ((A2, MPn) ⊢ R),
-
-	not(has_contradictions(U)),
-	
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A2, A2i),
-	Assumptions = A2i,
-	PremissesOrigin = [R],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [L],
-	Conclusion = [L → R],
-	Rule = "→I",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-	dict_proof_append_assumption(L, DictIn, DictBuffer),
-	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						    Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictBuffer, DictOut).
-
+	merge_rule([L, R], L → R, "→I", GIn, GOut).
 
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L?C   
 %    with
 % RuleName: ∧E
-rule(Origin, NextStep, DictIn, DictOut, _) :- 
+rule(Origin, NextStep, GIn, GOut) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
 	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, P2 := P1 ∪ [L],
 
 	not(has_contradictions(U)),
 	derivation_route(C, L),
+	merge_rule([L ∧ R], L, "∧E", GIn, GOut).
 
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A, Ai),
-	Assumptions = Ai,
-	PremissesOrigin = [L ∧ R],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [L],
-	Rule = "∧E",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-
-	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 
 
@@ -178,7 +97,7 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R?C   
 %    with
 % RuleName: ∧E
-rule(Origin, NextStep, DictIn, DictOut, _) :- 
+rule(Origin, NextStep, GIn, GOut) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
 	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, P2 := P1 ∪ [R],
@@ -186,58 +105,27 @@ rule(Origin, NextStep, DictIn, DictOut, _) :-
 	not(has_contradictions(U)),
 	derivation_route(C, R),
 
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A, Ai),
-	Assumptions = Ai,
-	PremissesOrigin = [L ∧ R],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [R],
-	Rule = "∧E",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-
-	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+	merge_rule([L ∧ R], R, "∧E", GIn, GOut).
 
 
 % Same as
 % [A;P?C, (L ↔ R) ∈ (A ∪ P), (L → R) ∧ (R → L) ∉ (A ∪ P)] → A;P,(L → R) ∧ (R → L)?C   
 %    with
 % RuleName: ↔E
-rule(Origin, NextStep, DictIn, DictOut, _) :- 
+rule(Origin, NextStep, GIn, GOut) :- 
 	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
 	U:= A ∪ P1, ((L ↔ R) ∈ U),
 	(((L → R) ∧ (R → L)) ∉ U), temp(L ↔ R) ∉ U, temp(((L → R) ∧ (R → L))) ∉ U, P2 := P1 ∪ [(L → R) ∧ (R → L)],
 
 	not(has_contradictions(U)),
-	derivation_route(C, (L → R) ∧ (R → L)),
+	merge_rule([L ↔ R], (L → R) ∧ (R → L), "↔E", GIn, GOut).
 
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A, Ai),
-	Assumptions = Ai,
-	PremissesOrigin = [L ↔ R],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [(L → R) ∧ (R → L)],
-	Rule = "↔E",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-
-	dict_proof_append_last(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 %
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 % RuleName: →E
-rule(Origin, NextStep, DictIn, DictOut, 1) :-
+rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A1, P1) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, P3) ⊢ C)),
 	
@@ -245,30 +133,14 @@ rule(Origin, NextStep, DictIn, DictOut, 1) :-
 	replace(L → R, temp(L → R), A1, A2), replace(L → R, temp(L → R), P1, P2), P3 := P2 ∪ [L, R],
 
 	not(has_contradictions(U1)),
-	derivation_route(C, R),
+	merge_rule([L, L → R], R, "→E", GIn, GOut).
 
-
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A1, A1i),
-	Assumptions = A1i,
-	PremissesOrigin = [L, L → R],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [R],
-	Rule = "→E",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 %
 % Same as
 % [A;P?C, (L ∨ R) ∈ (A ∪ P)] → A\(L ∨ R),P\(L ∨ R)?((L → C) ∧ (R → C))    
 % RuleName: ∨E
-rule(Origin, NextStep, DictIn, DictOut, 0) :-
+rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A1, P1) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ (L → C)) ∧ ((A2, P2) ⊢ (R → C))),
 	
@@ -277,78 +149,47 @@ rule(Origin, NextStep, DictIn, DictOut, 0) :-
 
 	not(has_contradictions(U1)),
 
+	merge_rule([L ∨ R, L → C, R → C], C, "∨E", GIn, GOut).
 
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A1, A1i),
-	Assumptions = A1i,
-	PremissesOrigin = [L ∨ R, L → C, R → C],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [C],
-	Rule = "∨E",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
 
-	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+% Same as
+% [A;P?L→R] → A,L;P?R   
+%    with
+% RuleName: →I
+c_rule(Origin, NextStep, GIn, GOut) :-
+	Origin = ((A1, P) ⊢ (L → R)),
+	U:= A1 ∪ P, L ∉ U, Pn := P ∪ [temp(L → R), [A1, P]], A2 := A1 ∪ [L],
+	NextStep = ((A2, Pn) ⊢ R),
+
+	not(has_contradictions(U)),
+	merge_rule([R], L → R, "→I", GIn, GOut).
+
+
 
 % Same as
 % [A;P?L∨R,] → [A;P?L]   
 %    with
 % RuleName: ∨I
-c_rule(Origin, NextStep, DictIn, DictOut) :-
+c_rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A, P) ⊢ (L ∨ R)),
 	NextStep = ((A, P) ⊢ L), 
 	U:= A ∪ P, 
 
 	not(has_contradictions(U)),
-	%has_no_cases(U),
-
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A, Ai),
-	Assumptions = Ai,
-	PremissesOrigin = [L],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [L ∨ R],
-	Rule = "∨I",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
+	merge_rule([L], L ∨ R, "∨I", GIn, GOut).
 
 % Same as
 % [A;P?L∨R] → [A;P?R]   
 %    with
 % RuleName: ∨I
-c_rule(Origin, NextStep, DictIn, DictOut) :-
+c_rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A, P) ⊢ (L ∨ R)),
 	NextStep = ((A, P) ⊢ R), 
 	U:= A ∪ P, 
 
 	not(has_contradictions(U)),
-	%has_no_cases(U),
+	merge_rule([R], L ∨ R, "∨I", GIn, GOut).
 
-	%%
-	% Filling DictOut
-	%%
-	temp_invariant(A, Ai),
-	Assumptions = Ai,
-	PremissesOrigin = [R],
-	PremissesNoOrigin = [],
-	PremissesExcOrigin = [],
-	Conclusion = [L ∨ R],
-	Rule = "∨I",
-	DerivationOrigin = Origin,
-	DerivationNextStep = NextStep,
-
-	dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, PremissesExcOrigin,
-						   Conclusion, Rule, DerivationOrigin, DerivationNextStep, DictIn, DictOut).
 
 
 
@@ -358,68 +199,25 @@ c_rule(Origin, NextStep, DictIn, DictOut) :-
 % ¬Xi ∈ (A ∪ P)
 % RuleName: ¬E 
 % Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
-c_rule(Origin, NextStep, DictIn, DictOut, LastStep) :-
-	Origin = ((A1, P1) ⊢ C), 
-	LastStep = ((A1, P2) ⊢ C),
-	not(⊥(C)), U:= A1 ∪ P1, (¬(C) ∉ U), (temp(¬(C)) ∉ U), A2 := A1 ∪ [¬(C)], P2 := P1 ∪ [C], not(anymember_invariant_2n(U, ¬(C), ¬)),
-	U2 := A2 ∪ P1, contradictions(U2, Contra),
-	findall(X, (member(Y, Contra), X = ((A2, P1) ⊢ (Y ∧ ¬(Y)))), NextStepList),
-	disjunction_list(NextStepList, NextStep),
+c_rule(Origin, NextStep, GIn, GOut) :-
+	Origin = ((A, P) ⊢ C), GIn = graph(VIn, _), ((⊥) ∉ VIn),
+	not(⊥(C)), U:= A ∪ P, (¬(C) ∉ U), (temp(¬(C)) ∉ U), A0 := A ∪ [¬(C)],
+	NextStep = ((A0, P) ⊢ ⊥),
 
-	findall(X, (member(Y, Contra), 
-				%%
-				% Filling DictOut
-				%%
-				temp_invariant(A2, A2i),
-				Assumptions = A2i,
-				PremissesOrigin = [¬(C), Y ∧ ¬(Y)],
-				PremissesNoOrigin = [],
-				PremissesExcOrigin = [¬(C)],
-				Conclusion = [C],
-				Rule = "¬E",
-				DerivationOrigin = Origin,
-				DerivationNextStep = NextStep,
+	merge_rule([¬(C), ⊥], C, "¬E", GIn, GOut).
 
-				dict_proof_append_assumption(¬(C), DictIn, XBuffer),
-				dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, 
-										PremissesExcOrigin,
-										Conclusion, Rule, DerivationOrigin, DerivationNextStep, XBuffer, X)),
-				NegEList),
-	disjunction_list(NegEList, DictOut).
 
 % Same as
 % [A;P?¬C, (C ∧ ¬C) ∉ A, C ∉ A] → (A,C;P?(X1 ∧ ¬X1)) ∨ (A,C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,C;P?(Xn ∧ ¬Xn))    
 %    with
 % ¬Xi ∈ (A ∪ P)
 % RuleName: ¬I 
-c_rule(Origin, NextStep, DictIn, DictOut, LastStep) :-
-	Origin = ((A1, P1) ⊢ ¬(C)), 
-	LastStep = ((A1, P2) ⊢ ¬(C)),
-	not(⊥(C)), U:= A1 ∪ P1, (C ∉ U), temp(C) ∉ U, A2 := A1 ∪ [C], P2 := P1 ∪ [¬(C)], not(anymember_invariant_2n(U, C, ¬)),
-	U2 := A2 ∪ P1, contradictions(U2, Contra),
-	findall(X, (member(Y, Contra), X = ((A2, P1) ⊢ (Y ∧ ¬(Y)))), NextStepList),
-	disjunction_list(NextStepList, NextStep),
-	
-	findall(X, (member(Y, Contra), 
-				%%
-				% Filling DictOut
-				%%
-				temp_invariant(A2, A2i),
-				Assumptions = A2i,
-				PremissesOrigin = [C, Y ∧ ¬(Y)],
-				PremissesNoOrigin = [],
-				PremissesExcOrigin = [C],
-				Conclusion = [¬(C)],
-				Rule = "¬I",
-				DerivationOrigin = Origin,
-				DerivationNextStep = NextStep,
+c_rule(Origin, NextStep, GIn, GOut) :-
+	Origin = ((A, P) ⊢ ¬(C)), GIn = graph(VIn, _), ((⊥) ∉ VIn),
+	not(⊥(C)), U:= A ∪ P, (C ∉ U), (temp(C) ∉ U), A0 := A ∪ [C],
+	NextStep = ((A0, P) ⊢ ⊥),
 
-				dict_proof_append_assumption(C, DictIn, XBuffer),
-				dict_proof_append_first(Assumptions, PremissesOrigin, PremissesNoOrigin, 
-										PremissesExcOrigin,
-										Conclusion, Rule, DerivationOrigin, DerivationNextStep, XBuffer, X)),
-			NegIList),
-	disjunction_list(NegIList, DictOut).
+	merge_rule([C, ⊥], ¬(C), "¬I", GIn, GOut).
 
 
 %
@@ -428,58 +226,37 @@ c_rule(Origin, NextStep, DictIn, DictOut, LastStep) :-
 
 % Preconditions
 
-proof_rule(Derivation, NextStep, ProofIn, ProofOut, I) :- 	
+proof(Derivation, Proof, Proof) :- 	
+		isvalid(Derivation),!.
+proof(Derivation, ProofIn, ProofOut) :- 	
+		Derivation = ((_, _) ⊢ ⊥),
+		iscontradiction(Derivation, C),
+		replace_vertex_weighted(⊥, (C ∧ ¬(C)), ProofIn, Proof0),
+		merge_rule([C, ¬(C)], (C ∧ ¬(C)), "∧I", Proof0, ProofOut),
+		
+		!.
+proof(Derivation, ProofIn, Proof) :- 
 		Derivation = ((A, P) ⊢ C),
 		U := (A ∪ P),
 		not(has_cases(U, C)),
-		rule(Derivation, NextStep, ProofIn, ProofOut, I).
+		rule(Derivation, NextStep, ProofIn, ProofOut),
+		proof(NextStep, ProofOut, Proof),!.
 
-proof(Derivation, LastAssumptions, LastPremisses, Proof, Proof, _) :- 	
-		Derivation = ((LastAssumptions, LastPremisses) ⊢ _),
-		isvalid(Derivation),!.
-
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
-		proof_rule(Derivation, NextStep, ProofIn, ProofOut, I),
-		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, I),!.
-
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
+proof(Derivation, ProofIn, Proof) :- 
 		c_rule(Derivation, NextStep, ProofIn, ProofOut), 
-		proof(NextStep, LastAssumptions, LastPremisses, ProofOut, Proof, _),!.
+		proof(NextStep, ProofOut, Proof),!.
 
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
-		LastStep = ((LastAssumptions, LastPremisses) ⊢ _),
-		c_rule(Derivation, NextStep, ProofIn, ProofOut, LastStep), 
-		proof(NextStep, _, _, ProofOut, Proof, _).
-
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
-		Derivation = (D1 ∨ _),
-		ProofIn = (Proof1 ∨ _),
-		proof(D1, LastAssumptions, LastPremisses, Proof1, Proof, _).
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, _) :- 
-		Derivation = (_ ∨ D2),
-		ProofIn = (_ ∨ Proof2),
-		proof(D2, LastAssumptions, LastPremisses, Proof2, Proof, _).
-proof(Derivation, LastAssumptions, LastPremisses, ProofIn, Proof, I) 	:- 	
+proof(Derivation, ProofIn, Proof) 	:- 	
 		Derivation = (D1 ∧ D2),
-		D1 = ((A1, P1) ⊢ _),
-		D2 = ((A1, P) ⊢ C),
-		D3 = ((A1, P2) ⊢ C), 
+		D1 = ((_, _) ⊢ _),
+		D2 = ((_, _) ⊢ _),
 
-		dict_min_index(ProofIn, MinIndex),
-		IndexUntouched is MinIndex + I,
+		proof(D1, ProofIn, ProofOut),
+		proof(D2, ProofOut, Proof).
 
-		proof(D1, A1L, P1L, ProofIn, ProofBetween1, _),
-		Px := (P1 ∪ P) ∪ [[A1L, P1L]],
-		merge_premisses([A1, Px], [A1, P2]),
-
-		dict_normalize(ProofBetween1, IndexUntouched, ProofBetween2),
-
-		proof(D3, LastAssumptions, LastPremisses, ProofBetween2, Proof, _).
 proof(Derivation, Proof) :- 
-	distinct([Proof], (Derivation = ((A, []) ⊢ _),
-	dict_from_assumptions(A, Assumptions),
-	proof(Derivation, _, _, Assumptions, ProofRaw, _),
-	dict_normalize(ProofRaw, 1, Proof))).
+	Derivation = (A ⊢ C),
+	proof(((A, []) ⊢ C), graph([],[]), Proof).
 
 
 % Examples
@@ -488,14 +265,19 @@ proof(Derivation, Proof) :-
 %
 
 
-proof_py(Derivation, Proof) :-
-	proof(Derivation, Proof1), 
-	term_to_atom(Proof1, Proof).
+proof_py(Derivation, GProof, TProof) :-
+	proof(Derivation, GProofO), 
+	proof_table(GProofO, TProofO),
+	term_to_atom(GProofO, GProof),
+	term_to_atom(TProofO, TProof).
 
 proof_t(Derivation, Proof) :-
 	proof(Derivation, Proof1),
 	Proof = Proof1._.
 
+go_proof1(G) :- proof(([p→q,p] ⊢ q), G).
+go_proof5(G, T) :- proof_py(([¬(q),p→q] ⊢ ¬(p)), G, T).	
+go_proof13(G) :- proof(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G).
 
 
 go_debug :-
@@ -503,7 +285,7 @@ go_debug :-
     protocol('p.txt'),
     leash(-all),
     trace(proof/6),
-    proof(([(p→(¬p))],[]) ⊢ (¬p), _P),
+    proof(([(p↔q), (q↔r)],[]) ⊢ (p↔r), _P),
     !,
     nodebug,
     noprotocol.

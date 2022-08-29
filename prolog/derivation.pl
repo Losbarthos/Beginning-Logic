@@ -9,7 +9,8 @@
 	derivation/1,
 	find_derivations/2,					% +LIn, -LOut
 	unzip/4,							% +Derivation, -Assumptions, -Premisses, -Conclusion
-	isvalid/1							% +Derivation
+	isvalid/1,							% +Derivation
+	iscontradiction/2					% +Derivation, -Contradiction
 ]).
 
 :-use_module(proposition).
@@ -50,3 +51,8 @@ unzip(Derivation, Assumptions, Premisses, Conclusion) :-
 isvalid(((A, P) ⊢ C)) :-
 	AP := A ∪ P,
 	C ∈ AP.
+
+% Checks if their is some contradiction inside of the derivation ((A, P) ⊢ C).
+iscontradiction(((A, P) ⊢ ⊥), X) :-
+	AP:= A ∪ P, 
+	X ∈ AP, ¬(X) ∈ AP. 

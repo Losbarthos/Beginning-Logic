@@ -88,8 +88,8 @@ subformulas(Formula, Subformulas) :-
 			union(S1, [¬(X)], Subformulas).
 
 % Contradiction rules
-⊥(A):- A = (X ∧ ¬X), formula(X).
-⊥(A):- A = (¬X ∧ X), formula(X).
+⊥(A):- A = (X ∧ ¬X).%, formula(X).
+⊥(A):- A = (¬X ∧ X).%, formula(X).
 
 % contradictions(+B, -C)
 % Gets all possible contradictions withhin negation elemination and introduction

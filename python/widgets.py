@@ -490,7 +490,7 @@ class Derivation(Frame):
 		self.lbl_derivation['width'] = 0
 
 		if proof.is_proven(): 
-			if proof.original != False: # The proof has found some valid result
+			if proof.is_proven() != False: # The proof has found some valid result
 				proof = self.get_current_proof()
 				self.init_toolbar_state_proofed(proof, 0)
 			else:
@@ -546,7 +546,7 @@ class Derivation(Frame):
 			prog_bar.update()
 		
 		current_proof = self.get_current_proof()
-		if current_proof.original != False:
+		if current_proof.is_proven() != False:
 			self.init_toolbar_state_proofed(current_proof, 0)
 		prog_bar.quit()
 
@@ -560,7 +560,7 @@ class Derivation(Frame):
 		proof = self.get_current_proof()
 		proof.proof()
 		
-		if proof.original != False:
+		if proof.is_proven() != False:
 			self.init_toolbar_state_proofed(proof, 0)
 		else:
 			messagebox.showinfo("Info", "Proof failed!")
