@@ -30,7 +30,9 @@
     mst_prim/3,
     merge_graphs/3,
     delete_vertex_unweighted/3,
+    delete_vertices_unweighted/3,
     delete_vertex_weighted/3,
+    delete_vertices_weighted/3,
     copy_vertex_unweighted/4,
     copy_vertex_weighted/4,
     replace_vertex_unweighted/4,
@@ -118,7 +120,7 @@ find_path_weighted_(V1,V2,Edges,L,Path):-
     VX \== V2,
     \+member(VX,L),
     append(L,[VX],L1),
-    find_path_unweighted_(VX,V2,Edges,L1,Path).
+    find_path_weighted_(VX,V2,Edges,L1,Path).
 
 
 connected(V1,V2,Edges):-
@@ -397,12 +399,26 @@ delete_vertex_unweighted(V, graph(VIn, EIn), graph(VOut, EOut)) :-
     findall(X, (member(X, EIn), X = edge(V, _)), EVX),
     subtract(EIn, EXV, E0), subtract(E0, EVX, E1), sort(E1, EOut).    
 
+% Deletes some set of vertices from graph(+VIn, +EIn)
+delete_vertices_unweighted([], graph(V, E), graph(V, E)).
+delete_vertices_unweighted(SetV, graph(VIn, EIn), graph(VOut, EOut)) :-
+    SetV = [V | _], subtract(SetV, [V], SetV0),
+    delete_vertex_unweighted(V, graph(VIn, EIn), graph(VBuffer, EBuffer)),
+    delete_vertices_unweighted(SetV0, graph(VBuffer, EBuffer), graph(VOut, EOut)).
+
 % Deletes some vertex from graph(+VIn, +EIn)
 delete_vertex_weighted(V, graph(VIn, EIn), graph(VOut, EOut)) :-
     member(V, VIn), delete(VIn, V, V0), sort(V0, VOut),
     findall(X, (member(X, EIn), X = edge(_, V, _)), EXV),
     findall(X, (member(X, EIn), X = edge(V, _, _)), EVX),
-    subtract(EIn, EXV, E0), subtract(E0, EVX, E1), sort(E1, EOut).    
+    subtract(EIn, EXV, E0), subtract(E0, EVX, E1), sort(E1, EOut).  
+
+% Deletes some set of vertices from graph(+VIn, +EIn)
+delete_vertices_weighted([], graph(V, E), graph(V, E)).
+delete_vertices_weighted(SetV, graph(VIn, EIn), graph(VOut, EOut)) :-
+    SetV = [V | _], subtract(SetV, [V], SetV0),
+    delete_vertex_weighted(V, graph(VIn, EIn), graph(VBuffer, EBuffer)),
+    delete_vertices_weighted(SetV0, graph(VBuffer, EBuffer), graph(VOut, EOut)).
 
 % Copies some vertex from graph(+VIn, +EIn)
 copy_vertex_unweighted(VBase, VCopy, graph(VIn, EIn), graph(VOut, EOut)) :-

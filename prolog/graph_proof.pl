@@ -6,7 +6,8 @@
 :- module(graph_proof, [
 				   		merge_rule/5,
 				   		get_assumptions_of/3,
-				   		length_proof_graph/2
+				   		length_proof_graph/2,
+				   		remove_not_sufficcient_vertices/3
 				   		]).
 :-use_module(graph).
 :-use_module(set).
@@ -27,3 +28,8 @@ get_assumptions_of(graph(V, E), Of, Assumptions) :-
 length_proof_graph(graph(_, E), N) :-
 	findall(X, (edge(_, X1, X2) ∈ E, X = [X1, X2]), Rules),
 	length(Rules, N).
+
+remove_not_sufficcient_vertices(Conclusion, graph(VIn, EIn), graph(VOut, EOut)) :-
+	findall(X, (X ∈ VIn, find_path_weighted(graph(VIn, EIn), X, Conclusion, _)), Sufficient),
+	subtract(VIn, Sufficient, NotSufficient),
+	delete_vertices_weighted(NotSufficient, graph(VIn, EIn), graph(VOut, EOut)).

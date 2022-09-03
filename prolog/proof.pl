@@ -262,7 +262,8 @@ proof(Derivation, ProofIn, Proof) 	:-
 
 proof(Derivation, Proof) :- 
 	Derivation = (A ⊢ C),
-	proof(((A, []) ⊢ C), graph([],[]), Proof).
+	proof(((A, []) ⊢ C), graph([],[]), ProofOriginal),
+	remove_not_sufficcient_vertices(C, ProofOriginal, Proof).
 
 
 % Examples
@@ -282,6 +283,7 @@ proof_t(Derivation, Proof) :-
 	Proof = Proof1._.
 
 go_proof1(G) :- proof(([p→q,p] ⊢ q), G).
+go_proof10(G) :- proof(([p→(q→r)] ⊢ (q→(p→r))), G).
 go_proof5(G, T) :- proof_py(([¬(q),p→q] ⊢ ¬(p)), G, T).	
 go_proof13(G) :- proof(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G).
 go_proof25(G, T) :- proof_py(([p] ⊢ ((¬(q→r)→ ¬(p))→ (¬(r)→ ¬(q)))), G, T).
