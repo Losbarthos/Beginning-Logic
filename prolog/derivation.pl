@@ -53,6 +53,6 @@ isvalid(((A, P) ⊢ C)) :-
 	C ∈ AP.
 
 % Checks if their is some contradiction inside of the derivation ((A, P) ⊢ C).
-iscontradiction(((A, P) ⊢ ⊥), X) :-
+iscontradiction(((A, P) ⊢ ⊥(_)), X) :-
 	AP:= A ∪ P, 
 	X ∈ AP, ¬(X) ∈ AP. 

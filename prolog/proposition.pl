@@ -16,7 +16,9 @@
 	disjunction_list/2, 				% +List, -Disjunction
 	conjunction_list/2, 				% +List, -Conjunction
 	subformulas/2,						% +Formula, -Subformulas
-	(⊥)/1, op(800, fx, ⊥),
+	⊥ /1,
+	set_contradiction/1,
+	is_contradiction/1,
 	contradictions/2,
 	derivation_route/2,					% +From, +To
 	has_cases/2,
@@ -50,10 +52,15 @@ formula(Binary) :-
 formula(¬ X) :-
     formula(X).
 
+% define contradiction symbol
+⊥(0).
+⊥(N) :- ⊥(M), N is M + 1.
+
 % Used as atoms or individual symbols
 variable(p).
 variable(q).
 variable(r).
+variable(⊥(N)) :- ⊥(N).
 
 % Converts a list l1,...,ln into (l1 ∨ (l2 ∨ ( ... ∨ ln)...)
 disjunction_list(List, Disjunction) :- 
@@ -87,9 +94,15 @@ subformulas(Formula, Subformulas) :-
 			subformulas(X, S1),
 			union(S1, [¬(X)], Subformulas).
 
+get_next_element(N, N) :- not(⊥(N)), assert(⊥(N)), !.
+get_next_element(N, M) :- ⊥(N), O is N + 1, get_next_element(O, M).
+
+set_contradiction(N) :- get_next_element(0, N).
+
 % Contradiction rules
-⊥(A):- A = (X ∧ ¬X).%, formula(X).
-⊥(A):- A = (¬X ∧ X).%, formula(X).
+is_contradiction(A):- A = (X ∧ ¬X).%, formula(X).
+is_contradiction(A):- A = (¬X ∧ X).%, formula(X).
+is_contradiction(A):- A = ⊥(_).
 
 % contradictions(+B, -C)
 % Gets all possible contradictions withhin negation elemination and introduction

@@ -3,13 +3,11 @@
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
-portray(Term) :-
-  of_type_A(Term),
-  writef("\n", []),
-  foreach(member([X1, X2, X3, X4, X5], Term), writef("%p (%p) %p %p %p\n", [X1, X2, X3, X4, X5])).
+:- dynamic ⊥ /1.
 
 
-of_type_A(L) :- 
-    forall(member(X, L), (X = [X1 , _, _, _, _], is_list(X1))).
 
-write_type_A(L)
+get_next_element(N) :- not(⊥(N)), assert(⊥(N)).
+get_next_element(N) :- ⊥(N), M is N + 1, get_next_element(M).
+
+get_next() :- get_next_element(0).

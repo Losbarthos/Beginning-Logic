@@ -128,9 +128,13 @@ rule(Origin, NextStep, GIn, GOut) :-
 rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A1, P1) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, P3) ⊢ C)),
-	
+	GIn = graph(_, E),
+
 	U1 := (A1 ∪ P1), ((L → R) ∈ U1), R ∉ U1, not(C=L), temp(L → R) ∉ U1, temp(R) ∉ U1,
 	replace(L → R, temp(L → R), A1, A2), replace(L → R, temp(L → R), P1, P2), P3 := P2 ∪ [L, R],
+
+	not(((¬(¬(L)) ∈ U1), (edge(¬(¬(L)), ¬(L), "¬E") ∈ E))), % To eliminate derivations like d ⊢ ¬(¬d)
+	not(( L = ¬(¬(L1)), (edge(¬(¬(L1)), ¬(L1), "¬I") ∈ E))),% To eliminate derivations like ¬(¬d) ⊢ d
 
 	not(has_contradictions(U1)),
 	merge_rule([L, L → R], R, "→E", GIn, GOut).
@@ -158,7 +162,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 % RuleName: →I
 c_rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A1, P) ⊢ (L → R)),
-	U:= A1 ∪ P, L ∉ U, Pn := P ∪ [temp(L → R), [A1, P]], A2 := A1 ∪ [L],
+	U:= A1 ∪ P, L ∉ U, A2 := A1 ∪ [L], Pn := P ∪ [temp(L → R)],%, [A1, P]], 
 	NextStep = ((A2, Pn) ⊢ R),
 
 	not(has_contradictions(U)),
@@ -200,11 +204,12 @@ c_rule(Origin, NextStep, GIn, GOut) :-
 % RuleName: ¬E 
 % Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
 c_rule(Origin, NextStep, GIn, GOut) :-
-	Origin = ((A, P) ⊢ C), GIn = graph(VIn, _), ((⊥) ∉ VIn),
-	not(⊥(C)), U:= A ∪ P, (¬(C) ∉ U), (temp(¬(C)) ∉ U), A0 := A ∪ [¬(C)],
-	NextStep = ((A0, P) ⊢ ⊥),
+	Origin = ((A, P) ⊢ C), GIn = graph(V, _),
+	not(is_contradiction(C)), U:= A ∪ P, (¬(C) ∉ U), (temp(¬(C)) ∉ U), A0 := A ∪ [¬(C)], 
+	once((⊥(N), (⊥(N) ∉ V))),
+	NextStep = ((A0, P) ⊢ ⊥(N)),
 
-	merge_rule([¬(C), ⊥], C, "¬E", GIn, GOut).
+	merge_rule([¬(C), ⊥(N)], C, "¬E", GIn, GOut).
 
 
 % Same as
@@ -213,11 +218,12 @@ c_rule(Origin, NextStep, GIn, GOut) :-
 % ¬Xi ∈ (A ∪ P)
 % RuleName: ¬I 
 c_rule(Origin, NextStep, GIn, GOut) :-
-	Origin = ((A, P) ⊢ ¬(C)), GIn = graph(VIn, _), ((⊥) ∉ VIn),
-	not(⊥(C)), U:= A ∪ P, (C ∉ U), (temp(C) ∉ U), A0 := A ∪ [C],
-	NextStep = ((A0, P) ⊢ ⊥),
+	Origin = ((A, P) ⊢ ¬(C)), GIn = graph(V, _),
+	not(is_contradiction(C)), U:= A ∪ P, (C ∉ U), (temp(C) ∉ U), A0 := A ∪ [C],
+	once((⊥(N), (⊥(N) ∉ V))),
+	NextStep = ((A0, P) ⊢ ⊥(N)),
 
-	merge_rule([C, ⊥], ¬(C), "¬I", GIn, GOut).
+	merge_rule([C, ⊥(N)], ¬(C), "¬I", GIn, GOut).
 
 
 %
@@ -229,9 +235,9 @@ c_rule(Origin, NextStep, GIn, GOut) :-
 proof(Derivation, Proof, Proof) :- 	
 		isvalid(Derivation),!.
 proof(Derivation, ProofIn, ProofOut) :- 	
-		Derivation = ((_, _) ⊢ ⊥),
+		Derivation = ((_, _) ⊢ ⊥(N)),
 		iscontradiction(Derivation, C),
-		replace_vertex_weighted(⊥, (C ∧ ¬(C)), ProofIn, Proof0),
+		replace_vertex_weighted(⊥(N), (C ∧ ¬(C)), ProofIn, Proof0),
 		merge_rule([C, ¬(C)], (C ∧ ¬(C)), "∧I", Proof0, ProofOut),
 		
 		!.
@@ -278,6 +284,7 @@ proof_t(Derivation, Proof) :-
 go_proof1(G) :- proof(([p→q,p] ⊢ q), G).
 go_proof5(G, T) :- proof_py(([¬(q),p→q] ⊢ ¬(p)), G, T).	
 go_proof13(G) :- proof(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G).
+go_proof25(G, T) :- proof_py(([p] ⊢ ((¬(q→r)→ ¬(p))→ (¬(r)→ ¬(q)))), G, T).
 
 
 go_debug :-
