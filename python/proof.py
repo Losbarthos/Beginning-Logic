@@ -121,31 +121,35 @@ class Proof:
 		i = 0
 
 		for tbl in self.s_table:
-			# split at ',' followed by two closing ]]
-			for x in re.split(r"(?<=\]\]),", tbl[1:-1]):
-			    
-			    # split at ',' after closing ] OR between '"' and opening [ 
-			    left, middle, right = re.split(r"(?<=\]),(?=\d)|(?<=\"),(?=\[)", x[1:-1])
+			if(tbl == []):
+				df = pd.DataFrame(columns=['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule'])
+				table[i] = df 
+			else:
+				# split at ',' followed by two closing ]]
+				for x in re.split(r"(?<=\]\]),", tbl[1:-1]):
+				    
+				    # split at ',' after closing ] OR between '"' and opening [ 
+				    left, middle, right = re.split(r"(?<=\]),(?=\d)|(?<=\"),(?=\[)", x[1:-1])
 
-			    # split the middle part at ','
-			    middle = middle.split(",")
-			    
-			    rows.append([literal_eval(left), *middle, literal_eval(right)])
-			    
+				    # split the middle part at ','
+				    middle = middle.split(",")
+				    
+				    rows.append([literal_eval(left), *middle, literal_eval(right)])
+				    
 
 
-			df = pd.DataFrame(rows, columns=['Assumptions', 'Index', 'Proposition', 'Rule', 'Premisses'])
+				df = pd.DataFrame(rows, columns=['Assumptions', 'Index', 'Proposition', 'Rule', 'Premisses'])
 
-			columns_titles = ['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule']
-			df=df.reindex(columns=columns_titles)
+				columns_titles = ['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule']
+				df=df.reindex(columns=columns_titles)
 
-			df["Index"] = df.Index.astype(int)
-			df["Assumptions"] = df.apply(lambda row: set(row["Assumptions"]), axis=1)
-			df["Premisses"] = df.apply(lambda row: set(row["Premisses"]), axis=1)
-			df["Rule"] = df.Rule.str.strip('"')
-			df.index = df["Index"] # sets key
-			table[i] = df
-			i = i + 1
+				df["Index"] = df.Index.astype(int)
+				df["Assumptions"] = df.apply(lambda row: set(row["Assumptions"]), axis=1)
+				df["Premisses"] = df.apply(lambda row: set(row["Premisses"]), axis=1)
+				df["Rule"] = df.Rule.str.strip('"')
+				df.index = df["Index"] # sets key
+				table[i] = df
+				i = i + 1
 
 		return table
 
@@ -205,9 +209,32 @@ class Proof:
 		)
 
 		plt.show()
-	
 
-	
+	def view_graph_debug(self, index):
+		import networkx as nx
+		import re
+		import matplotlib.pyplot as plt
+		from netgraph import Graph
+
+		m = re.search(r'^graph\(\[([^\]]*)\],\s*\[([^\]]*)\]\)$', self.s_graph[index])
+		nodes = m.group(1).split(',')
+		edges = re.findall(r'edge\(([^,]+),([^,]+),([^,]+)\)', m.group(2))
+
+		G = nx.DiGraph()
+		G.add_nodes_from(nodes)
+		G.add_edges_from([(u,v,{'label': a.strip('"')}) for u,v,a in edges])
+
+		#pos = nx.spring_layout(G)
+		#nx.draw(G, pos)
+		#G = nx.complete_graph(5)
+		
+		pos = nx.spring_layout(G, seed=7)
+		g1 = nx.petersen_graph()
+		nx.draw(G, pos, with_labels = True)
+		edge_labels = nx.get_edge_attributes(G, "label")
+		nx.draw_networkx_edge_labels(G, pos, edge_labels)
+		plt.show()
+
 if __name__ == '__main__':
 
 	p = Proof()
@@ -216,8 +243,8 @@ if __name__ == '__main__':
 	
 	p.proof()
 
-	print(p.tables)
-	p.view_graph(0)
+	#print(p.tables)
+	#p.view_graph_debug(0)
 
 
 # MTT

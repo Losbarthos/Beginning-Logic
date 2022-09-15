@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.14.0 (TeX Live 2022/dev/Debian)  (format=lualatex 2022.6.27)  1 JUL 2022 19:19
+This is LuaHBTeX, Version 1.14.0 (TeX Live 2022/dev/Debian)  (format=lualatex 2022.6.27)  14 SEP 2022 22:06
  restricted system commands enabled.
 **test.tex
 (./test.tex
@@ -489,86 +489,25 @@ LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
 (Font)              scaled to size 4.99947pt on input line 6.
  [1
 
-{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-] [3
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-] [4
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-] [5
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-] [6
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-] [7
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-] [8
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-Missing character: There is no ∧ (U+2227) in font [lmroman10-regular]:+tlig;!
-] (./test.aux))
+{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2]
+[3] [4] [5] [6] [7] [8] [9] [10] [11] (./test.aux))
 
 Here is how much of LuaTeX's memory you used:
  9485 strings out of 477805
- 125007,794899 words of node,token memory allocated
+ 195342,794899 words of node,token memory allocated
  484 words of node memory still in use:
    6 hlist, 2 vlist, 2 rule, 2 glue, 4 kern, 1 glyph, 6 attribute, 52 glue_spec,
  6 attribute_list, 1 write nodes
-   avail lists: 2:7801,3:442,4:8,5:196,6:108,7:11680,8:29,9:2065,10:7,11:1
+   avail lists: 2:10477,3:649,4:8,5:509,6:156,7:16285,8:29,9:3024,10:7,11:1
  30062 multiletter control sequences out of 65536+600000
  31 fonts using 10281599 bytes
  86i,9n,115p,254b,316s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texmf/fonts/opentype/public/lm/lmroman10-regular.otf></usr/share/tex
 mf/fonts/opentype/public/lm-math/latinmodern-math.otf>
-Output written on test.pdf (8 pages, 13905 bytes).
+Output written on test.pdf (11 pages, 19441 bytes).
 
-PDF statistics: 43 PDF objects out of 1000 (max. 8388607)
- 26 compressed objects within 1 object stream
+PDF statistics: 54 PDF objects out of 1000 (max. 8388607)
+ 34 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 131072)
  1 words of extra memory for PDF output out of 10000 (max. 100000000)
 

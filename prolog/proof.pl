@@ -45,8 +45,8 @@ portray(Term) :-
 % A;P?L∧R → A;P?L and A;P?R
 % RuleName: ∧I
 rule(Origin, NextStep, GIn, GOut) :-
-	Origin = ((A, P) ⊢ (L ∧ R)), %not(var(L)), not(var(R)), 
-	P1 := P ∪ [L, temp(L ∧ R)],
+	Origin = ((A, P) ⊢ (L ∧ R)), 
+	P1 := P ∪ [L],
 	NextStep = (((A, P) ⊢ L) ∧ ((A, P1) ⊢ R)),
 
 	
@@ -58,7 +58,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 % A;P?L↔R → A;P?L→R and A;P?R→L   
 % RuleName: ↔I
 rule(Origin, NextStep, GIn, GOut) :-
-	Origin = ((A, P) ⊢ (L ↔ R)), P1 := P ∪ [L → R, temp(L ↔ R)],
+	Origin = ((A, P) ⊢ (L ↔ R)), P1 := P ∪ [L → R],% temp(L ↔ R)],
 	NextStep = (((A, P) ⊢ (L → R)) ∧ ((A, P1) ⊢ (R → L))),
 	
 	U := A ∪ P,
@@ -71,8 +71,8 @@ rule(Origin, NextStep, GIn, GOut) :-
 % RuleName: →I
 rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A, P) ⊢ (L → R)), 
-	U:= A ∪ P, L ∈ U, Pn := P ∪ [temp(L → R)],
-	NextStep = ((A, Pn) ⊢ R), 
+	U:= A ∪ P, L ∈ U, %Pn := P %∪ [temp(L → R)],
+	NextStep = ((A, P) ⊢ R), 
 
 	not(has_contradictions(U)),
 	merge_rule([L, R], L → R, "→I", GIn, GOut).
@@ -82,12 +82,13 @@ rule(Origin, NextStep, GIn, GOut) :-
 %    with
 % RuleName: ∧E
 rule(Origin, NextStep, GIn, GOut) :- 
-	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
+	Origin = ((A, P1) ⊢ C), NextStep0 = ((A, P2) ⊢ C),
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
-	(L ∉ U), temp(L ∧ R) ∉ U, temp(L) ∉ U, P2 := P1 ∪ [L],
+	(L ∉ U), P2 := P1 ∪ [L], 
+
+	((R ∈ U) -> remove_from_derivation(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
 
 	not(has_contradictions(U)),
-	derivation_route(C, L),
 	merge_rule([L ∧ R], L, "∧E", GIn, GOut).
 
 
@@ -98,12 +99,13 @@ rule(Origin, NextStep, GIn, GOut) :-
 %    with
 % RuleName: ∧E
 rule(Origin, NextStep, GIn, GOut) :- 
-	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
+	Origin = ((A, P1) ⊢ C), NextStep0 = ((A, P2) ⊢ C),
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
-	(R ∉ U), temp(L ∧ R) ∉ U, temp(R) ∉ U, P2 := P1 ∪ [R],
+	(R ∉ U), P2 := P1 ∪ [R], 
 	
+	((L ∈ U) -> remove_from_derivation(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
+
 	not(has_contradictions(U)),
-	derivation_route(C, R),
 
 	merge_rule([L ∧ R], R, "∧E", GIn, GOut).
 
@@ -113,9 +115,11 @@ rule(Origin, NextStep, GIn, GOut) :-
 %    with
 % RuleName: ↔E
 rule(Origin, NextStep, GIn, GOut) :- 
-	Origin = ((A, P1) ⊢ C), NextStep = ((A, P2) ⊢ C),
+	Origin = ((A, P1) ⊢ C), NextStep0 = ((A, P2) ⊢ C),
 	U:= A ∪ P1, ((L ↔ R) ∈ U),
-	(((L → R) ∧ (R → L)) ∉ U), temp(L ↔ R) ∉ U, temp(((L → R) ∧ (R → L))) ∉ U, P2 := P1 ∪ [(L → R) ∧ (R → L)],
+	(((L → R) ∧ (R → L)) ∉ U), P2 := P1 ∪ [(L → R) ∧ (R → L)],
+
+	remove_from_derivation(L ↔ R, NextStep0, NextStep),
 
 	not(has_contradictions(U)),
 	merge_rule([L ↔ R], (L → R) ∧ (R → L), "↔E", GIn, GOut).
@@ -127,11 +131,16 @@ rule(Origin, NextStep, GIn, GOut) :-
 % RuleName: →E
 rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A1, P1) ⊢ C), 
-	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, P3) ⊢ C)),
+	Origin0 = ((A2, P2) ⊢ C), 
+	NextStep = (((A2, P2) ⊢ L) ∧ ((A1, P3) ⊢ C)),
 	GIn = graph(_, E),
+	
 
-	U1 := (A1 ∪ P1), ((L → R) ∈ U1), R ∉ U1, not(C=L), temp(L → R) ∉ U1, temp(R) ∉ U1,
-	replace(L → R, temp(L → R), A1, A2), replace(L → R, temp(L → R), P1, P2), P3 := P2 ∪ [L, R],
+	U1 := (A1 ∪ P1), ((L → R) ∈ U1), R ∉ U1, not(C=L), 
+	P3 := P1 ∪ [L, R], 
+
+	remove_from_derivation(L → R, Origin, Origin0),
+
 
 	not(((¬(¬(L)) ∈ U1), (edge(¬(¬(L)), ¬(L), "¬E") ∈ E))), % To eliminate derivations like d ⊢ ¬(¬d)
 	not(( L = ¬(¬(L1)), (edge(¬(¬(L1)), ¬(L1), "¬I") ∈ E))),% To eliminate derivations like ¬(¬d) ⊢ d
@@ -146,10 +155,12 @@ rule(Origin, NextStep, GIn, GOut) :-
 % RuleName: ∨E
 rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A1, P1) ⊢ C), 
+	Origin0 = ((A2, P2) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ (L → C)) ∧ ((A2, P2) ⊢ (R → C))),
 	
-	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1), temp(L ∨ R) ∉ U1,
-	replace(L ∨ R, temp(L ∨ R), A1, A2), replace(L ∨ R, temp(L ∨ R), P1, P2),
+	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1), %subtract(A1, [L ∨ R], A2), subtract(P1, [L ∨ R], P2),
+
+	remove_from_derivation(L ∨ R, Origin, Origin0),
 
 	not(has_contradictions(U1)),
 
@@ -162,11 +173,11 @@ rule(Origin, NextStep, GIn, GOut) :-
 % RuleName: →I
 c_rule(Origin, NextStep, GIn, GOut) :-
 	Origin = ((A1, P) ⊢ (L → R)),
-	U:= A1 ∪ P, L ∉ U, A2 := A1 ∪ [L], Pn := P ∪ [temp(L → R)],%, [A1, P]], 
-	NextStep = ((A2, Pn) ⊢ R),
+	U:= A1 ∪ P, L ∉ U, A2 := A1 ∪ [L], %Pn := P ∪ [temp(L → R)],%, [A1, P]], 
+	NextStep = ((A2, P) ⊢ R),
 
 	not(has_contradictions(U)),
-	merge_rule([R], L → R, "→I", GIn, GOut).
+	merge_rule([L, R], L → R, "→I", GIn, GOut).
 
 
 
@@ -276,18 +287,30 @@ proof_py(Derivation, GProof, TProof) :-
 	proof(Derivation, GProofO), 
 	proof_table(GProofO, TProofO),
 	term_to_atom(GProofO, GProof),
-	term_to_atom(TProofO, TProof).
+	term_to_atom(TProofO, TProof), !.
+proof_py(Derivation, GProof, TProof) :-
+	proof(Derivation, GProofO),
+	term_to_atom(GProofO, GProof),
+	TProof = [].
+
 
 proof_t(Derivation, Proof) :-
 	proof(Derivation, Proof1),
 	Proof = Proof1._.
 
 go_proof1(G) :- proof(([p→q,p] ⊢ q), G).
+go_proof8(G) :- proof(([¬(p)→q,¬(q)] ⊢ p), G).
 go_proof10(G) :- proof(([p→(q→r)] ⊢ (q→(p→r))), G).
 go_proof5(G, T) :- proof_py(([¬(q),p→q] ⊢ ¬(p)), G, T).	
 go_proof13(G) :- proof(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G).
 go_proof25(G, T) :- proof_py(([p] ⊢ ((¬(q→r)→ ¬(p))→ (¬(r)→ ¬(q)))), G, T).
-
+go_proof31(G, T) :- proof_py(([q → r] ⊢ ((p ∧ q) → (p ∧ r))), G, T).
+go_proof32(G, T) :- proof_py(([(p ∧ q)] ⊢ (q ∧ p)), G, T).
+go_proof33(G, T) :- proof_py(([(p∨q)] ⊢ (q∨p)), G, T).
+go_proof34(G, T) :- proof_py(([(q→r)] ⊢ ((p∨q)→(p∨r))), G, T).
+go_proof42(G, T) :- proof_py(([(p→r)∧(q→r)] ⊢ ((p∨q)→r)), G, T).
+go_proof46(G, T) :- proof_py(([p→(q∧r)] ⊢ ((p→q)∧(p→r))), G, T).
+go_proof50(G, T) :- proof_py(([(p↔q),(q↔r)] ⊢ (p↔r)), G, T).
 
 go_debug :-
     set_prolog_flag(color_term, false),

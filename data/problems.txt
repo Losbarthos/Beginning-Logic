@@ -55,3 +55,4 @@ q ⊢ (p∨q)													# Excercise 1d
 
 (p↔q) ⊢ (q↔p)												# Problem 24
 p,(p↔q) ⊢ q													# Problem 25
+(p↔q),(q↔r) ⊢ (p↔r)											# Problem 26

@@ -361,7 +361,7 @@ class Derivation(Frame):
 		self.bt_calc_all.configure(state=DISABLED)
 		self.bt_add_assumption.configure(state=DISABLED)
 		self.bt_set_conclusion.configure(state=DISABLED)
-		if(len(proof.graphs[index][1]) > 0):
+		if(len(proof.graphs[index][1]) > 0 or GET_PROTOCOLL == True):
 			self.bt_graph.configure(state=NORMAL)
 		self.shift_table = ShiftControl(self.table_shift_frame, self.table_shift_child_frame, self.init_table, proof.tables, "Proof")
 
@@ -370,14 +370,16 @@ class Derivation(Frame):
 		self.bt_calc_all.configure(state=NORMAL)
 		self.bt_add_assumption.configure(state=NORMAL)
 		self.bt_set_conclusion.configure(state=NORMAL)
-		self.bt_graph.configure(state=DISABLED)
+		if(GET_PROTOCOLL == False):
+			self.bt_graph.configure(state=DISABLED)
 
 	def init_toolbar_state_no_derivation(self):
 		self.bt_calc.configure(state=DISABLED)
 		self.bt_calc_all.configure(state=DISABLED)
 		self.bt_add_assumption.configure(state=NORMAL)
 		self.bt_set_conclusion.configure(state=NORMAL)
-		self.bt_graph.configure(state=DISABLED)
+		if(GET_PROTOCOLL == False):
+			self.bt_graph.configure(state=DISABLED)
 
 	def import_derivations(self):
 		def file_to_list(file_name):
@@ -580,7 +582,10 @@ class Derivation(Frame):
 
 		proof = self.get_current_proof()
 		index = self.shift_table.index_pool[0]
-		proof.view_graph(index)
+		if GET_PROTOCOLL == True:
+			proof.view_graph_debug(index)
+		else:
+			proof.view_graph(index)
 		
 
 	def reset(self):

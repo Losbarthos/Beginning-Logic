@@ -10,7 +10,8 @@
 	find_derivations/2,					% +LIn, -LOut
 	unzip/4,							% +Derivation, -Assumptions, -Premisses, -Conclusion
 	isvalid/1,							% +Derivation
-	iscontradiction/2					% +Derivation, -Contradiction
+	iscontradiction/2,					% +Derivation, -Contradiction
+	remove_from_derivation/3			% +ToRemove, +DerivationIn, -DerivationOut
 ]).
 
 :-use_module(proposition).
@@ -56,3 +57,10 @@ isvalid(((A, P) ⊢ C)) :-
 iscontradiction(((A, P) ⊢ ⊥(_)), X) :-
 	AP:= A ∪ P, 
 	X ∈ AP, ¬(X) ∈ AP. 
+
+% Removes ToRemove from DerivationIn assumptions and premisses and 
+remove_from_derivation(ToRemove, DerivationIn, DerivationOut) :-
+	DerivationIn = ((A, P) ⊢ C), 
+	DerivationOut = ((AO, PO) ⊢ C),
+	subtract(A, [ToRemove], AO), subtract(P, [ToRemove], PO).
+
