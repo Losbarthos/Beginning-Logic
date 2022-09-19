@@ -53,10 +53,10 @@ old_premiss_lines(_, [], [], [], []) :- !.
 old_premiss_lines(Tbl, Premisses, OldPremisses, OldPremissIndexes, OldPremissAssumptions) :-
 	Premisses = [P | NextPremisses],
 	X = [left, A, I, P, _, _], X ∈ Tbl,
-	old_premiss_lines(Tbl, Next, NextOldPremisses, NextOldPremissIndexes, NextOldPremissAssumptions),
+	old_premiss_lines(Tbl, NextPremisses, NextOldPremisses, NextOldPremissIndexes, NextOldPremissAssumptions),
 	append(A, NextOldPremissAssumptions, OldPremissAssumptions),
 	append(I, NextOldPremissIndexes, OldPremissIndexes),
-	append(P, NextOldPremisses, OldPremisses).
+	append(X, NextOldPremisses, OldPremisses).
 
 table_init(Assumptions, Conclusion, Tbl) :-
 	findall(X, (nth1(N, Assumptions, A), X = [[left, [N], N, A, "A", []]]), AssumptionTable),
