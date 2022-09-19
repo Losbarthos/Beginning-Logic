@@ -4,7 +4,7 @@
 %    Copyright (c)  2022, Martin Kunze
 
 :- module(graph_proof, [
-				   		merge_rule/5,
+				   		merge_rule_graph/5,
 				   		get_assumptions_of/3,
 				   		length_proof_graph/2,
 				   		remove_not_sufficcient_vertices/3
@@ -17,7 +17,7 @@
 % Example-Call:
 % ?- merge_rule([(∧(a,b))],a,"∧E",graph([],[]),G).
 % G = graph([a, ∧(a, b)], [edge(∧(a, b), a, "∧E")]).
-merge_rule(Assumptions, Conclusion, RuleName, GIn, GOut) :-
+merge_rule_graph(Assumptions, Conclusion, RuleName, GIn, GOut) :-
 	findall(X, (A ∈ Assumptions, X = edge(A, Conclusion, RuleName)), EL),
 	generate_weighted_graph(EL, G1),
 	merge_graphs(G1, GIn, GOut).

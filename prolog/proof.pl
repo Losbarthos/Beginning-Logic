@@ -52,7 +52,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 	
 	U := A ∪ P,
 	not(has_contradictions(U)),
-	merge_rule([L, R], L ∧ R, "∧I", GIn, GOut).
+	merge_rule_graph([L, R], L ∧ R, "∧I", GIn, GOut).
 
 % Same as
 % A;P?L↔R → A;P?L→R and A;P?R→L   
@@ -63,7 +63,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 	
 	U := A ∪ P,
 	not(has_contradictions(U)),
-	merge_rule([L → R, R → L], L ↔ R, "↔I", GIn, GOut).
+	merge_rule_graph([L → R, R → L], L ↔ R, "↔I", GIn, GOut).
 
 % Same as
 % [A;P?L→R] L ∈ (A ∪ P) → A;P?R   
@@ -75,7 +75,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 	NextStep = ((A, P) ⊢ R), 
 
 	not(has_contradictions(U)),
-	merge_rule([L, R], L → R, "→I", GIn, GOut).
+	merge_rule_graph([L, R], L → R, "→I", GIn, GOut).
 
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L?C   
@@ -89,7 +89,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 	((R ∈ U) -> remove_from_derivation(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
 
 	not(has_contradictions(U)),
-	merge_rule([L ∧ R], L, "∧E", GIn, GOut).
+	merge_rule_graph([L ∧ R], L, "∧E", GIn, GOut).
 
 
 
@@ -107,7 +107,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 
 	not(has_contradictions(U)),
 
-	merge_rule([L ∧ R], R, "∧E", GIn, GOut).
+	merge_rule_graph([L ∧ R], R, "∧E", GIn, GOut).
 
 
 % Same as
@@ -122,7 +122,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 	remove_from_derivation(L ↔ R, NextStep0, NextStep),
 
 	not(has_contradictions(U)),
-	merge_rule([L ↔ R], (L → R) ∧ (R → L), "↔E", GIn, GOut).
+	merge_rule_graph([L ↔ R], (L → R) ∧ (R → L), "↔E", GIn, GOut).
 
 
 %
@@ -146,7 +146,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 	not(( L = ¬(¬(L1)), (edge(¬(¬(L1)), ¬(L1), "¬I") ∈ E))),% To eliminate derivations like ¬(¬d) ⊢ d
 
 	not(has_contradictions(U1)),
-	merge_rule([L, L → R], R, "→E", GIn, GOut).
+	merge_rule_graph([L, L → R], R, "→E", GIn, GOut).
 
 
 %
@@ -164,7 +164,7 @@ rule(Origin, NextStep, GIn, GOut) :-
 
 	not(has_contradictions(U1)),
 
-	merge_rule([L ∨ R, L → C, R → C], C, "∨E", GIn, GOut).
+	merge_rule_graph([L ∨ R, L → C, R → C], C, "∨E", GIn, GOut).
 
 
 % Same as
@@ -177,7 +177,7 @@ c_rule(Origin, NextStep, GIn, GOut) :-
 	NextStep = ((A2, P) ⊢ R),
 
 	not(has_contradictions(U)),
-	merge_rule([L, R], L → R, "→I", GIn, GOut).
+	merge_rule_graph([L, R], L → R, "→I", GIn, GOut).
 
 
 
@@ -191,7 +191,7 @@ c_rule(Origin, NextStep, GIn, GOut) :-
 	U:= A ∪ P, 
 
 	not(has_contradictions(U)),
-	merge_rule([L], L ∨ R, "∨I", GIn, GOut).
+	merge_rule_graph([L], L ∨ R, "∨I", GIn, GOut).
 
 % Same as
 % [A;P?L∨R] → [A;P?R]   
@@ -203,7 +203,7 @@ c_rule(Origin, NextStep, GIn, GOut) :-
 	U:= A ∪ P, 
 
 	not(has_contradictions(U)),
-	merge_rule([R], L ∨ R, "∨I", GIn, GOut).
+	merge_rule_graph([R], L ∨ R, "∨I", GIn, GOut).
 
 
 
@@ -220,7 +220,7 @@ c_rule(Origin, NextStep, GIn, GOut) :-
 	once((⊥(N), (⊥(N) ∉ V))),
 	NextStep = ((A0, P) ⊢ ⊥(N)),
 
-	merge_rule([¬(C), ⊥(N)], C, "¬E", GIn, GOut).
+	merge_rule_graph([¬(C), ⊥(N)], C, "¬E", GIn, GOut).
 
 
 % Same as
@@ -234,7 +234,7 @@ c_rule(Origin, NextStep, GIn, GOut) :-
 	once((⊥(N), (⊥(N) ∉ V))),
 	NextStep = ((A0, P) ⊢ ⊥(N)),
 
-	merge_rule([C, ⊥(N)], ¬(C), "¬I", GIn, GOut).
+	merge_rule_graph([C, ⊥(N)], ¬(C), "¬I", GIn, GOut).
 
 
 %
@@ -249,7 +249,7 @@ proof(Derivation, ProofIn, ProofOut) :-
 		Derivation = ((_, _) ⊢ ⊥(N)),
 		iscontradiction(Derivation, C),
 		replace_vertex_weighted(⊥(N), (C ∧ ¬(C)), ProofIn, Proof0),
-		merge_rule([C, ¬(C)], (C ∧ ¬(C)), "∧I", Proof0, ProofOut),
+		merge_rule_graph([C, ¬(C)], (C ∧ ¬(C)), "∧I", Proof0, ProofOut),
 		
 		!.
 proof(Derivation, ProofIn, Proof) :- 
@@ -308,6 +308,7 @@ go_proof31(G, T) :- proof_py(([q → r] ⊢ ((p ∧ q) → (p ∧ r))), G, T).
 go_proof32(G, T) :- proof_py(([(p ∧ q)] ⊢ (q ∧ p)), G, T).
 go_proof33(G, T) :- proof_py(([(p∨q)] ⊢ (q∨p)), G, T).
 go_proof34(G, T) :- proof_py(([(q→r)] ⊢ ((p∨q)→(p∨r))), G, T).
+go_proof35(G, T) :- proof_py(([(p∨(q∨r))] ⊢ (q∨(p∨r))), G, T).
 go_proof42(G, T) :- proof_py(([(p→r)∧(q→r)] ⊢ ((p∨q)→r)), G, T).
 go_proof46(G, T) :- proof_py(([p→(q∧r)] ⊢ ((p→q)∧(p→r))), G, T).
 go_proof50(G, T) :- proof_py(([(p↔q),(q↔r)] ⊢ (p↔r)), G, T).
