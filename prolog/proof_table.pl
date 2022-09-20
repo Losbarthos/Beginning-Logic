@@ -25,29 +25,32 @@ find_first(right, First, Tbl, N) :-
 	find_first(right, First, Tbl, N+1)
 	; First = X).
 
-find_last(left, Last, Tbl, N) :-
+
+find_last(left, Last, Tbl, N, M) :-
 	length(Tbl, N), 
 	nth1(N, Tbl, X),
 	X = [left, _, _, _, _, _],
-	Last = X, !.
-find_last(left, Last, Tbl, N) :-
+	Last = X, 
+	M = N, !.
+find_last(left, Last, Tbl, N, M) :-
 	nth1(N+1, Tbl, Y),
 	nth1(N, Tbl, X),
 	((X = [left, _, _, _, _, _],
 	  Y = [right, _, _, _, _, _])
 	->
 	Last = X;
-	find_last(left, Last, Tbl, N+1)).
+	find_last(left, Last, Tbl, N+1, M)).
 
 
 new_premiss_lines([], _, [], []) :- !.
-new_premiss_lines(Premisses, I, Prefix, PremissIndexes) :-
+new_premiss_lines(Premisses, I, Prefix, PremissIndexes, AssumptionIndexes) :-
 	Premisses = [P1 | PremissesBack], length(Premisses, N),
-	X1 = [right, _, J1, P1, _, _],
+	X1 = [right, A, J1, P1, _, _],
 	I #= J1 + N,
-	premiss_lines(PremissesBack, I, PrefixBack, PremissIndexesBack),
+	premiss_lines(PremissesBack, I, PrefixBack, PremissIndexesBack, AssumptionIndexesBack),
 	Prefix = [X1 | PrefixBack],
-	PremissIndexes = [J1 | PremissIndexesBack], !.
+	PremissIndexes = [J1 | PremissIndexesBack], 
+	AssumptionIndexes = [A | AssumptionIndexesBack]!.
 
 old_premiss_lines(_, [], [], [], []) :- !.
 old_premiss_lines(Tbl, Premisses, OldPremisses, OldPremissIndexes, OldPremissAssumptions) :-
@@ -66,11 +69,38 @@ table_init(Assumptions, Conclusion, Tbl) :-
 table_insert(right, Premisses, Conclusion, Rule, TblIn, TblOut) :-
 	find_first(right, First, TblIn, 1),
 	First = [right, _, I, _, Rule, _],
-	C ∈ TblIn, C = [right, _, _, Conclusion, Rule, PremissIdx],
-	old_premiss_lines(TblIn, Premisses, _, PremissIdxProved),
+	C ∈ TblIn, C = [right, AssumptionIdx, _, Conclusion, Rule, PremissIdx],
+	old_premiss_lines(TblIn, Premisses, _, PremissIdxProved, AssumptionIdxProved),
 	new_premiss_lines(PremissesNotProved, I, PremissesNotProved, PremissIdxNotProved),
 	union(PremissIdxProved, PremissIdxNotProved, PremissIdx),
+	union(AssumptionIdxProved, , AssumptionIdx)
 	insert_front_of(TblIn, PremissesNotProved, First, TblOut).
+
+table_insert(left, Premisses, Conclusion, Rule, TblIn, TblOut) :-
+	find_last(left, Last, TblIn, I),
+	J is I + 1, 
+	nth1(I, TblIn, First)
+	New = [left, AssumptionIdx, J, Conclusion, Rule, PremissIdx],
+	old_premiss_lines(TblIn, Premisses, _, PremissIdx, AssumptionIdx),
+	insert_after(TblIn, [New] First, TblOut).
+
+
+table_replace(_, _, [], []) :- !.
+table_replace(Old, New, TblIn, TblOut) :-
+	TblIn = [X | TblNxt],
+	table_replace(Old, New, TblNxt, TblNxtOut),
+	X = [_, _, _, Old, _, _],
+	Y = [_, _, _, New, _, _],
+	append([Y], TblNxtOut, TblOut).
+
+table_no_prefix([], []) :- !.
+table_no_prefix(TblIn, TblOut) :-
+	TblIn = [X | TblNxt],
+	table_no_prefix(TblNxt, TblNxtOut),
+	X = [_, E1, E2, E3, E4, E5],
+	Y = [E1, E2, E3, E4, E5],
+	append([Y], TblNxtOut, TblOut).
+
 
 test(T) :-
 	set_prolog_flag(answer_write_options,[max_depth(0)]),
