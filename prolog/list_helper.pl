@@ -6,7 +6,7 @@
 :- module(list_helper, [
 						after_and_before/4,
 				   		insert_front_of/4,
-				   		insert_front_of/4,
+				   		insert_after/4
 				   		]).
 % Rule that decomposes a list and prints elements before and after some specific element.
 after_and_before(Element, List, Before, After):-

@@ -3,11 +3,16 @@
 %    E-mail:        mkunze86@gmail.com
 %    Copyright (c)  2022, Martin Kunze
 
-%:- module(proof_table, [
-%				   		proof_table/2,
-%				   		is_proof_table/1,
-%				   		write_proof_table/1
-%				   		]).
+:- module(proof_table, [
+						define_table/1,
+				   		table_init/3,
+				   		table_replace/4,
+				   		table_assume/3,
+				   		table_insert/6,
+				   		table_no_prefix/2,
+				   		is_proof_table/1,
+				   		write_proof_table/1
+				   		]).
 
 :-use_module(list_helper).
 :-use_module(set).
@@ -20,37 +25,41 @@
 
 find_first(right, First, Tbl, N) :-
 	nth1(N, Tbl, X),
+	NN #= N + 1,
 	(X = [left, _, _, _, _, _]
 	->
-	find_first(right, First, Tbl, N+1)
+	find_first(right, First, Tbl, NN)
 	; First = X).
 
 
-find_last(left, Last, Tbl, N, M) :-
+find_last(left, Last, Tbl, N, N) :-
 	length(Tbl, N), 
 	nth1(N, Tbl, X),
-	X = [left, _, _, _, _, _],
-	Last = X, 
-	M = N, !.
+	X = [left | _],
+	Last = X, !.
 find_last(left, Last, Tbl, N, M) :-
-	nth1(N+1, Tbl, Y),
+	NP1 #= N + 1,
+	nth1(NP1, Tbl, Y),
 	nth1(N, Tbl, X),
-	((X = [left, _, _, _, _, _],
-	  Y = [right, _, _, _, _, _])
+	((nth1(1, X, left), nth1(1, Y, right))
 	->
-	Last = X;
-	find_last(left, Last, Tbl, N+1, M)).
+	Last = X, N = M;
+	find_last(left, Last, Tbl, NP1, M)).
 
+define_table(Tbl) :-
+	length(Tbl, N),
+	nth1(N, Tbl, X),
+	X = [right, _, N, _, _, _].
 
-new_premiss_lines([], _, [], []) :- !.
+new_premiss_lines([], _, [], [], []) :- !.
 new_premiss_lines(Premisses, I, Prefix, PremissIndexes, AssumptionIndexes) :-
 	Premisses = [P1 | PremissesBack], length(Premisses, N),
 	X1 = [right, A, J1, P1, _, _],
 	I #= J1 + N,
-	premiss_lines(PremissesBack, I, PrefixBack, PremissIndexesBack, AssumptionIndexesBack),
+	new_premiss_lines(PremissesBack, I, PrefixBack, PremissIndexesBack, AssumptionIndexesBack),
 	Prefix = [X1 | PrefixBack],
 	PremissIndexes = [J1 | PremissIndexesBack], 
-	AssumptionIndexes = [A | AssumptionIndexesBack]!.
+	AssumptionIndexes = [A | AssumptionIndexesBack], !.
 
 old_premiss_lines(_, [], [], [], []) :- !.
 old_premiss_lines(Tbl, Premisses, OldPremisses, OldPremissIndexes, OldPremissAssumptions) :-
@@ -58,32 +67,61 @@ old_premiss_lines(Tbl, Premisses, OldPremisses, OldPremissIndexes, OldPremissAss
 	X = [left, A, I, P, _, _], X ∈ Tbl,
 	old_premiss_lines(Tbl, NextPremisses, NextOldPremisses, NextOldPremissIndexes, NextOldPremissAssumptions),
 	append(A, NextOldPremissAssumptions, OldPremissAssumptions),
-	append(I, NextOldPremissIndexes, OldPremissIndexes),
-	append(X, NextOldPremisses, OldPremisses).
+	append([I], NextOldPremissIndexes, OldPremissIndexes),
+	append(X, NextOldPremisses, OldPremisses), !.
+old_premiss_lines(Tbl, Premisses, OldPremisses, OldPremissIndexes, OldPremissAssumptions) :-
+	Premisses = [P | NextPremisses],
+	X = [left, _, _, P, _, _], X ∉ Tbl,
+	old_premiss_lines(Tbl, NextPremisses, OldPremisses, OldPremissIndexes, OldPremissAssumptions), !.
 
 table_init(Assumptions, Conclusion, Tbl) :-
-	findall(X, (nth1(N, Assumptions, A), X = [[left, [N], N, A, "A", []]]), AssumptionTable),
+	findall(X, (nth1(N, Assumptions, A), X = [left, [N], N, A, "A", []]), AssumptionTable),
 	C = [[right, _, _, Conclusion, _, _]],
 	append(AssumptionTable, C, Tbl).
+table_assume(A, TblIn, TblOut) :-
+	find_last(left, Last, TblIn, 1, N),
+	NN #= N + 1,
+	X = [left, [NN], NN, A, "A", []],
+	insert_after(TblIn, [X], Last, TblOut).
+
+
+remove_from_table(_, [], []) :- !.
+remove_from_table(Remove, TblIn, TblOut) :-
+	TblIn = [X | TblBack],
+	X = Remove,
+	remove_from_table(Remove, TblBack, TblOut), !.
+remove_from_table(Remove, TblIn, TblOut) :-
+	TblIn = [X | TblBack],
+	remove_from_table(Remove, TblBack, TblBackOut),
+	append([X], TblBackOut, TblOut).
+
+insert_at_left_without_remove_right(Premisses, Conclusion, Rule, TblIn, TblOut) :-
+	find_last(left, Last, TblIn, 1, I),
+	J #= I + 1, 
+	nth1(I, TblIn, Last),
+	New = [left, AssumptionIdx, J, Conclusion, Rule, PremissIdx],
+	old_premiss_lines(TblIn, Premisses, _, PremissIdx, AssumptionIdx),
+	insert_after(TblIn, [New], Last, TblOut).
+
 
 table_insert(right, Premisses, Conclusion, Rule, TblIn, TblOut) :-
 	find_first(right, First, TblIn, 1),
 	First = [right, _, I, _, Rule, _],
 	C ∈ TblIn, C = [right, AssumptionIdx, _, Conclusion, Rule, PremissIdx],
-	old_premiss_lines(TblIn, Premisses, _, PremissIdxProved, AssumptionIdxProved),
-	new_premiss_lines(PremissesNotProved, I, PremissesNotProved, PremissIdxNotProved),
+	old_premiss_lines(TblIn, Premisses, PremissesProved, PremissIdxProved, AssumptionIdxProved),
+	subtract(Premisses, PremissesProved, PremissesNotProved),
+	new_premiss_lines(PremissesNotProved, I, PremissesNotProved, PremissIdxNotProved, AssumptionIdxNotProved),
 	union(PremissIdxProved, PremissIdxNotProved, PremissIdx),
-	union(AssumptionIdxProved, , AssumptionIdx)
+	union(AssumptionIdxProved, AssumptionIdxNotProved, AssumptionIdx),
 	insert_front_of(TblIn, PremissesNotProved, First, TblOut).
-
 table_insert(left, Premisses, Conclusion, Rule, TblIn, TblOut) :-
-	find_last(left, Last, TblIn, I),
-	J is I + 1, 
-	nth1(I, TblIn, First)
-	New = [left, AssumptionIdx, J, Conclusion, Rule, PremissIdx],
-	old_premiss_lines(TblIn, Premisses, _, PremissIdx, AssumptionIdx),
-	insert_after(TblIn, [New] First, TblOut).
-
+	New = [right, _, _, Conclusion, Rule, _],
+	New ∈ TblIn,	
+	insert_at_left_without_remove_right(Premisses, Conclusion, Rule, TblIn, Tbl),
+	remove_from_table(New, Tbl, TblOut), !.
+table_insert(left, Premisses, Conclusion, Rule, TblIn, TblOut) :-
+	insert_at_left_without_remove_right(Premisses, Conclusion, Rule, TblIn, TblOut).
+	
 
 table_replace(_, _, [], []) :- !.
 table_replace(Old, New, TblIn, TblOut) :-
@@ -92,6 +130,8 @@ table_replace(Old, New, TblIn, TblOut) :-
 	X = [_, _, _, Old, _, _],
 	Y = [_, _, _, New, _, _],
 	append([Y], TblNxtOut, TblOut).
+
+
 
 table_no_prefix([], []) :- !.
 table_no_prefix(TblIn, TblOut) :-
@@ -112,8 +152,19 @@ test(T) :-
 	X #= N.
 
 
+is_proof_table(Tbl) :-
+	findall(X, (X ∈ Tbl,
+			    X = [A1, A2, A3, _, A5],
+				is_list(A1), is_list(A5),
+				is_of_type(positive_integer, A2),
+				formula(A3)),
+			NewTbl),
+	Tbl = NewTbl.
 
-
+write_proof_table(Tbl) :-
+	is_proof_table(Tbl),
+	nl,
+	foreach(X ∈ Tbl, write_term(X, [max_depth(0), nl(true)])).
 
 %
 % old stuff for deletion
@@ -313,17 +364,5 @@ proof_table(graph(V, E), Tbl) :-
 	import_assumptions(A, TblIn), 
 	once(proof_graph_to_table(graph(A, []), graph(V, E), TblIn, Tbl, [])).
 
-is_proof_table(Tbl) :-
-	findall(X, (X ∈ Tbl,
-			    X = [A1, A2, A3, _, A5],
-				is_list(A1), is_list(A5),
-				is_of_type(positive_integer, A2),
-				formula(A3)),
-			NewTbl),
-	Tbl = NewTbl.
 
 
-write_proof_table(Tbl) :-
-	is_proof_table(Tbl),
-	nl,
-	foreach(X ∈ Tbl, write_term(X, [max_depth(0), nl(true)])).
