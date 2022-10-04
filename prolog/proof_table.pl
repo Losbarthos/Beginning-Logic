@@ -4,14 +4,12 @@
 %    Copyright (c)  2022, Martin Kunze
 
 :- module(proof_table, [
-						define_table/1,
+				   		table_insert/5,
 				   		table_init/3,
 				   		table_replace/4,
-				   		table_assume/3,
-				   		table_insert/6,
-				   		table_no_prefix/2,
 				   		is_proof_table/1,
-				   		write_proof_table/1
+				   		write_proof_table/1,
+				   		define_table/2
 				   		]).
 
 :-use_module(list_helper).
@@ -21,35 +19,401 @@
 
 :- use_module(library(clpfd)).
 
+% Idea, seperate Table as follows
+%	left 	A1 	1 	P1 	R1	P1
+%	left 	… 	… 	… 	… 	…
+%	left 	An 	m 	Pm 	RM 	[PM]
+% 	right 	X1 	I1	C1 	R1 	P1
+% 	right 	… 	… 	… 	… 	…
+% 	right 	Xo 	Io 	Co 	Ro 	Po
+
+%
+%
+
+% checks, if some element is in table
+is_in_table(left, Element, Tbl) :-
+	Tbl = [Left, _],
+	Element ∈ Left.
+is_in_table(right, Element, Tbl) :-
+	Tbl = [_, Right],
+	Element ∈ Right.
 
 
-find_first(right, First, Tbl, N) :-
-	nth1(N, Tbl, X),
-	NN #= N + 1,
-	(X = [left, _, _, _, _, _]
-	->
-	find_first(right, First, Tbl, NN)
-	; First = X).
+% Length of table entries with prefix left or right
+length_of(left, TblIn, L) :-
+	TblIn = [Left, _],
+	length(Left, L).
+length_of(right, TblIn, L) :-
+	TblIn = [_, Right],
+	length(Right, L).
+
+% Gets the Index of the last value of the table represented by the conclusion
+get_last_index(Tbl, L) :-
+	Tbl = [_, Right],
+	last(Right, [_, L, _, _, _]).
+
+get_new_index(left, Tbl, I) :-
+	length_of(left, Tbl, L),
+	I is L + 1.
+get_new_index(right, Tbl, I) :-
+	get_last_index(Tbl, N), length_of(right, Tbl, L),
+	N #= I + L.
+
+ass_append(A, B, AB) :-
+	%when((ground(A);ground(B)), append(A,B,AB)).
+	AB = [A, B].
+	%append(C, AB).
+
+flattern_assumptions([], []) :- !.
+flattern_assumptions(TblIn, TblOut) :- 
+	TblIn = [[AA, I, C, R, P] | TblInR],
+	flatten(AA, AU), sort(AU,A),
+	flattern_assumptions(TblInR, TblOutR),
+	append([[A, I, C, R, P]], TblOutR, TblOut).
+
+% Gets some Index of the right Part of the table.
+table_idx(left, Tbl, P, Idx) :-
+	Tbl = [Left, _],
+	Element = [A, I, P, _, _],
+	Idx = [A, I],
+	Element ∈ Left.
+
+table_idx(right, Tbl, P, Idx) :-
+	Tbl = [_, Right],
+	Element = [A, I, P, _, _],
+	Idx = [A, I],
+	Element ∈ Right.
+
+table_append(left, Element, Idx, TblIn, TblIn) :-
+	TblIn = [Left, _],
+	Element = [A, I, _, _, _],
+	Idx = [A, I],
+	Element ∈ Left, !.
+
+table_append(left, Element, Idx, TblIn, TblOut) :-
+	TblIn = [Left, Right],
+	get_new_index(left, TblIn, I),
+	Element = [A, I, _, _, _],
+	Idx = [A, I],
+	append(Left, [Element], LeftOut),
+	TblOut = [LeftOut, Right].
+
+table_append(right, Element, Idx, TblIn, TblIn) :-
+	TblIn = [Left, _],
+	Element = [A, I, _, _, _],
+	Idx = [A, I],
+	Element ∈ Left, !.
+
+table_append(right, Element, Idx, TblIn, TblIn) :-
+	TblIn = [_, Right],
+	Element = [A, I, _, _, _],
+	Idx = [A, I],
+	Element ∈ Right, !.
+%table_idx(left, TblIn, Element, Idx).
+
+%table_append(right, Element, Idx, TblIn, TblIn) :-
+%	table_idx(right, TblIn, Element, Idx).
+
+table_append(right, Element, Idx, TblIn, TblOut) :-
+	TblIn = [Left, Right],
+	get_new_index(right, TblIn, I),
+	Element = [A, I, _, _, _],
+	Idx = [A, I],
+	append([Element], Right, RightOut),
+	TblOut = [Left, RightOut].
+
+% defines the last index and finishes the table.
+define_table(TblIn, TblOut) :-
+	append(TblIn, TblB),
+	length(TblB, N),
+	nth1(N, TblB, X),
+	X = [_, N, _, _, _],
+	flattern_assumptions(TblB, TblOut).
 
 
-find_last(left, Last, Tbl, N, N) :-
-	length(Tbl, N), 
-	nth1(N, Tbl, X),
-	X = [left | _],
-	Last = X, !.
-find_last(left, Last, Tbl, N, M) :-
-	NP1 #= N + 1,
-	nth1(NP1, Tbl, Y),
-	nth1(N, Tbl, X),
-	((nth1(1, X, left), nth1(1, Y, right))
-	->
-	Last = X, N = M;
-	find_last(left, Last, Tbl, NP1, M)).
+table_init(Assumptions, Conclusion, Tbl) :-
+	findall(X, (nth1(N, Assumptions, A), X = [[N], N, A, "A", []]), AssumptionTable),
+	C = [[_, _, Conclusion, _, _]],
+	Tbl = [AssumptionTable, C].
+	%append(AssumptionTable, C, Tbl).
 
+get_assumptions_idx(Indexes, Tbl, AssumptionIndexes) :-
+	Tbl = [Left, Right],
+	findall(I, (I ∈ Indexes, [X, I, _, _, _] ∈ Left), ILeft),
+	subtract(Indexes, ILeft, IRight),
+	findall(X, (I ∈ ILeft, [X, I, _, _, _] ∈ Left), AL),
+	findall(X, (I ∈ IRight, [X, I, _, _, _] ∈ Right), AR),
+	append(AR, AssumptionIndexesRight),	
+	append(AL, AssumptionIndexesLeft),
+	union(AssumptionIndexesLeft, AssumptionIndexesRight, AssumptionIndexes).
+
+table_insert("∧I", Assumptions, L ∧ R, TblIn, TblOut) :-
+	Assumptions = [L, R],
+
+	C   = [A,     I, L ∧ R, "∧I", [I_L, I_R]],
+	P_L = [A_L, I_L, L    , _   , _         ],
+	P_R = [A_R, I_R, R    , _   , _         ], 
+
+	table_idx(right, TblIn, L ∧ R, [A, I]),
+	table_append(right, P_L, [A_L, I_L], TblIn, TblB),
+	table_append(right, P_R, [A_R, I_R], TblB, TblOut),
+	ass_append(A_L, A_R, A),
+	%get_assumptions_idx([I_L, I_R], TblOut, A),
+	is_in_table(right, C, TblOut).
+
+table_insert("↔I", Assumptions, L ↔ R, TblIn, TblOut) :-
+	Assumptions = [L → R, R → L],
+
+	C   = [A,     I, L ↔ R, "↔I", [I_L, I_R]],
+	P_L = [A_L, I_L, L → R, _   , _         ],
+	P_R = [A_R, I_R, R → L, _   , _         ], 
+
+	table_idx(right, TblIn, L ↔ R, [A, I]),
+	table_append(right, P_L, [A_L, I_L], TblIn, TblB),
+	table_append(right, P_R, [A_R, I_R], TblB, TblOut),
+	ass_append(A_L, A_R, A),
+	%get_assumptions_idx([I_L, I_R], TblOut, A),
+	is_in_table(right, C, TblOut).
+
+table_insert("→I", Assumptions, L → R, TblIn, TblOut) :-
+	Assumptions = [L, R],
+
+	table_idx(right, TblIn, L → R, [A_R, I]),
+	C = [A_R, I, L → R, "→I", [J, I_R]],
+	A = [[J], J, L, "A", []],
+	P_R = [A_R, I_R, R, _, _],
+
+	table_append(left, A, [[J], J], TblIn, TblB),
+	table_append(right, P_R, [A_R, I_R], TblB, TblOut),
+
+	%get_assumptions_idx([I_R], TblOut, A),
+	is_in_table(right, C, TblOut).
+
+table_insert("∧E", Assumptions, L ∧ R, TblIn, TblOut) :-
+	Assumptions = [L],
+
+	P_L = [A, J, L, "∧E", [I]],
+	C = [A, I, L ∧ R, _, _],
+	table_append(left, P_L, [A, J], TblIn, TblB),
+	table_append(left, C, [A, I], TblB, TblOut).
+
+table_insert("∧E", Assumptions, L ∧ R, TblIn, TblOut) :-
+	Assumptions = [R],
+
+	P_R = [A, J, R, "∧E", [I]],
+	C = [A, I, L ∧ R, _, _],
+	table_append(left, P_R, [A, J], TblIn, TblB),
+	table_append(left, C, [A, I], TblB, TblOut).
+
+table_insert("↔E", Assumptions, L ↔ R, TblIn, TblOut) :-
+	Assumptions = [(L → R) ∧ (R → L)],
+
+	P = [A, J, (L → R) ∧ (R → L), "↔E", [I]],
+	C = [A, I, L ↔ R, _, _],
+	table_append(left, P, [A, J], TblIn, TblB),
+	table_append(left, C, [A, I], TblB, TblOut).
+
+table_insert("→E", Assumptions, R, TblIn, TblOut) :-
+	Assumptions = [L, L → R],
+	
+	LR = [A_LR, I_LR, (L → R), _, _],
+	P_L = [A_L, I_L, L, _, _],
+	P_R = [A, I_R, R, "→E", [I_LR, I_L]],
+
+	table_append(left, LR, [A_LR, I_LR], TblIn, TblB1),
+	table_append(right, P_R, [A, I_R], TblB1, TblB2),
+	table_append(right, P_L, [A_L, I_L], TblB2, TblOut),
+	ass_append(A_L, A_LR, A),
+	%get_assumptions_idx([I_LR, I_L], TblOut, A),
+	is_in_table(right, P_R, TblOut).
+
+table_insert("∨E", Assumptions, C, TblIn, TblOut) :-
+	Assumptions = [L ∨ R, L → C, R → C],
+
+	table_idx(right, TblIn, C, [A, I]),
+	X = [_, I_LR, L ∨ R, _, _],
+	LC = [A_L, I_L, L → C, _, _],
+	RC = [A_R, I_R, R → C, _, _],
+	Co = [A, I, C, "∨E", [I_LR, I_L, I_R]],
+
+	table_append(left, X, [A_LR, I_LR], TblIn, TblB1),
+	table_append(right, LC, [A_L, I_L], TblB1, TblB2),
+	table_append(right, RC, [A_R, I_R], TblB2, TblOut),
+	ass_append(A_LR, A_L, A_B),
+	ass_append(A_B, A_R, A),
+	%get_assumptions_idx([I_LR, I_L, I_R], TblOut, A),
+	is_in_table(right, Co, TblOut).
+
+table_insert("∨I", Assumptions, L ∨ R, TblIn, TblOut) :-
+	Assumptions = [R],
+
+	table_idx(right, TblIn, L ∨ R, [A, I]),
+	P_R = [A, I_R, R, _, _],
+	C = [A, I, L ∨ R, "∨I", [I_R]],
+	table_append(right, P_R, [A, I_R], TblIn, TblOut),
+	%get_assumptions_idx([I_R], TblOut, A),
+	is_in_table(right, C, TblOut).
+
+table_insert("¬E", Assumptions, C, TblIn, TblOut) :-
+	Assumptions = [¬(C), ⊥(N)],
+
+	table_idx(right, TblIn, C, [A, I]),
+	X = [[J], J, ¬(C), "A", []],
+	W = [A, I_W, ⊥(N), _, _],
+	Co = [A, I, C, "¬E", [J, I_W]],
+	table_append(left, X, [[J], J], TblIn, TblB),
+	table_append(right, W, [A, I_W], TblB, TblOut),
+
+	%get_assumptions_idx([I_W], TblOut, A),
+	is_in_table(right, Co, TblOut).
+
+table_insert("¬I", Assumptions, ¬(C), TblIn, TblOut) :-
+	Assumptions = [C, ⊥(N)],
+
+	table_idx(right, TblIn, ¬(C), [A, I]),
+	X = [[J], J, C, "A", []],
+	W = [A, I_W, ⊥(N), _, _],
+	Co = [A, I, ¬(C), "¬I", [J, I_W]],
+	table_append(left, X, [[J], J], TblIn, TblB),
+	table_append(right, W, [A, I_W], TblB, TblOut),
+
+	%get_assumptions_idx([I_W], TblOut, A),
+	is_in_table(right, Co, TblOut).
+
+table_replace(_, _, [], []) :- !.
+table_replace(Old, New, TblIn, TblOut) :-
+	TblIn = [X | TblNxt],
+	table_replace(Old, New, TblNxt, TblNxtOut),
+	X = [A, I, Old, R, P],
+	Y = [A, I, New, R, P],
+	append([Y], TblNxtOut, TblOut).
+table_replace(Old, New, TblIn, TblOut) :-
+	TblIn = [X | TblNxt],
+	table_replace(Old, New, TblNxt, TblNxtOut),
+	X = [_, _, C, _, _], not(C = Old),
+	append([X], TblNxtOut, TblOut).
+
+is_proof_table(Tbl) :-
+	findall(X, (X ∈ Tbl,
+			    X = [A1, A2, A3, _, A5],
+				is_list(A1), is_list(A5),
+				is_of_type(positive_integer, A2),
+				formula(A3)),
+			NewTbl),
+	Tbl = NewTbl.
+
+write_proof_table(Tbl) :-
+	is_proof_table(Tbl),
+	nl,
+	foreach(X ∈ Tbl, write_term(X, [max_depth(0), nl(true)])).
+
+
+% Gets the indexes of the assumptions of some propositions named 'Premisses'.
+%get_idx([], [], [], [], _, [], []) :- !.
+%get_idx(Premisses, Exc, AssumptionIdx, PremissIdx, Tbl, PremissesRemain, ExcRemain) :-
+%	Tbl = [Left, _],
+%	X ∈ Premisses, X ∉ Exc,
+%	Premisses = [X | PremissesNxt],
+%	L = [_, AIdx, Idx, X, _, _],
+%	L ∈ Left,
+%	get_idx(PremissesNxt, Exc, AssumptionIdxNxt, PremissIdxNxt, Tbl, PremissesRemain, ExcRemain),
+%	union(AIdx, AssumptionIdxNxt, AssumptionIdx_), sort(AssumptionIdx_, AssumptionIdx),
+%	union([Idx], PremissIdxNxt, PremissIdx_), sort(PremissIdx_, PremissIdx), !.
+%get_idx(Premisses, Exc, AssumptionIdx, PremissIdx, Tbl, PremissesRemain, ExcRemain) :-
+%	Tbl = [Left, _],
+%	X ∈ Premisses, X ∈ Exc,
+%	Premisses = [X | PremissesNxt],
+%	L = [_, _, Idx, X, _, _],
+%	L ∈ Left,
+%	get_idx(PremissesNxt, Exc, AssumptionIdx, PremissIdxNxt, Tbl, PremissesRemain, ExcRemain),
+%	union([Idx], PremissIdxNxt, PremissIdx_), sort(PremissIdx_, PremissIdx), !.
+%get_idx(Premisses, Exc, AssumptionIdx, PremissIdx, Tbl, PremissesRemain, ExcRemain) :-
+%	Tbl = [Left, _],
+%	X ∈ Premisses, X ∉ Exc,
+%	Premisses = [X | PremissesNxt],
+%	L = [_, AIdx, Idx, X, _, _],
+%	L ∉ Left,
+%	get_idx(PremissesNxt, Exc, AssumptionIdxNxt, PremissIdxNxt, Tbl, PremissesB, ExcRemain),
+%	union([X], PremissesB, PremissesRemain), !.
+%get_idx(Premisses, Exc, AssumptionIdx, PremissIdx, Tbl, PremissesRemain, ExcRemain) :-
+%	Tbl = [Left, _],
+%	X ∈ Premisses, X ∈ Exc,
+%	Premisses = [X | PremissesNxt],
+%	L = [_, AIdx, Idx, X, _, _],
+%	L ∉ Left,
+%	get_idx(PremissesNxt, Exc, AssumptionIdxNxt, PremissIdxNxt, Tbl, PremissesB, ExcB),
+%	union([X], PremissesB, PremissesRemain), 
+%	union([X], ExcB, ExcRemain), !.
+
+%append_rule(left, Assumptions, Premisses, Rule, Conclusion, TblIn, TblOut) :-
+%	subtract(Premisses, Assumptions, Exc),
+%	get_idx(Assumptions, Exc, AIdx, PIdx, TblIn, [], []),
+%	C = [left, AIdx, _, Conclusion, Rule, PIdx],
+%	append(left, C, TblIn, TblOut).
+%append_rule(right, Assumptions, Premisses, Rule, Conclusion, TblIn, TblOut) :-
+%	subtract(Premisses, Assumptions, Exc),
+%	get_idx(Assumptions, Exc, AIdx, PIdx, TblIn, AssumptionsRemain, ExcRemain),
+
+
+
+
+
+% finds the first value with prefix right. This value is the direct successor of the last value with prefix left.
+%find_first(right, First, Tbl, N) :-
+%	nth1(N, Tbl, X),
+%	NN #= N + 1,
+%	(X = [left, _, _, _, _, _]
+%	->
+%	find_first(right, First, Tbl, NN)
+%	; First = X).
+% finds the first value with prefix left. This value is the direct ancestor of the last value with prefix right.
+%find_last(left, Last, Tbl, N, N) :-
+%	length(Tbl, N), 
+%	nth1(N, Tbl, X),
+%	X = [left | _],
+%	Last = X, !.
+%find_last(left, Last, Tbl, N, M) :-
+%	NP1 #= N + 1,
+%	nth1(NP1, Tbl, Y),
+%	nth1(N, Tbl, X),
+%	((nth1(1, X, left), nth1(1, Y, right))
+%	->
+%	Last = X, N = M;
+%	find_last(left, Last, Tbl, NP1, M)).
+
+/*insert_after(Element, TblIn, TblOut) :-
+	find_last(left, Last, TblIn, 1, M),
+	MM #= M + 1,
+	Element = [left, _, MM, _, _, _],
+	insert_after(TblIn, Last, Element).
+
+insert_front_of(Element, TblIn, TblOut) :-
+	find_first(right, First, TblIn, 1),
+	length_of(right, TblIn, N),
+	get_last_index(TblIn, L),
+	L #= I + N - 1
+	Element = [right, _, I, _, _, _],
+	insert_after(TblIn, Last, Element).
+
+
+% defines the last index and finishes the table.
 define_table(Tbl) :-
 	length(Tbl, N),
 	nth1(N, Tbl, X),
 	X = [right, _, N, _, _, _].
+
+
+
+add_conclusion(Assumptions, Premisses, Rule, Conclusion, TblIn, TblOut) :-
+	subset(Assumptions, Premisses),
+	get_assumption_idx(Assumptions, AIdx, TblIn),
+	get_premiss_idx(Premisses, PIdx, AIdx, TblIn),
+	C = [left, AIdx, _, Conclusion, Rule, PIdx],
+	insert_after(C, TblIn, TblOut).
+
+add_premisses(Assumptions, Premisses, Rule, Conclusion, TblIn, TblOut) :-
+
+
 
 new_premiss_lines([], _, [], [], []) :- !.
 new_premiss_lines(Premisses, I, Prefix, PremissIndexes, AssumptionIndexes) :-
@@ -123,13 +487,7 @@ table_insert(left, Premisses, Conclusion, Rule, TblIn, TblOut) :-
 	insert_at_left_without_remove_right(Premisses, Conclusion, Rule, TblIn, TblOut).
 	
 
-table_replace(_, _, [], []) :- !.
-table_replace(Old, New, TblIn, TblOut) :-
-	TblIn = [X | TblNxt],
-	table_replace(Old, New, TblNxt, TblNxtOut),
-	X = [_, _, _, Old, _, _],
-	Y = [_, _, _, New, _, _],
-	append([Y], TblNxtOut, TblOut).
+
 
 
 
@@ -362,7 +720,7 @@ get_assumptions(graph(_, E), Assumptions) :-
 proof_table(graph(V, E), Tbl) :-
 	get_assumptions(graph(V, E), A),
 	import_assumptions(A, TblIn), 
-	once(proof_graph_to_table(graph(A, []), graph(V, E), TblIn, Tbl, [])).
+	once(proof_graph_to_table(graph(A, []), graph(V, E), TblIn, Tbl, [])).*/
 
 
 
