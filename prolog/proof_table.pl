@@ -90,6 +90,12 @@ table_append(left, Element, Idx, TblIn, TblIn) :-
 	Idx = [A, I],
 	Element ∈ Left, !.
 
+table_append(left, Element, Idx, TblIn, TblIn) :-
+	TblIn = [_, Right],
+	Element = [A, I, _, _, _],
+	Idx = [A, I],
+	Element ∈ Right, !.
+
 table_append(left, Element, Idx, TblIn, TblOut) :-
 	TblIn = [Left, Right],
 	get_new_index(left, TblIn, I),
@@ -189,21 +195,23 @@ table_insert("→I", Assumptions, L → R, TblIn, TblOut) :-
 	%get_assumptions_idx([I_R], TblOut, A),
 	is_in_table(right, C, TblOut).
 
-table_insert("∧E", Assumptions, L ∧ R, TblIn, TblOut) :-
-	Assumptions = [L],
+table_insert("∧E", Assumptions, L, TblIn, TblOut) :-
+	Assumptions = [L ∧ R],
 
-	P_L = [A, J, L, "∧E", [I]],
-	C = [A, I, L ∧ R, _, _],
-	table_append(left, P_L, [A, J], TblIn, TblB),
-	table_append(left, C, [A, I], TblB, TblOut).
+	P_LR = [A, I, L ∧ R, _, _],
+	C = [A, J, L, "∧E", [I]],
+	
+	table_append(left, P_LR, [A, I], TblIn, TblB),
+	table_append(left, C, [A, J], TblB, TblOut).
 
-table_insert("∧E", Assumptions, L ∧ R, TblIn, TblOut) :-
-	Assumptions = [R],
-
-	P_R = [A, J, R, "∧E", [I]],
-	C = [A, I, L ∧ R, _, _],
-	table_append(left, P_R, [A, J], TblIn, TblB),
-	table_append(left, C, [A, I], TblB, TblOut).
+table_insert("∧E", Assumptions, R, TblIn, TblOut) :-
+	Assumptions = [L ∧ R],
+	
+	P_LR = [A, I, L ∧ R, _, _],
+	C = [A, J, R, "∧E", [I]],
+	
+	table_append(left, P_LR, [A, I], TblIn, TblB),
+	table_append(left, C, [A, J], TblB, TblOut).
 
 table_insert("↔E", Assumptions, L ↔ R, TblIn, TblOut) :-
 	Assumptions = [(L → R) ∧ (R → L)],
