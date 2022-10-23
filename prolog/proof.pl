@@ -262,9 +262,10 @@ proof(Derivation, G, G, T, T) :-
 		!.
 proof(Derivation, GIn, G, TIn, T) :- 	
 		Derivation = ((_, _) ⊢ ⊥(N)),
-		TIn = [Left, RightIn],
-		TOut = [Left, RightOut],
+		TIn = [LeftIn, RightIn],
+		TOut = [LeftOut, RightOut],
 		iscontradiction(Derivation, C),
+		table_replace(⊥(N), (C ∧ ¬(C)), LeftIn, LeftOut),
 		table_replace(⊥(N), (C ∧ ¬(C)), RightIn, RightOut),
 		replace_vertex_weighted(⊥(N), (C ∧ ¬(C)), GIn, GOut),
 		merge_rule_graph([C, ¬(C)], (C ∧ ¬(C)), "∧I", GOut, G),
@@ -321,10 +322,16 @@ go_proof1(G, T) :- proof(([p→q,p] ⊢ q), G, T).
 go_proof2(G, T) :- proof(([(¬q),((¬q)→((¬p)→q))] ⊢ ((¬p)→q)), G, T).
 go_proof3(G, T) :- proof(([p→q,q→r,p] ⊢ r), G, T).
 go_proof4(G, T) :- proof(([¬(q),p→q] ⊢ ¬(p)), G, T).
+go_proof5(G, T) :- proof(([¬(q),p→q] ⊢ ¬(p)), G, T).
 go_proof8(G, T) :- proof(([¬(p)→q,¬(q)] ⊢ p), G, T).
 go_proof10(G, T) :- proof(([p→(q→r)] ⊢ (q→(p→r))), G, T).
-go_proof5(G, T) :- proof(([¬(q),p→q] ⊢ ¬(p)), G, T).	
+go_proof12(G, T) :- proof(([p→ ¬(q), q] ⊢ ¬(p)), G, T).	
+
 go_proof13(G, T) :- proof(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G, T).
+go_proof13_2(G,T) :- proof(([q → (p → r), ¬(r), q] ⊢ ¬(p)), G, T).
+
+go_proof14(G, T) :- proof(([p → ¬(¬(q)), p] ⊢ q), G, T).
+
 go_proof25(G, T) :- proof(([p] ⊢ ((¬(q→r)→ ¬(p))→ (¬(r)→ ¬(q)))), G, T).
 go_proof31(G, T) :- proof(([q → r] ⊢ ((p ∧ q) → (p ∧ r))), G, T).
 go_proof32(G, T) :- proof(([(p ∧ q)] ⊢ (q ∧ p)), G, T).
@@ -333,6 +340,7 @@ go_proof34(G, T) :- proof(([(q→r)] ⊢ ((p∨q)→(p∨r))), G, T).
 go_proof35(G, T) :- proof(([(p∨(q∨r))] ⊢ (q∨(p∨r))), G, T).
 go_proof42(G, T) :- proof(([(p→r)∧(q→r)] ⊢ ((p∨q)→r)), G, T).
 go_proof46(G, T) :- proof(([p→(q∧r)] ⊢ ((p→q)∧(p→r))), G, T).
+go_proof48(G, T) :- proof(([(p↔q)] ⊢ (q↔p)), G, T).
 go_proof50(G, T) :- proof(([(p↔q),(q↔r)] ⊢ (p↔r)), G, T).
 
 go_debug :-
