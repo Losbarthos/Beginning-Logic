@@ -11,7 +11,8 @@
     	generator_inv/4,				% +ListIn, -ListOut, +Inv, +Order
     	subset_inv/3,					% +Set, +SubSet, +Inv
     	union_inv/5,					% +Set1, +Set2, -Set3, +Inv, +Order
-    	temp_invariant/2 				% +WithTemp, -NoTemp
+    	temp_invariant/2, 				% +WithTemp, -NoTemp
+    	replace_by_inv/4
     ]).
 
 :-use_module(set).
@@ -87,3 +88,17 @@ union_inv(Set1, Set2, Set3, Inv, Order) :-
 
 % We apply generator_inv of module invariant on special invariant with name temp used in proof predicate below.
 temp_invariant(WithTemp, NoTemp) :- generator_inv(WithTemp, NoTemp, temp).
+
+
+replace_by_inv([], _, [], _) :- !.
+replace_by_inv(BaseSet, ToReplace, WithInv, Inv) :-
+	BaseSet = [First | Last],
+	First ∈ ToReplace,
+	replace_by_inv(Last, ToReplace, LastInv, Inv),
+	Y =.. [Inv, First],
+	append([Y], LastInv, WithInv), !.
+replace_by_inv(BaseSet, ToReplace, WithInv, Inv) :-
+	BaseSet = [First | Last],
+	First ∉ ToReplace,
+	replace_by_inv(Last, ToReplace, LastInv, Inv),
+	append([First], LastInv, WithInv).

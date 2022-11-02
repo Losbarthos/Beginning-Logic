@@ -56,3 +56,9 @@ q ⊢ (p∨q)													# Excercise 1d
 (p↔q) ⊢ (q↔p)												# Problem 24
 p,(p↔q) ⊢ q													# Problem 25
 (p↔q),(q↔r) ⊢ (p↔r)											# Problem 26
+((p∧q)↔p) ⊢ (p→q)											# Problem 27
+
+q,(p↔q) ⊢ p 												# Excercise 1a
+(p→q),(q→p) ⊢ (p↔q)											# Excercise 1b
+(p↔q) ⊢ ((¬p)↔(¬q))											# Excercise 1c
+q,(p↔q) ⊢ p 												# Excercise 1d

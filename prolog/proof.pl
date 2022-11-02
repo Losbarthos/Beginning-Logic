@@ -53,7 +53,7 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	U := A ∪ P,
 	not(has_contradictions(U)),
 	merge_rule_graph([L, R], L ∧ R, "∧I", GIn, GOut),
-	table_insert("∧I", [L, R], L ∧ R, TIn, TOut).
+	table_insert("∧I", A, [L, R], L ∧ R, TIn, TOut).
 
 % Same as
 % A;P?L↔R → A;P?L→R and A;P?R→L   
@@ -65,20 +65,20 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	U := A ∪ P,
 	not(has_contradictions(U)),
 	merge_rule_graph([L → R, R → L], L ↔ R, "↔I", GIn, GOut),
-	table_insert("↔I", [L → R, R → L], L ↔ R, TIn, TOut).
+	table_insert("↔I", A, [L → R, R → L], L ↔ R, TIn, TOut).
 
 % Same as
 % [A;P?L→R] L ∈ (A ∪ P) → A;P?R   
 %    with
 % RuleName: →I
-rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A, P) ⊢ (L → R)), 
-	U:= A ∪ P, L ∈ U, %Pn := P %∪ [temp(L → R)],
-	NextStep = ((A, P) ⊢ R), 
-
-	not(has_contradictions(U)),
-	merge_rule_graph([L, R], L → R, "→I", GIn, GOut),
-	table_insert("→I", [L, R], L → R, TIn, TOut).
+%rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
+%	Origin = ((A, P) ⊢ (L → R)), 
+%	U:= A ∪ P, L ∈ U, %Pn := P %∪ [temp(L → R)],
+%	NextStep = ((A, P) ⊢ R), 
+%
+%	not(has_contradictions(U)),
+%	merge_rule_graph([L, R], L → R, "→I", GIn, GOut),
+%	table_insert("→I", [L, R], L → R, TIn, TOut).
 
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L?C   
@@ -93,7 +93,7 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U)),
 	merge_rule_graph([L ∧ R], L, "∧E", GIn, GOut),
-	table_insert("∧E", [L ∧ R], L, TIn, TOut).
+	table_insert("∧E", A, [L ∧ R], L, TIn, TOut).
 
 
 
@@ -112,7 +112,7 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(U)),
 
 	merge_rule_graph([L ∧ R], R, "∧E", GIn, GOut),
-	table_insert("∧E", [L ∧ R], R, TIn, TOut).
+	table_insert("∧E", A, [L ∧ R], R, TIn, TOut).
 
 
 % Same as
@@ -128,7 +128,7 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U)),
 	merge_rule_graph([L ↔ R], (L → R) ∧ (R → L), "↔E", GIn, GOut),
-	table_insert("↔E", [L ↔ R], (L → R) ∧ (R → L), TIn, TOut).
+	table_insert("↔E", A, [L ↔ R], (L → R) ∧ (R → L), TIn, TOut).
 
 
 %
@@ -153,7 +153,7 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U1)),
 	merge_rule_graph([L, L → R], R, "→E", GIn, GOut),
-	table_insert("→E", [L, L → R], R, TIn, TOut).
+	table_insert("→E", A1, [L, L → R], R, TIn, TOut).
 
 
 %
@@ -172,7 +172,7 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(U1)),
 
 	merge_rule_graph([L ∨ R, L → C, R → C], C, "∨E", GIn, GOut),
-	table_insert("∨E", [L ∨ R, L → C, R → C], C, TIn, TOut).
+	table_insert("∨E", A1, [L ∨ R, L → C, R → C], C, TIn, TOut).
 
 
 
@@ -187,7 +187,7 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U)),
 	merge_rule_graph([L, R], L → R, "→I", GIn, GOut),
-	table_insert("→I", [L, R], L → R, TIn, TOut).
+	table_insert("→I", A1, [L, R], L → R, TIn, TOut).
 
 
 
@@ -202,7 +202,7 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U)),
 	merge_rule_graph([L], L ∨ R, "∨I", GIn, GOut),
-	table_insert("∨I", [L], L ∨ R, TIn, TOut).
+	table_insert("∨I", A, [L], L ∨ R, TIn, TOut).
 
 % Same as
 % [A;P?L∨R] → [A;P?R]   
@@ -215,7 +215,7 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U)),
 	merge_rule_graph([R], L ∨ R, "∨I", GIn, GOut),
-	table_insert("∨I", [R], L ∨ R, TIn, TOut).
+	table_insert("∨I", A, [R], L ∨ R, TIn, TOut).
 
 
 
@@ -233,7 +233,7 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	NextStep = ((A0, P) ⊢ ⊥(N)),
 
 	merge_rule_graph([¬(C), ⊥(N)], C, "¬E", GIn, GOut),
-	table_insert("¬E", [¬(C), ⊥(N)], C, TIn, TOut).
+	table_insert("¬E", A, [¬(C), ⊥(N)], C, TIn, TOut).
 
 
 % Same as
@@ -248,7 +248,7 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	NextStep = ((A0, P) ⊢ ⊥(N)),
 
 	merge_rule_graph([C, ⊥(N)], ¬(C), "¬I", GIn, GOut),
-	table_insert("¬I", [C, ⊥(N)], ¬(C), TIn, TOut).
+	table_insert("¬I", A, [C, ⊥(N)], ¬(C), TIn, TOut).
 
 
 %
@@ -261,7 +261,7 @@ proof(Derivation, G, G, T, T) :-
 		isvalid(Derivation),
 		!.
 proof(Derivation, GIn, G, TIn, T) :- 	
-		Derivation = ((_, _) ⊢ ⊥(N)),
+		Derivation = ((A, _) ⊢ ⊥(N)),
 		TIn = [LeftIn, RightIn],
 		TOut = [LeftOut, RightOut],
 		iscontradiction(Derivation, C),
@@ -269,7 +269,7 @@ proof(Derivation, GIn, G, TIn, T) :-
 		table_replace(⊥(N), (C ∧ ¬(C)), RightIn, RightOut),
 		replace_vertex_weighted(⊥(N), (C ∧ ¬(C)), GIn, GOut),
 		merge_rule_graph([C, ¬(C)], (C ∧ ¬(C)), "∧I", GOut, G),
-		table_insert("∧I", [C, ¬(C)], (C ∧ ¬(C)), TOut, T),
+		table_insert("∧I", A, [C, ¬(C)], (C ∧ ¬(C)), TOut, T),
 		!.
 proof(Derivation, GIn, G, TIn, T) :- 
 		Derivation = ((A, P) ⊢ C),
@@ -287,7 +287,7 @@ proof(Derivation, GIn, G, TIn, T) 	:-
 		D1 = ((_, _) ⊢ _),
 		D2 = ((_, _) ⊢ _),
 
-		proof(D1, GIn, GOut, TIn, TOut),
+		proof(D1, GIn, GOut, TIn, TB), complete_subproof(TIn, TB, TOut),
 		proof(D2, GOut, G, TOut, T).
 
 proof(Derivation, Graph, Table) :- 
@@ -318,30 +318,34 @@ proof_t(Derivation, Proof) :-
 	proof(Derivation, Proof1),
 	Proof = Proof1._.
 
-go_proof1(G, T) :- proof(([p→q,p] ⊢ q), G, T).
-go_proof2(G, T) :- proof(([(¬q),((¬q)→((¬p)→q))] ⊢ ((¬p)→q)), G, T).
-go_proof3(G, T) :- proof(([p→q,q→r,p] ⊢ r), G, T).
-go_proof4(G, T) :- proof(([¬(q),p→q] ⊢ ¬(p)), G, T).
-go_proof5(G, T) :- proof(([¬(q),p→q] ⊢ ¬(p)), G, T).
-go_proof8(G, T) :- proof(([¬(p)→q,¬(q)] ⊢ p), G, T).
-go_proof10(G, T) :- proof(([p→(q→r)] ⊢ (q→(p→r))), G, T).
-go_proof12(G, T) :- proof(([p→ ¬(q), q] ⊢ ¬(p)), G, T).	
+proofD(Derivation, Graph, Table) :-
+	format('To prove: ~w~n', [Derivation]),
+	proof(Derivation, Graph, Table).
 
-go_proof13(G, T) :- proof(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G, T).
-go_proof13_2(G,T) :- proof(([q → (p → r), ¬(r), q] ⊢ ¬(p)), G, T).
+go_proof1(G, T) :- proofD(([p→q,p] ⊢ q), G, T).
+go_proof2(G, T) :- proofD(([(¬q),((¬q)→((¬p)→q))] ⊢ ((¬p)→q)), G, T).
+go_proof3(G, T) :- proofD(([p→q,q→r,p] ⊢ r), G, T).
+go_proof4(G, T) :- proofD(([¬(q),p→q] ⊢ ¬(p)), G, T).
+go_proof5(G, T) :- proofD(([¬(q),p→q] ⊢ ¬(p)), G, T).
+go_proof8(G, T) :- proofD(([¬(p)→q,¬(q)] ⊢ p), G, T).
+go_proof10(G, T) :- proofD(([p→(q→r)] ⊢ (q→(p→r))), G, T).
+go_proof12(G, T) :- proofD(([p→ ¬(q), q] ⊢ ¬(p)), G, T).	
 
-go_proof14(G, T) :- proof(([p → ¬(¬(q)), p] ⊢ q), G, T).
+go_proof13(G, T) :- proofD(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G, T).
+go_proof13_2(G,T) :- proofD(([q → (p → r), ¬(r), q] ⊢ ¬(p)), G, T).
 
-go_proof25(G, T) :- proof(([p] ⊢ ((¬(q→r)→ ¬(p))→ (¬(r)→ ¬(q)))), G, T).
-go_proof31(G, T) :- proof(([q → r] ⊢ ((p ∧ q) → (p ∧ r))), G, T).
-go_proof32(G, T) :- proof(([(p ∧ q)] ⊢ (q ∧ p)), G, T).
-go_proof33(G, T) :- proof(([(p∨q)] ⊢ (q∨p)), G, T).
-go_proof34(G, T) :- proof(([(q→r)] ⊢ ((p∨q)→(p∨r))), G, T).
-go_proof35(G, T) :- proof(([(p∨(q∨r))] ⊢ (q∨(p∨r))), G, T).
-go_proof42(G, T) :- proof(([(p→r)∧(q→r)] ⊢ ((p∨q)→r)), G, T).
-go_proof46(G, T) :- proof(([p→(q∧r)] ⊢ ((p→q)∧(p→r))), G, T).
-go_proof48(G, T) :- proof(([(p↔q)] ⊢ (q↔p)), G, T).
-go_proof50(G, T) :- proof(([(p↔q),(q↔r)] ⊢ (p↔r)), G, T).
+go_proof14(G, T) :- proofD(([p → ¬(¬(q)), p] ⊢ q), G, T).
+
+go_proof25(G, T) :- proofD(([p] ⊢ ((¬(q→r)→ ¬(p))→ (¬(r)→ ¬(q)))), G, T).
+go_proof31(G, T) :- proofD(([q → r] ⊢ ((p ∧ q) → (p ∧ r))), G, T).
+go_proof32(G, T) :- proofD(([(p ∧ q)] ⊢ (q ∧ p)), G, T).
+go_proof33(G, T) :- proofD(([(p∨q)] ⊢ (q∨p)), G, T).
+go_proof34(G, T) :- proofD(([(q→r)] ⊢ ((p∨q)→(p∨r))), G, T).
+go_proof35(G, T) :- proofD(([(p∨(q∨r))] ⊢ (q∨(p∨r))), G, T).
+go_proof42(G, T) :- proofD(([(p→r)∧(q→r)] ⊢ ((p∨q)→r)), G, T).
+go_proof46(G, T) :- proofD(([p→(q∧r)] ⊢ ((p→q)∧(p→r))), G, T).
+go_proof48(G, T) :- proofD(([(p↔q)] ⊢ (q↔p)), G, T).
+go_proof50(G, T) :- proofD(([(p↔q),(q↔r)] ⊢ (p↔r)), G, T).
 
 go_debug :-
     set_prolog_flag(color_term, false),

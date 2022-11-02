@@ -14,8 +14,11 @@
 	remove_from_derivation/3			% +ToRemove, +DerivationIn, -DerivationOut
 ]).
 
+:-use_module(invariant).
+
 :-use_module(proposition).
 :-use_module(set).
+
 
 
 % Logical operators
@@ -64,3 +67,12 @@ remove_from_derivation(ToRemove, DerivationIn, DerivationOut) :-
 	DerivationOut = ((AO, PO) ⊢ C),
 	subtract(A, [ToRemove], AO), subtract(P, [ToRemove], PO).
 
+% Appends Inv at occurences of ToReplace from DerivationIn and sets it in DerivationOut. 
+replace_derivation_by_inv(ToReplace, DerivationIn, DerivationOut) :-
+	DerivationIn = ((A, P) ⊢ C), 
+	DerivationOut = ((AO, PO) ⊢ C),
+
+	replace_by_inv(A, ToReplace, AO, temp),
+	replace_by_inv(P, ToReplace, PO, temp).
+
+	
