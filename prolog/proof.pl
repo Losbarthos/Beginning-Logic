@@ -50,10 +50,12 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	NextStep = (((A, P) ⊢ L) ∧ ((A, P1) ⊢ R)),
 
 	
-	U := A ∪ P,
+	U := A ∪ P, 
 	not(has_contradictions(U)),
 	merge_rule_graph([L, R], L ∧ R, "∧I", GIn, GOut),
-	table_insert("∧I", A, [L, R], L ∧ R, TIn, TOut).
+	
+	temp_invariant(A, AT),
+	table_insert("∧I", AT, [L, R], L ∧ R, TIn, TOut).
 
 % Same as
 % A;P?L↔R → A;P?L→R and A;P?R→L   
@@ -65,7 +67,9 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	U := A ∪ P,
 	not(has_contradictions(U)),
 	merge_rule_graph([L → R, R → L], L ↔ R, "↔I", GIn, GOut),
-	table_insert("↔I", A, [L → R, R → L], L ↔ R, TIn, TOut).
+
+	temp_invariant(A, AT),
+	table_insert("↔I", AT, [L → R, R → L], L ↔ R, TIn, TOut).
 
 % Same as
 % [A;P?L→R] L ∈ (A ∪ P) → A;P?R   
@@ -89,11 +93,13 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
 	(L ∉ U), P2 := P1 ∪ [L], 
 
-	((R ∈ U) -> remove_from_derivation(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
+	((R ∈ U) -> replace_derivation_by_inv(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
 
 	not(has_contradictions(U)),
 	merge_rule_graph([L ∧ R], L, "∧E", GIn, GOut),
-	table_insert("∧E", A, [L ∧ R], L, TIn, TOut).
+
+	temp_invariant(A, AT),
+	table_insert("∧E", AT, [L ∧ R], L, TIn, TOut).
 
 
 
@@ -107,12 +113,14 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
 	(R ∉ U), P2 := P1 ∪ [R], 
 	
-	((L ∈ U) -> remove_from_derivation(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
+	((L ∈ U) -> replace_derivation_by_inv(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
 
 	not(has_contradictions(U)),
 
 	merge_rule_graph([L ∧ R], R, "∧E", GIn, GOut),
-	table_insert("∧E", A, [L ∧ R], R, TIn, TOut).
+
+	temp_invariant(A, AT),
+	table_insert("∧E", AT, [L ∧ R], R, TIn, TOut).
 
 
 % Same as
@@ -124,11 +132,13 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	U:= A ∪ P1, ((L ↔ R) ∈ U),
 	(((L → R) ∧ (R → L)) ∉ U), P2 := P1 ∪ [(L → R) ∧ (R → L)],
 
-	remove_from_derivation(L ↔ R, NextStep0, NextStep),
+	replace_derivation_by_inv(L ↔ R, NextStep0, NextStep),
 
 	not(has_contradictions(U)),
 	merge_rule_graph([L ↔ R], (L → R) ∧ (R → L), "↔E", GIn, GOut),
-	table_insert("↔E", A, [L ↔ R], (L → R) ∧ (R → L), TIn, TOut).
+
+	temp_invariant(A, AT),
+	table_insert("↔E", AT, [L ↔ R], (L → R) ∧ (R → L), TIn, TOut).
 
 
 %
@@ -145,7 +155,7 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	U1 := (A1 ∪ P1), ((L → R) ∈ U1), R ∉ U1, not(C=L), 
 	P3 := P1 ∪ [L, R], 
 
-	remove_from_derivation(L → R, Origin, Origin0),
+	replace_derivation_by_inv(L → R, Origin, Origin0),
 
 
 	not(((¬(¬(L)) ∈ U1), (edge(¬(¬(L)), ¬(L), "¬E") ∈ E))), % To eliminate derivations like d ⊢ ¬(¬d)
@@ -153,7 +163,9 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U1)),
 	merge_rule_graph([L, L → R], R, "→E", GIn, GOut),
-	table_insert("→E", A1, [L, L → R], R, TIn, TOut).
+
+	temp_invariant(A1, AT),
+	table_insert("→E", AT, [L, L → R], R, TIn, TOut).
 
 
 %
@@ -167,12 +179,14 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	
 	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1), %subtract(A1, [L ∨ R], A2), subtract(P1, [L ∨ R], P2),
 
-	remove_from_derivation(L ∨ R, Origin, Origin0),
+	replace_derivation_by_inv(L ∨ R, Origin, Origin0),
 
 	not(has_contradictions(U1)),
 
 	merge_rule_graph([L ∨ R, L → C, R → C], C, "∨E", GIn, GOut),
-	table_insert("∨E", A1, [L ∨ R, L → C, R → C], C, TIn, TOut).
+
+	temp_invariant(A1, AT),
+	table_insert("∨E", AT, [L ∨ R, L → C, R → C], C, TIn, TOut).
 
 
 
@@ -187,7 +201,9 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U)),
 	merge_rule_graph([L, R], L → R, "→I", GIn, GOut),
-	table_insert("→I", A1, [L, R], L → R, TIn, TOut).
+
+	temp_invariant(A1, AT),
+	table_insert("→I", AT, [L, R], L → R, TIn, TOut).
 
 
 
@@ -202,7 +218,9 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U)),
 	merge_rule_graph([L], L ∨ R, "∨I", GIn, GOut),
-	table_insert("∨I", A, [L], L ∨ R, TIn, TOut).
+
+	temp_invariant(A, AT),
+	table_insert("∨I", AT, [L], L ∨ R, TIn, TOut).
 
 % Same as
 % [A;P?L∨R] → [A;P?R]   
@@ -215,7 +233,9 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	not(has_contradictions(U)),
 	merge_rule_graph([R], L ∨ R, "∨I", GIn, GOut),
-	table_insert("∨I", A, [R], L ∨ R, TIn, TOut).
+
+	temp_invariant(A, AT),
+	table_insert("∨I", AT, [R], L ∨ R, TIn, TOut).
 
 
 
@@ -233,7 +253,9 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	NextStep = ((A0, P) ⊢ ⊥(N)),
 
 	merge_rule_graph([¬(C), ⊥(N)], C, "¬E", GIn, GOut),
-	table_insert("¬E", A, [¬(C), ⊥(N)], C, TIn, TOut).
+
+	temp_invariant(A, AT),
+	table_insert("¬E", AT, [¬(C), ⊥(N)], C, TIn, TOut).
 
 
 % Same as
@@ -248,7 +270,9 @@ c_rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	NextStep = ((A0, P) ⊢ ⊥(N)),
 
 	merge_rule_graph([C, ⊥(N)], ¬(C), "¬I", GIn, GOut),
-	table_insert("¬I", A, [C, ⊥(N)], ¬(C), TIn, TOut).
+
+	temp_invariant(A, AT),
+	table_insert("¬I", AT, [C, ⊥(N)], ¬(C), TIn, TOut).
 
 
 %
@@ -287,7 +311,7 @@ proof(Derivation, GIn, G, TIn, T) 	:-
 		D1 = ((_, _) ⊢ _),
 		D2 = ((_, _) ⊢ _),
 
-		proof(D1, GIn, GOut, TIn, TB), complete_subproof(TIn, TB, TOut),
+		proof(D1, GIn, GOut, TIn, TB), complete_subproof(TB, TOut),
 		proof(D2, GOut, G, TOut, T).
 
 proof(Derivation, Graph, Table) :- 
@@ -325,8 +349,9 @@ proofD(Derivation, Graph, Table) :-
 go_proof1(G, T) :- proofD(([p→q,p] ⊢ q), G, T).
 go_proof2(G, T) :- proofD(([(¬q),((¬q)→((¬p)→q))] ⊢ ((¬p)→q)), G, T).
 go_proof3(G, T) :- proofD(([p→q,q→r,p] ⊢ r), G, T).
-go_proof4(G, T) :- proofD(([¬(q),p→q] ⊢ ¬(p)), G, T).
+go_proof4(G, T) :- proofD(([p→(q→r),p→q,p] ⊢ r), G, T).
 go_proof5(G, T) :- proofD(([¬(q),p→q] ⊢ ¬(p)), G, T).
+go_proof6(G, T) :- proofD(([p→(q→r),p,¬(r)] ⊢ ¬(q)), G, T).
 go_proof8(G, T) :- proofD(([¬(p)→q,¬(q)] ⊢ p), G, T).
 go_proof10(G, T) :- proofD(([p→(q→r)] ⊢ (q→(p→r))), G, T).
 go_proof12(G, T) :- proofD(([p→ ¬(q), q] ⊢ ¬(p)), G, T).	

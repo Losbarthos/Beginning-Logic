@@ -125,6 +125,7 @@ class Proof:
 				df = pd.DataFrame(columns=['Assumptions', 'Index', 'Proposition', 'Premisses', 'Rule'])
 				table[i] = df 
 			else:
+				print(tbl)
 				# split at ',' followed by two closing ]]
 				for x in re.split(r"(?<=\]\]),", tbl[1:-1]):
 				    

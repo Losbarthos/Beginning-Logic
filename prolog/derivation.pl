@@ -11,7 +11,8 @@
 	unzip/4,							% +Derivation, -Assumptions, -Premisses, -Conclusion
 	isvalid/1,							% +Derivation
 	iscontradiction/2,					% +Derivation, -Contradiction
-	remove_from_derivation/3			% +ToRemove, +DerivationIn, -DerivationOut
+	remove_from_derivation/3,			% +ToRemove, +DerivationIn, -DerivationOut
+	replace_derivation_by_inv/3
 ]).
 
 :-use_module(invariant).
@@ -72,7 +73,7 @@ replace_derivation_by_inv(ToReplace, DerivationIn, DerivationOut) :-
 	DerivationIn = ((A, P) ⊢ C), 
 	DerivationOut = ((AO, PO) ⊢ C),
 
-	replace_by_inv(A, ToReplace, AO, temp),
-	replace_by_inv(P, ToReplace, PO, temp).
+	replace_by_inv(A, [ToReplace], AO, temp),
+	replace_by_inv(P, [ToReplace], PO, temp).
 
 	
