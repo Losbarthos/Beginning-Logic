@@ -6,7 +6,7 @@
 
 :- set_prolog_flag(optimise_unify, false).
 
-:-use_module(extend_list).
+:-use_module(list_helper).
 :-use_module(set).
 :-use_module(invariant).
 :-use_module(proposition).
@@ -17,6 +17,7 @@
 
 
 :-use_module(proof_table).
+:-use_module(systeml).
 
 :-use_module(library(http/json)).
 
@@ -289,8 +290,8 @@ proof(Derivation, GIn, G, TIn, T) :-
 		TIn = [LeftIn, RightIn],
 		TOut = [LeftOut, RightOut],
 		iscontradiction(Derivation, C),
-		table_replace(⊥(N), (C ∧ ¬(C)), LeftIn, LeftOut),
-		table_replace(⊥(N), (C ∧ ¬(C)), RightIn, RightOut),
+		subs(⊥(N), (C ∧ ¬(C)), LeftIn, LeftOut),
+		subs(⊥(N), (C ∧ ¬(C)), RightIn, RightOut),
 		replace_vertex_weighted(⊥(N), (C ∧ ¬(C)), GIn, GOut),
 		merge_rule_graph([C, ¬(C)], (C ∧ ¬(C)), "∧I", GOut, G),
 		table_insert("∧I", A, [C, ¬(C)], (C ∧ ¬(C)), TOut, T),
@@ -318,7 +319,8 @@ proof(Derivation, Graph, Table) :-
 	Derivation = (A ⊢ C),
 	table_init(A, C, TInit),
 	proof(((A, []) ⊢ C), graph([],[]), Graph0, TInit, Table0),
-	define_table(Table0, Table),
+	define_table(Table0, Table1),
+	convert_to_systeml(Table1, Table),
 	remove_not_sufficcient_vertices(C, Graph0, Graph).
 
 
@@ -354,6 +356,7 @@ go_proof5(G, T) :- proofD(([¬(q),p→q] ⊢ ¬(p)), G, T).
 go_proof6(G, T) :- proofD(([p→(q→r),p,¬(r)] ⊢ ¬(q)), G, T).
 go_proof8(G, T) :- proofD(([¬(p)→q,¬(q)] ⊢ p), G, T).
 go_proof10(G, T) :- proofD(([p→(q→r)] ⊢ (q→(p→r))), G, T).
+go_proof11(G, T) :- proofD(([q→r] ⊢ ((¬(q)→ ¬(p))→ (p→r))), G, T).
 go_proof12(G, T) :- proofD(([p→ ¬(q), q] ⊢ ¬(p)), G, T).	
 
 go_proof13(G, T) :- proofD(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G, T).

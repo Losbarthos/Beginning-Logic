@@ -11,7 +11,8 @@
 				   		split_list_at_nth1/4,
 				   		without_last/2,
 				   		sort_union/3,
-				   		range/3
+				   		range/3,
+				   		subs/4
 				   		]).
 
 
@@ -59,3 +60,19 @@ range([A|T],A,B):-
     A =< B,
     A1 is A + 1,
     range(T,A1,B).
+
+
+% subs(+X,+Y,+Xs,-Ys) is true if the list Ys is 
+% the result of substituting Y for all 
+% occurrences of X in the list Xs.
+subs(_, _, [], []).
+subs(X, Y, [H1|T1], [H2|T2]) :-
+    (H1 == X ->
+        H2 = Y
+    ; is_list(H1) ->
+        subs(X, Y, H1, H2),
+        subs(X, Y, T1, T2)
+    ;
+        H1 = H2,
+        subs(X, Y, T1, T2)
+    ).

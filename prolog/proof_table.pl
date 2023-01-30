@@ -6,12 +6,10 @@
 :- module(proof_table, [
 				   		table_insert/6,
 				   		table_init/3,
-				   		table_replace/4,
-				   		table_replace_T/4,
 				   		is_proof_table/1,
 				   		write_proof_table/1,
-				   		complete_subproof/2,
-				   		define_table/2
+				   		define_table/2,
+				   		complete_subproof/2
 				   		]).
 
 :-use_module(list_helper).
@@ -24,329 +22,155 @@
 
 % Inits the table with his base assumptions and the conclusion.
 table_init(Assumptions, Conclusion, Tbl) :-
-	findall(X, (nth1(N, Assumptions, A), X = [[N], N, A, "A", []]), AssumptionTable),
-	C = [[_, _, Conclusion, _, _]],
+	findall(X, (A ∈ Assumptions, X = [[A], A, "A", []]), AssumptionTable),
+	C = [[_, Conclusion, _, _]],
 	Tbl = [AssumptionTable, C].
 
-list_reduce(_, [], []) :- !.
-list_reduce(Min, ListIn, ListOut) :-
-	ListIn = [First | Rest],
-	First < Min,
-	list_reduce(Min, Rest, RestOut),
-	append([First], RestOut, ListOut), !.
-list_reduce(Min, ListIn, ListOut) :-
-	ListIn = [First | Rest],
-	FirstM is First - 1,
-	list_reduce(Min, Rest, RestOut),
-	append([FirstM], RestOut, ListOut).
-
-
-tbl_reduce_idx_by_one(TblIn, TblOut) :-
-	TblIn = [First | _],
-	First = [_, Min, _, _, _],
-	findall(X,(
-				Y ∈ TblIn, 
-				Y = [AIn, I, C, R, PIn],
-				J is I - 1,
-				list_reduce(Min, AIn, AOut), list_reduce(Min, PIn, POut),
-				X = [AOut, J, C, R, POut]
-			  ), 
-			TblOut).
-
-% Saves the index lines in Used for which:
-% 	the index of Element occurs in further Premisses of Tbl elements.
-get_usedlines(_, [], []) :- !.
-get_usedlines(Element, Tbl, Used) :-
-	Tbl = [First | Rest],
-	Element = [_, I, _, _, _],
-	First = [_, J, _, _, P],
-	I ∈ P,
-	get_usedlines(Element, Rest, UsedNxt),
-	append([J], UsedNxt, Used), !.
-get_usedlines(Element, Tbl, Used) :-
-	Tbl = [_ | Rest],
-	get_usedlines(Element, Rest, Used).
-
-
-% Removes the useless entries of TblIn (means, they are not used in any premiss of further lines)
-% and stores it in TblOut.
-% If their could be some more useless entries, the argument Repead gets true, otherwise it gets false.
-remove_useless([First], [First], false) :- !.
-remove_useless(TblIn, TblOut, true) :-
-	TblIn =[First | Rest],
-	get_usedlines(First, Rest, Used), Used = [],
-	remove_useless(Rest, RestOut, _),
-	tbl_reduce_idx_by_one(RestOut, TblOut), !.
-remove_useless(TblIn, TblOut, Repead) :-
-	TblIn =[First | Rest],
-	remove_useless(Rest, TblB, Repead),
-	append([First], TblB, TblOut).
-
-
-remove_useless(TblIn, TblOut) :- 
-	remove_useless(TblIn, TblB, true),
-	remove_useless(TblB, TblOut),!.
-remove_useless(TblIn, TblIn) :- 
-	remove_useless(TblIn, TblIn, false).
-
-
-%
-% Predicates work with assumptions
-%
-
-localize_assumptions_first(_, [], []) :- !.
-localize_assumptions_first(TblIn, Premisses, Assumptions) :-
-	Premisses = [First | Last],
-	Line = [[First], First, _, "A", _],
-	Line ∈ TblIn,
-	localize_assumptions_first(TblIn, Last, Assumptions0),
-	sort_union([First], Assumptions0, Assumptions), !.
-localize_assumptions_first(TblIn, Premisses, Assumptions) :-
-	Premisses = [First | Last],
-	Line = [_, First, _, _, P],
-	Line ∈ TblIn,
-	union(P, Last, Last1),
-	localize_assumptions_first(TblIn, Last1, Assumptions).
-
-% gets the real assumptions needed for arguments in proof
-localize_assumptions(TblIn, TblOut) :-
-	findall(X, (Y ∈ TblIn, 
-				Y = [AIn, I, C, R, P], 
-				localize_assumptions_first(TblIn, [I], AL),
-				intersection(AIn, AL, AOut),
-				X = [AOut, I, C, R, P]), TblOut).
-
-
-% gets the base assumption indexes Index based on Tbl of the assumption lists Assumptions.
-assumption_index(Assumptions, Index, Tbl) :-
-	Tbl = [Pre, _],
-	findall(I, (A ∈ Assumptions, [[I], I, A, "A", _] ∈ Pre), IndexU),
-	sort(IndexU, Index).
-
-% Length of table entries with prefix left or right
-length_of(left, TblIn, L) :-
+table_append(_, Element, TblIn, TblIn) :-
 	TblIn = [Left, _],
-	length(Left, L).
-length_of(right, TblIn, L) :-
+	Element ∈ Left.
+
+table_append(right, Element, TblIn, TblIn) :-
 	TblIn = [_, Right],
-	length(Right, L).
+	Element ∈ Right.
 
-% Gets the Index of the last value of the table represented by the conclusion
-get_last_index(Tbl, L) :-
-	Tbl = [_, Right],
-	last(Right, [_, L, _, _, _]).
-
-get_new_index(left, Tbl, I) :-
-	length_of(left, Tbl, L),
-	I is L + 1.
-get_new_index(right, Tbl, I) :- 
-	get_last_index(Tbl, N), length_of(right, Tbl, L),
-	N #= I + L.
-
-
-table_append(_, Element, Assumptions, PRight, PRight, TblIn, TblIn) :-
-	TblIn = [Left, _],
-	Element = [A | _],
-	Element ∈ Left,
-	subset(A, Assumptions).
-
-table_append(_, Element, Assumptions, PRight, NewRight, TblIn, TblIn) :-
-	Element ∈ PRight,
-	Element = [A | _],
-	not(var(A)),
-	subset(A, Assumptions),
-	after_and_before(Element, PRight, NewRight, _).
-
-table_append(left, Element, _, PRight, PRight, TblIn, TblOut) :-
+table_append(left, Element, TblIn, TblOut) :-
 	TblIn = [Left, Right],
-	get_new_index(left, TblIn, I),
-	Element = [_, I, _, _, _],
 	append(Left, [Element], LeftOut),
 	TblOut = [LeftOut, Right].
 
-table_append(right, Element, _, _, [], TblIn, TblOut) :-
+table_append(right, Element, TblIn, TblOut) :-
 	TblIn = [Left, Right],
-	%get_new_index(right, TblIn, I),
-	%Element = [_, I, _, _, _],
 	append([Element], Right, RightOut),
-	%append([Element], PRight, NewRight),
 	TblOut = [Left, RightOut].
 
 table_insert("∧I", Assumptions, Premisses, L ∧ R, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L, R],
 
-	C   = [AIdx,	_, L ∧ R, "∧I", [I_L, I_R]],
-	P_L = [   _,  I_L, L    , _   , _         ],
-	P_R = [   _,  I_R, R    , _   , _         ], 
+	C   = [Assumptions, L ∧ R, "∧I", [P_L, P_R]],
+	P_L = [_          , L    ,  _  , _         ],
+	P_R = [_          ,     R,  _  , _         ], 
 
-	TblIn = [_, Right0],
-
-	once((table_append(right, C, AIdx, Right0, Right1, TblIn, TblB0),
-	table_append(right, P_L, AIdx, Right1, Right2, TblB0, TblB1),
-	table_append(right, P_R, AIdx, Right2, _, TblB1, TblOut))).
+	table_append(right, C  , TblIn, TblB0 ),
+	table_append(right, P_L, TblB0, TblB1 ),
+	table_append(right, P_R, TblB1, TblOut).
 
 table_insert("↔I", Assumptions, Premisses, L ↔ R, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L → R, R → L],
 
-	C   = [AIdx,   _, L ↔ R, "↔I", [I_L, I_R]],
-	P_L = [   _, I_L, L → R, _   , _         ],
-	P_R = [   _, I_R, R → L, _   , _         ], 
+	C   = [Assumptions, L ↔ R, "↔I", [P_L, P_R]],
+	P_L = [_          , L → R, _   , _         ],
+	P_R = [_          , R → L, _   , _         ], 
 
-	TblIn = [_, Right0],
-
-	once((table_append(right, C, AIdx, Right0, Right1, TblIn, TblB0),
-	table_append(right, P_L, AIdx, Right1, Right2, TblB0, TblB1),
-	table_append(right, P_R, AIdx, Right2, _, TblB1, TblOut))).
+	table_append(right, C  , TblIn, TblB0 ),
+	table_append(right, P_L, TblB0, TblB1 ),
+	table_append(right, P_R, TblB1, TblOut).
 
 table_insert("→I", Assumptions, Premisses, L → R, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L, R],
+	L ∉ Assumptions,
 
+	C   = [Assumptions, L → R, "→I", [X, P_R]],
+	X   = [[L]        , L    , "A" ,       []],
+	P_R = [_          , R    , _   ,        _],
 
-	C   = [AIdx  , _  , L → R, "→I", [J, I_R]],
-	X   = [[J]   , J  , L    , "A" , []],
-	P_R = [AdIdxJ, I_R, R    , _   , _],
-
-	TblIn = [_, Right0],
-
-	once((table_append(right, C, AIdx, Right0, Right1, TblIn, TblB0),
-	table_append(left, X, [J], Right1, Right2, TblB0, TblB1),
-	sort_union(AIdx, [J], AdIdxJ),
-	table_append(right, P_R, AdIdxJ, Right2, _, TblB1, TblOut))).
+	table_append(right, C  , TblIn, TblB0 ),
+	table_append(left , X  , TblB0, TblB1 ),
+	table_append(right, P_R, TblB1, TblOut).
 
 table_insert("∧E", Assumptions, Premisses, L, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L ∧ R],
 
-	P_LR = [   _, I, L ∧ R,    _, _],
-	C    = [AIdx, _, L    , "∧E", [I]],
-
-	TblIn = [_, Right0],
+	P_LR = [_          , L ∧ R, _   , _     ],
+	C    = [Assumptions, L    , "∧E", [P_LR]],
 	
-	once((table_append(left, P_LR, AIdx, Right0, Right1, TblIn, TblB1),
-	table_append(left, C, AIdx, Right1, _, TblB1, TblOut))).
+	table_append(left, P_LR, TblIn, TblB1 ),
+	table_append(left, C   , TblB1, TblOut).
 
 table_insert("∧E", Assumptions, Premisses, R, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L ∧ R],
 	
-	P_LR = [   _, I, L ∧ R,    _, _],
-	C =    [AIdx, _, R    , "∧E", [I]],
-
-	TblIn = [_, Right0],
+	P_LR = [_          ,L ∧ R, _   , _     ],
+	C =    [Assumptions,    R, "∧E", [P_LR]],
 	
-	once((table_append(left, P_LR, AIdx, Right0, Right1, TblIn, TblB1),
-	table_append(left, C, AIdx, Right1, _, TblB1, TblOut))).
+	table_append(left, P_LR, TblIn, TblB1 ),
+	table_append(left, C   , TblB1, TblOut).
 
 table_insert("↔E", Assumptions, Premisses, (L → R) ∧ (R → L), TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L ↔ R],
 	
-	P = [   _, I,             L ↔ R,    _, _],
-	C = [AIdx, _, (L → R) ∧ (R → L), "↔E", [I]],
-
-	TblIn = [_, Right0],
+	P = [_          , L ↔ R            , _   , _  ],
+	C = [Assumptions, (L → R) ∧ (R → L), "↔E", [P]],
 	
-	once((table_append(left, P, AIdx, Right0, Right1, TblIn, TblB1),
-	table_append(left, C, AIdx, Right1, _, TblB1, TblOut))).
+	table_append(left, P, AIdx, TblIn, TblB1 ),
+	table_append(left, C, AIdx, TblB1, TblOut).
 
 table_insert("→E", Assumptions, Premisses, R, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L, L → R],
 	
-	LR  = [_, 			I_LR, (L → R), _   , _],
-	P_L = [_, 			I_L ,  L     , _   , _],
-	P_R = [AIdx,           _,  R 	 , "→E", [I_LR, I_L]],
+	LR  = [_          , (L → R), _   , _        ],
+	P_L = [_          ,  L     , _   , _        ],
+	P_R = [Assumptions,      R , "→E", [LR, P_L]],
 
-	TblIn = [_, Right0],
-
-	once((table_append(right, P_R, AIdx, Right0, Right1, TblIn, TblB0),
-	table_append(left, LR, AIdx, Right1, _, TblB0, TblB1),
-	table_append(right, P_L, AIdx, Right1, _, TblB1, TblOut))).
+	table_append(right, P_R, TblIn, TblB0 ),
+	table_append(left ,  LR, TblB0, TblB1 ),
+	table_append(right, P_L, TblB1, TblOut).
 
 table_insert("∨E", Assumptions, Premisses, C, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L ∨ R, L → C, R → C],
 
-	X =  [_, 				I_LR, L ∨ R,    _, _],
-	LC = [_, 				I_L , L → C,    _, _],
-	RC = [_, 				I_R , R → C,    _, _],
-	Co = [AIdx,    			   _,     C, "∨E", [I_LR, I_L, I_R]],
+	X =  [_          , L ∨ R,    _, _          ],
+	LC = [_          , L → C,    _, _          ],
+	RC = [_          , R → C,    _, _          ],
+	Co = [Assumptions,     C, "∨E", [X, LC, RC]],
 
-	TblIn = [_, Right0],
-
-	once((table_append(right, Co, AIdx, Right0, Right1, TblIn, TblB0),
-	table_append(left, X, AIdx, Right1, Right2, TblB0, TblB1),
-	table_append(right, LC, AIdx, Right2, Right3, TblB1, TblB2),
-	table_append(right, RC, AIdx, Right3, _, TblB2, TblOut))).
+	table_append(right, Co, TblIn, TblB0 ),
+	table_append(left,   X, TblB0, TblB1 ),
+	table_append(right, LC, TblB1, TblB2 ),
+	table_append(right, RC, TblB2, TblOut).
 
 table_insert("∨I", Assumptions, Premisses, L ∨ R, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [R],
 
-	P_R = [   _, I_R,     R,    _, _],
-	C   = [AIdx,   _, L ∨ R, "∨I", [I_R]],
+	P_R = [_          ,     R,    _, _    ],
+	C   = [Assumptions, L ∨ R, "∨I", [P_R]],
 
-	TblIn = [_, Right0],
-
-	once((table_append(right, C, AIdx, Right0, Right1, TblIn, TblB0),
-	table_append(right, P_R, AIdx, Right1, _, TblB0, TblOut))).
+	table_append(right, C  , TblIn, TblB0 ),
+	table_append(right, P_R, TblB0, TblOut).
 
 table_insert("∨I", Assumptions, Premisses, L ∨ R, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [L],
 
-	P_R = [   _, I_R,     L,    _, _],
-	C   = [AIdx,   _, L ∨ R, "∨I", [I_R]],
+	P_R = [_,           L    ,    _, _    ],
+	C   = [Assumptions, L ∨ R, "∨I", [P_R]],
 
-	TblIn = [_, Right0],
-
-	once((table_append(right, C, AIdx, Right0, Right1, TblIn, TblB1),
-	table_append(right, P_R, AIdx, Right1, _, TblB1, TblOut))).
+	table_append(right, C  , TblIn, TblB1 ),
+	table_append(right, P_R, TblB1, TblOut).
 
 table_insert("¬E", Assumptions, Premisses, C, TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [¬(C), ⊥(N)],
+	¬(C) ∉ Assumptions,
 
-	X =  [[J]  , 	   J, ¬(C),  "A", []],
-	W =  [AIdxJ, 	 I_W, ⊥(N),    _, _],
-	Co = [AIdx ,      _,    C, "¬E", [J, I_W]],
-
-	TblIn = [_, Right0],
+	X =  [[¬(C)]      , ¬(C), "A", []     ],
+	W =  [_           , ⊥(N), _  ,_       ],
+	Co = [Assumptions ,   C , "¬E", [X, W]],
 	
-	once((table_append(right, Co, AIdx, Right0, Right1, TblIn, TblB0),
-	table_append(left, X, [J], Right1, Right2, TblB0, TblB1),
-	sort_union(AIdx, [J], AIdxJ),
-	table_append(right, W, AIdxJ, Right2, _, TblB1, TblOut))).
+    table_append(right, Co, TblIn, TblB0 ),
+	table_append(left , X , TblB0, TblB1 ),
+	table_append(right, W , TblB1, TblOut).
 
 table_insert("¬I", Assumptions, Premisses, ¬(C), TblIn, TblOut) :-
-	assumption_index(Assumptions, AIdx, TblIn),
 	Premisses = [C, ⊥(N)],
+	C ∉ Assumptions,
 
-	X =  [[J]  ,   J,    C,  "A", []],
-	W =  [AIdxJ, I_W, ⊥(N),    _, _],
-	Co = [AIdx ,   _, ¬(C), "¬I", [J, I_W]],
+	X =  [[C]         , C   , "A" , []    ],
+	W =  [_           , ⊥(N), _   , _     ],
+	Co = [Assumptions , _   , "¬I", [X, W]],
 
-	TblIn = [_, Right0],
+	table_append(right, Co, TblIn, TblB0),
+	table_append(left , X , TblB0, TblB1),
+	table_append(right, W , TblB1, TblOut).
 
-	once((table_append(right, Co, AIdx, Right0, Right1, TblIn, TblB0),
-	table_append(left, X, [J], Right1, Right2, TblB0, TblB1),
-	sort_union(AIdx, [J], AIdxJ),
-	table_append(right, W, AIdxJ, Right2, _, TblB1, TblOut))).
-
-
-% defines all the indices of Tbl, starting with index I.
-idx_define(_, []) :- !.
-idx_define(I, Tbl) :-
-	J is I + 1,
-	Tbl = [First | Last],
-	First = [_, I, _, _, _],
-	idx_define(J, Last).
-
-idx_define(Tbl) :-
-	idx_define(1, Tbl).
 
 % Defines all the indices of the 
 % right elements (derivations from conclusion) of Tbl1
@@ -379,38 +203,6 @@ complete_subproof(TblIn, TblOut) :-
 	append(Left, LeftAppend, LeftOut),
 	TblOut = [LeftOut, RightOut].
 
-
-% defines the last index and finishes the table.
-define_table(TblIn, TblOut) :-
-	append(TblIn, TblB),
-	idx_define(TblB),
-	remove_useless(TblB, TblB1),
-	localize_assumptions(TblB1, TblOut).
-
-table_replace(_, _, [], []) :- !.
-table_replace(Old, New, TblIn, TblOut) :-
-	TblIn = [X | TblNxt],
-	X = [A, I, Old, R, P],
-	Y = [A, I, New, R, P],
-	table_replace(Old, New, TblNxt, TblNxtOut),
-	append([Y], TblNxtOut, TblOut), !.
-table_replace(Old, New, TblIn, TblOut) :-
-	TblIn = [X | TblNxt],
-	table_replace(Old, New, TblNxt, TblNxtOut),
-	append([X], TblNxtOut, TblOut).
-
-table_replace_T(_, _, [], []) :- !.
-table_replace_T(Old, New, TblIn, TblOut) :-
-	TblIn = [X | TblNxt],
-	X = Old,
-	Y = New,
-	table_replace(Old, New, TblNxt, TblNxtOut),
-	append([Y], TblNxtOut, TblOut), !.
-table_replace_T(Old, New, TblIn, TblOut) :-
-	TblIn = [X | TblNxt],
-	table_replace(Old, New, TblNxt, TblNxtOut),
-	append([X], TblNxtOut, TblOut).
-
 is_proof_table(Tbl) :-
 	findall(X, (X ∈ Tbl,
 			    X = [A1, A2, A3, _, A5],
@@ -420,7 +212,13 @@ is_proof_table(Tbl) :-
 			NewTbl),
 	Tbl = NewTbl.
 
+define_table(TblIn, TblOut) :-
+	append(TblIn, TblOut).
+
 write_proof_table(Tbl) :-
 	is_proof_table(Tbl),
 	nl,
 	foreach(X ∈ Tbl, write_term(X, [max_depth(0), nl(true)])).
+
+
+
