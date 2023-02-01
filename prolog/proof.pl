@@ -287,11 +287,11 @@ proof(Derivation, G, G, T, T) :-
 		!.
 proof(Derivation, GIn, G, TIn, T) :- 	
 		Derivation = ((A, _) ⊢ ⊥(N)),
-		TIn = [LeftIn, RightIn],
-		TOut = [LeftOut, RightOut],
+		%T = [LeftIn, RightIn],
+		%TOut = [LeftOut, RightOut],
 		iscontradiction(Derivation, C),
-		subs(⊥(N), (C ∧ ¬(C)), LeftIn, LeftOut),
-		subs(⊥(N), (C ∧ ¬(C)), RightIn, RightOut),
+		subs(⊥(N), (C ∧ ¬(C)), TIn, TOut),
+		%subs(⊥(N), (C ∧ ¬(C)), RightIn, RightOut),
 		replace_vertex_weighted(⊥(N), (C ∧ ¬(C)), GIn, GOut),
 		merge_rule_graph([C, ¬(C)], (C ∧ ¬(C)), "∧I", GOut, G),
 		table_insert("∧I", A, [C, ¬(C)], (C ∧ ¬(C)), TOut, T),

@@ -165,12 +165,13 @@ table_insert("¬I", Assumptions, Premisses, ¬(C), TblIn, TblOut) :-
 
 	X =  [[C]         , C   , "A" , []    ],
 	W =  [_           , ⊥(N), _   , _     ],
-	Co = [Assumptions , _   , "¬I", [X, W]],
+	Co = [Assumptions , ¬(C), "¬I", [X, W]],
 
 	table_append(right, Co, TblIn, TblB0),
 	table_append(left , X , TblB0, TblB1),
 	table_append(right, W , TblB1, TblOut).
 
+not_descriped(Element) :- member(X, Element), var(X).
 
 % Defines all the indices of the 
 % right elements (derivations from conclusion) of Tbl1
@@ -183,25 +184,12 @@ table_insert("¬I", Assumptions, Premisses, ¬(C), TblIn, TblOut) :-
 %	idx_define(Left),
 %	TblOut = [Left, Right0].
 
-
 complete_subproof(TblIn, TblOut) :-
 	TblIn = [Left, Right],
-	findall(X, 	(X ∈ Right, 
-				 X = [A, I, C, R, P],
-				 integer_list(A), 
-				 not(var(C)),
-				 not(var(R)),
-				 integer_list(P)),
-			RightToLeft),
-	subtract(Right, RightToLeft, RightOut),
-	length(Left, N),
-	findall(X, (nth1(K, RightToLeft, Y),
-				Y = [A, I, C, R, P],
-				M is K + N,
-				X = [A, M, C, R, P]),
-			LeftAppend),
-	append(Left, LeftAppend, LeftOut),
-	TblOut = [LeftOut, RightOut].
+	split_list(Right, L, R, proof_table:not_descriped),
+	append(Left, L, LeftOut),
+	TblOut = [LeftOut, R].
+
 
 is_proof_table(Tbl) :-
 	findall(X, (X ∈ Tbl,

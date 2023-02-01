@@ -12,7 +12,8 @@
 				   		without_last/2,
 				   		sort_union/3,
 				   		range/3,
-				   		subs/4
+				   		subs/4,
+				   		split_list/4
 				   		]).
 
 
@@ -76,3 +77,13 @@ subs(X, Y, [H1|T1], [H2|T2]) :-
         H1 = H2,
         subs(X, Y, T1, T2)
     ).
+
+
+% This Prolog predicate splits a list List into two lists L and [R1|RN]. 
+% R1 is the first element of List which satisfies the predicate Condition. 
+% L contains all elements in List before R1. 
+% L does not contain any element satisfying Condition. 
+% RN contains all elements which follow R1 in List.
+split_list(List, L, [R1|RN], Condition) :- member(R1, List), append(L, [R1|RN], List), call(Condition, R1),
+    									   forall(member(X, L), not(call(Condition, X))).
+split_list(List, List,[], _).
