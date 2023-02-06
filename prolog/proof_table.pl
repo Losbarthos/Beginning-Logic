@@ -28,11 +28,11 @@ table_init(Assumptions, Conclusion, Tbl) :-
 
 table_append(_, Element, TblIn, TblIn) :-
 	TblIn = [Left, _],
-	Element ∈ Left.
+	Element ∈ Left, !.
 
-table_append(right, Element, TblIn, TblIn) :-
+table_append(_, Element, TblIn, TblIn) :-
 	TblIn = [_, Right],
-	Element ∈ Right.
+	Element ∈ Right, !.
 
 table_append(left, Element, TblIn, TblOut) :-
 	TblIn = [Left, Right],
@@ -47,9 +47,11 @@ table_append(right, Element, TblIn, TblOut) :-
 table_insert("∧I", Assumptions, Premisses, L ∧ R, TblIn, TblOut) :-
 	Premisses = [L, R],
 
-	C   = [Assumptions, L ∧ R, "∧I", [P_L, P_R]],
-	P_L = [_          , L    ,  _  , _         ],
-	P_R = [_          ,     R,  _  , _         ], 
+	C   = [Assumptions, L ∧ R, "∧I", [P_L1, P_R1]],
+	P_L = [AL          , L    ,  RL  , _         ],
+	P_L1= [AL          , L    ,  RL  , []        ],
+	P_R = [AR          ,     R,  RR  , _         ], 
+	P_R1= [AR          ,     R,  RR  , []        ],
 
 	table_append(right, C  , TblIn, TblB0 ),
 	table_append(right, P_L, TblB0, TblB1 ),
@@ -58,9 +60,11 @@ table_insert("∧I", Assumptions, Premisses, L ∧ R, TblIn, TblOut) :-
 table_insert("↔I", Assumptions, Premisses, L ↔ R, TblIn, TblOut) :-
 	Premisses = [L → R, R → L],
 
-	C   = [Assumptions, L ↔ R, "↔I", [P_L, P_R]],
-	P_L = [_          , L → R, _   , _         ],
-	P_R = [_          , R → L, _   , _         ], 
+	C   = [Assumptions, L ↔ R, "↔I", [P_L1, P_R1]],
+	P_L = [AL          , L → R, RL   , _         ],
+	P_L1= [AL          , L → R, RL   , []        ],
+	P_R = [AR          , R → L, RR   , _         ], 
+	P_R1= [AR          , R → L, RR   , []        ],
 
 	table_append(right, C  , TblIn, TblB0 ),
 	table_append(right, P_L, TblB0, TblB1 ),
@@ -70,9 +74,10 @@ table_insert("→I", Assumptions, Premisses, L → R, TblIn, TblOut) :-
 	Premisses = [L, R],
 	L ∉ Assumptions,
 
-	C   = [Assumptions, L → R, "→I", [X, P_R]],
+	C   = [Assumptions, L → R, "→I", [X, P_R1]],
 	X   = [[L]        , L    , "A" ,       []],
-	P_R = [_          , R    , _   ,        _],
+	P_R = [A          , R    , RR  ,        _],
+	P_R1= [A          , R    , RR  ,        []],
 
 	table_append(right, C  , TblIn, TblB0 ),
 	table_append(left , X  , TblB0, TblB1 ),
@@ -81,8 +86,9 @@ table_insert("→I", Assumptions, Premisses, L → R, TblIn, TblOut) :-
 table_insert("∧E", Assumptions, Premisses, L, TblIn, TblOut) :-
 	Premisses = [L ∧ R],
 
-	P_LR = [_          , L ∧ R, _   , _     ],
-	C    = [Assumptions, L    , "∧E", [P_LR]],
+	P_LR = [A          , L ∧ R, RR   , _     ],
+	P_LR1= [A          , L ∧ R, RR   , []    ],
+	C    = [Assumptions, L    , "∧E", [P_LR1]],
 	
 	table_append(left, P_LR, TblIn, TblB1 ),
 	table_append(left, C   , TblB1, TblOut).
@@ -90,8 +96,9 @@ table_insert("∧E", Assumptions, Premisses, L, TblIn, TblOut) :-
 table_insert("∧E", Assumptions, Premisses, R, TblIn, TblOut) :-
 	Premisses = [L ∧ R],
 	
-	P_LR = [_          ,L ∧ R, _   , _     ],
-	C =    [Assumptions,    R, "∧E", [P_LR]],
+	P_LR = [A          ,L ∧ R, RR   , _     ],
+	P_LR1= [A          ,L ∧ R, RR   , []    ],
+	C =    [Assumptions,    R, "∧E" , [P_LR1]],
 	
 	table_append(left, P_LR, TblIn, TblB1 ),
 	table_append(left, C   , TblB1, TblOut).
@@ -99,18 +106,21 @@ table_insert("∧E", Assumptions, Premisses, R, TblIn, TblOut) :-
 table_insert("↔E", Assumptions, Premisses, (L → R) ∧ (R → L), TblIn, TblOut) :-
 	Premisses = [L ↔ R],
 	
-	P = [_          , L ↔ R            , _   , _  ],
-	C = [Assumptions, (L → R) ∧ (R → L), "↔E", [P]],
+	P = [A          , L ↔ R            , RR   , _  ],
+	P1= [A          , L ↔ R            , RR   , [] ],
+	C = [Assumptions, (L → R) ∧ (R → L), "↔E", [P1]],
 	
-	table_append(left, P, AIdx, TblIn, TblB1 ),
-	table_append(left, C, AIdx, TblB1, TblOut).
+	table_append(left, P, TblIn, TblB1 ),
+	table_append(left, C, TblB1, TblOut).
 
 table_insert("→E", Assumptions, Premisses, R, TblIn, TblOut) :-
 	Premisses = [L, L → R],
 	
-	LR  = [_          , (L → R), _   , _        ],
-	P_L = [_          ,  L     , _   , _        ],
-	P_R = [Assumptions,      R , "→E", [LR, P_L]],
+	LR  = [AR          , (L → R), RR   , _        ],
+	LR1 = [AR          , (L → R), RR   , []       ],
+	P_L = [AL          ,  L     , RL   , _        ],
+	P_L1= [AL          ,  L     , RL   , []       ],
+	P_R = [Assumptions,      R , "→E", [LR1, P_L1]],
 
 	table_append(right, P_R, TblIn, TblB0 ),
 	table_append(left ,  LR, TblB0, TblB1 ),
@@ -120,9 +130,11 @@ table_insert("∨E", Assumptions, Premisses, C, TblIn, TblOut) :-
 	Premisses = [L ∨ R, L → C, R → C],
 
 	X =  [_          , L ∨ R,    _, _          ],
-	LC = [_          , L → C,    _, _          ],
-	RC = [_          , R → C,    _, _          ],
-	Co = [Assumptions,     C, "∨E", [X, LC, RC]],
+	LC = [AL          , L → C,    RL, _          ],
+	LC1= [AL          , L → C,    RL, []         ],
+	RC = [AR          , R → C,    RR, _          ],
+	RC1= [AR          , R → C,    RR, []         ],
+	Co = [Assumptions,     C, "∨E", [X, LC1, RC1]],
 
 	table_append(right, Co, TblIn, TblB0 ),
 	table_append(left,   X, TblB0, TblB1 ),
@@ -132,8 +144,9 @@ table_insert("∨E", Assumptions, Premisses, C, TblIn, TblOut) :-
 table_insert("∨I", Assumptions, Premisses, L ∨ R, TblIn, TblOut) :-
 	Premisses = [R],
 
-	P_R = [_          ,     R,    _, _    ],
-	C   = [Assumptions, L ∨ R, "∨I", [P_R]],
+	P_R = [A          ,     R,    RR, _    ],
+	P_R1= [A          ,     R,    RR, []   ],
+	C   = [Assumptions, L ∨ R, "∨I", [P_R1]],
 
 	table_append(right, C  , TblIn, TblB0 ),
 	table_append(right, P_R, TblB0, TblOut).
@@ -141,8 +154,9 @@ table_insert("∨I", Assumptions, Premisses, L ∨ R, TblIn, TblOut) :-
 table_insert("∨I", Assumptions, Premisses, L ∨ R, TblIn, TblOut) :-
 	Premisses = [L],
 
-	P_R = [_,           L    ,    _, _    ],
-	C   = [Assumptions, L ∨ R, "∨I", [P_R]],
+	P_R = [A,           L    ,    RR, _    ],
+	P_R1= [A,           L    ,    RR, []   ],
+	C   = [Assumptions, L ∨ R, "∨I", [P_R1]],
 
 	table_append(right, C  , TblIn, TblB1 ),
 	table_append(right, P_R, TblB1, TblOut).
@@ -152,8 +166,9 @@ table_insert("¬E", Assumptions, Premisses, C, TblIn, TblOut) :-
 	¬(C) ∉ Assumptions,
 
 	X =  [[¬(C)]      , ¬(C), "A", []     ],
-	W =  [_           , ⊥(N), _  ,_       ],
-	Co = [Assumptions ,   C , "¬E", [X, W]],
+	W =  [A           , ⊥(N), RR  ,_       ],
+	W1=  [A           , ⊥(N), RR  ,[]      ],
+	Co = [Assumptions ,   C , "¬E", [X, W1]],
 	
     table_append(right, Co, TblIn, TblB0 ),
 	table_append(left , X , TblB0, TblB1 ),
@@ -164,8 +179,9 @@ table_insert("¬I", Assumptions, Premisses, ¬(C), TblIn, TblOut) :-
 	C ∉ Assumptions,
 
 	X =  [[C]         , C   , "A" , []    ],
-	W =  [_           , ⊥(N), _   , _     ],
-	Co = [Assumptions , ¬(C), "¬I", [X, W]],
+	W =  [A           , ⊥(N), RR   , _     ],
+	W1=  [A           , ⊥(N), RR   , []    ],
+	Co = [Assumptions , ¬(C), "¬I", [X, W1]],
 
 	table_append(right, Co, TblIn, TblB0),
 	table_append(left , X , TblB0, TblB1),
@@ -186,7 +202,7 @@ not_descriped(Element) :- member(X, Element), var(X).
 
 complete_subproof(TblIn, TblOut) :-
 	TblIn = [Left, Right],
-	split_list(Right, L, R, proof_table:not_descriped),
+	split_list(cond1, Right, L, R),
 	append(Left, L, LeftOut),
 	TblOut = [LeftOut, R].
 

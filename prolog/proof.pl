@@ -153,16 +153,18 @@ rule(Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	GIn = graph(_, E),
 	
 
-	U1 := (A1 ∪ P1), ((L → R) ∈ U1), R ∉ U1, not(C=L), 
+	U1 := (A1 ∪ P1), temp_invariant(U1, UT),
+
+	((L → R) ∈ U1), R ∉ UT, not(C=L), 
 	P3 := P1 ∪ [L, R], 
 
 	replace_derivation_by_inv(L → R, Origin, Origin0),
 
 
-	not(((¬(¬(L)) ∈ U1), (edge(¬(¬(L)), ¬(L), "¬E") ∈ E))), % To eliminate derivations like d ⊢ ¬(¬d)
+	not(((¬(¬(L)) ∈ UT), (edge(¬(¬(L)), ¬(L), "¬E") ∈ E))), % To eliminate derivations like d ⊢ ¬(¬d)
 	not(( L = ¬(¬(L1)), (edge(¬(¬(L1)), ¬(L1), "¬I") ∈ E))),% To eliminate derivations like ¬(¬d) ⊢ d
 
-	not(has_contradictions(U1)),
+	not(has_contradictions(UT)),
 	merge_rule_graph([L, L → R], R, "→E", GIn, GOut),
 
 	temp_invariant(A1, AT),
@@ -370,6 +372,7 @@ go_proof32(G, T) :- proofD(([(p ∧ q)] ⊢ (q ∧ p)), G, T).
 go_proof33(G, T) :- proofD(([(p∨q)] ⊢ (q∨p)), G, T).
 go_proof34(G, T) :- proofD(([(q→r)] ⊢ ((p∨q)→(p∨r))), G, T).
 go_proof35(G, T) :- proofD(([(p∨(q∨r))] ⊢ (q∨(p∨r))), G, T).
+go_proof41(G, T) :- proofD(([(p∧q)] ⊢ (p∨q)), G, T).
 go_proof42(G, T) :- proofD(([(p→r)∧(q→r)] ⊢ ((p∨q)→r)), G, T).
 go_proof46(G, T) :- proofD(([p→(q∧r)] ⊢ ((p→q)∧(p→r))), G, T).
 go_proof48(G, T) :- proofD(([(p↔q)] ⊢ (q↔p)), G, T).
