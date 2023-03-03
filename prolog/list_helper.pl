@@ -4,8 +4,8 @@
 %    Copyright (c)  2022, Martin Kunze
 
 :- module(list_helper, [
-							integer_list/1,
-							after_and_before/4,
+						integer_list/1,
+						after_and_before/4,
 				   		insert_front_of/4,
 				   		insert_after/4,
 				   		split_list_at_nth1/4,
@@ -14,8 +14,12 @@
 				   		range/3,
 				   		subs/4,
 				   		split_list/4,
-				   		cond1/1
+				   		list_without_variables/1,
+				   		find_first/3,
+				   		create_vector/3
 				   		]).
+
+:- use_module(library(clpfd)).
 
 
 integer_list([]) :- !.
@@ -95,4 +99,37 @@ split_list_([H|T], Cond, [H|P], R) :-
     split_list_(T, Cond, P, R).
 split_list_([], _, [], []).
 
-cond1(Element) :- flatten(Element, F), member(X, F), var(X).
+list_without_variables([]).
+list_without_variables([H|T]) :-
+    nonvar(H),
+    list_without_variables(T).
+
+
+% This function takes a condition C and a list [X|Xs] as input and returns the
+% first element in the list that satisfies the condition. If no such element is
+% found, it returns false.
+
+% If the condition is true for the head element of the list, then that element
+% is the first one that satisfies the condition, so we return it.
+find_first(C, [X|_], X) :-
+    call(C, X).
+
+% If the condition is not true for the head element of the list, then we
+% recursively search for the first element that satisfies the condition in the
+% tail of the list.
+find_first(C, [_|Xs], Y) :-
+    find_first(C, Xs, Y).
+
+% Define a predicate "create_vector" with three arguments:
+% the element to be inserted into the vector, the length of the vector, and the vector itself
+create_vector(_, 0, []).
+create_vector(Elem, Len, [Elem|Vec]) :-
+    Len > 0,
+    Len1 is Len - 1,
+    create_vector(Elem, Len1, Vec).
+
+% Define a predicate "make_vector" with two arguments:
+% the element to be inserted into the vector, and the length of the vector
+% It creates the vector by calling "create_vector" with the appropriate arguments
+make_vector(Elem, Len, Vec) :-
+    create_vector(Elem, Len, Vec).

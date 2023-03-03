@@ -1,0 +1,16 @@
+To prove: [p→q,r→s]⊢(p∨r→q∨s)
+ epoch2: ([p→q,r→s],[])⊢(p∨r→q∨s)
+ Next Step: ([p→q,r→s,p∨r],[])⊢(q∨s)
+  epoch2: ([p→q,r→s,p∨r],[])⊢(q∨s)
+  Next Step: ([p→q,r→s,p∨r],[])⊢q
+   epoch1: ([p→q,r→s,p∨r],[])⊢q
+   Next Step: ([p→q,r→s,temp(p∨r)],[])⊢(p→q)∧([p→q,r→s,temp(p∨r)],[])⊢(r→q)
+    Split: ([p→q,r→s,temp(p∨r)],[])⊢(p→q)∧([p→q,r→s,temp(p∨r)],[])⊢(r→q)
+    Split1: ([p→q,r→s,temp(p∨r)],[])⊢(p→q)
+    Split2: ([p→q,r→s,temp(p∨r)],[])⊢(r→q)
+     epoch2: ([p→q,r→s,temp(p∨r)],[])⊢(r→q)
+     Next Step: ([p→q,r→s,temp(p∨r),r],[])⊢q
+      epoch1: ([p→q,r→s,temp(p∨r),r],[])⊢q
+      Next Step: ([p→q,temp(r→s),temp(p∨r),r],[])⊢r∧([p→q,r→s,temp(p∨r),r],[r,s])⊢q
+       Split: ([p→q,temp(r→s),temp(p∨r),r],[])⊢r∧([p→q,r→s,temp(p∨r),r],[r,s])⊢q
+       Split1: ([p→q,temp(r→s),temp(p∨r),r],[])⊢r
