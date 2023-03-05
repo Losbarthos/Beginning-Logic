@@ -48,6 +48,9 @@ set_evaluate(A \\ B, E) :- ground(A \\ B), set_evaluate(A, E1), set_evaluate(B, 
 set_evaluate(A ∩ B, E) :- ground(A ∩ B), set_evaluate(A, E1), set_evaluate(B, E2), intersection(E1, E2, E), !.
 set_evaluate(A ∪ B, E) :- ground(A ∪ B), set_evaluate(A, E1), set_evaluate(B, E2), union(E1, E2, E), !.
 
+
+
+
 % The predicate is_subset/2 checks whether list A is a subset of list B.
 is_subset([], _). % An empty list is always a subset of any other list.
 is_subset([X|Xs], B) :- % A non-empty list A is a subset of B if:
