@@ -57,8 +57,21 @@ q ⊢ (p∨q)													# Excercise 1d
 p,(p↔q) ⊢ q													# Problem 25
 (p↔q),(q↔r) ⊢ (p↔r)											# Problem 26
 ((p∧q)↔p) ⊢ (p→q)											# Problem 27
+(p∧(p↔q)) ⊢ (p∧q)											# Problem 28
 
 q,(p↔q) ⊢ p 												# Excercise 1a
 (p→q),(q→p) ⊢ (p↔q)											# Excercise 1b
 (p↔q) ⊢ ((¬p)↔(¬q))											# Excercise 1c
-q,(p↔q) ⊢ p 												# Excercise 1d
+((¬p)↔(¬q)) ⊢ (p↔q)											# Excercise 1d
+((p∨q)↔p) ⊢ (q→p)											# Excercise 1e
+(p↔(¬q)),(q↔(¬r)) ⊢ (p↔r)									# Excercise 1f
+
+p ⊢ p														# Problem 29
+((p∧q)→r) ⊢ (p→(q→r))										# Problem 30a
+(p→(q→r)) ⊢ ((p∧q)→r) 										# Problem 30b
+(p∧(p∨q)) ⊢ p 												# Problem 31a
+p ⊢ (p∧(p∨q))												# Problem 31b
+(p∨(p∧q)) ⊢ p 												# Problem 32a
+p ⊢ (p∨(p∧q))												# Problem 32b
+(p∨p) ⊢ p 													# Problem 33a
+p ⊢ (p∨p)													# Problem 33b

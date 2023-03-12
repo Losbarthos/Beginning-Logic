@@ -56,7 +56,7 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(U)),
 	merge_rule_graph([L → R, R → L], L ↔ R, "↔I", GIn, GOut),
 
-	table_insert("↔I", [L → R, R → L], L ↔ R, TIn, TOut).
+	table_insert("↔I", A, [L → R, R → L], L ↔ R, TIn, TOut).
 
 % Same as
 % [A;P?C, (L ↔ R) ∈ (A ∪ P), (L → R) ∧ (R → L) ∉ (A ∪ P)] → A;P,(L → R) ∧ (R → L)?C   
@@ -72,7 +72,8 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(U)),
 	merge_rule_graph([L ↔ R], (L → R) ∧ (R → L), "↔E", GIn, GOut),
 
-	table_insert("↔E", [L ↔ R], (L → R) ∧ (R → L), TIn, TOut).
+	temp_invariant(A, AI),
+	table_insert("↔E", AI, [L ↔ R], (L → R) ∧ (R → L), TIn, TOut).
 
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L?C   
@@ -88,7 +89,8 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(U)),
 	merge_rule_graph([L ∧ R], L, "∧E", GIn, GOut),
 
-	table_insert("∧E", [L ∧ R], L, TIn, TOut).
+	temp_invariant(A, AI),
+	table_insert("∧E", AI, [L ∧ R], L, TIn, TOut).
 
 % Same as
 % [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R?C   
@@ -105,7 +107,8 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	merge_rule_graph([L ∧ R], R, "∧E", GIn, GOut),
 
-	table_insert("∧E", [L ∧ R], R, TIn, TOut).
+	temp_invariant(A, AI),
+	table_insert("∧E", AI, [L ∧ R], R, TIn, TOut).
 
 %
 % Same as
@@ -132,7 +135,39 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(UT)),
 	merge_rule_graph([L, L → R], R, "→E", GIn, GOut),
 
-	table_insert("→E", [L, L → R], R, TIn, TOut).
+	temp_invariant(A1, A1I),
+	table_insert("→E", A1I, [L, L → R], R, TIn, TOut).
+
+
+%
+% Same as
+% [A;P?R, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?R and A\(L → R);P\(L → R)?L    
+% RuleName: →E
+rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
+	Origin = ((A1, P1) ⊢ R), 
+	Origin0 = ((A2, P2) ⊢ R), 
+	NextStep = (((A2, P2) ⊢ L) ∧ ((A1, P3) ⊢ R)),
+	GIn = graph(_, E),
+	
+
+	U1 := (A1 ∪ P1), temp_invariant(U1, UT),
+
+	((L → R) ∈ U1), R ∉ UT, not(R=L), 
+	P3 := P1 ∪ [L, R], 
+
+	replace_derivation_by_inv(L → R, Origin, Origin0),
+
+
+	not(((¬(¬(L)) ∈ UT), (edge(¬(¬(L)), ¬(L), "¬E") ∈ E))), % To eliminate derivations like d ⊢ ¬(¬d)
+	not(( L = ¬(¬(L1)), (edge(¬(¬(L1)), ¬(L1), "¬I") ∈ E))),% To eliminate derivations like ¬(¬d) ⊢ d
+
+	not(has_contradictions(UT)),
+	merge_rule_graph([L, L → R], R, "→E", GIn, GOut),
+
+	temp_invariant(A1, A1I),
+	table_insert("→E", A1I, [L, L → R], R, TIn, TOut).
+
+
 
 %
 % Same as
@@ -153,7 +188,8 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	merge_rule_graph([L ∨ R, L → C, R → C], C, "∨E", GIn, GOut),
 
-	table_insert("∨E", [L ∨ R, L → C, R → C], C, TIn, TOut).
+	temp_invariant(A1, A1I),
+	table_insert("∨E", A1I, [L ∨ R, L → C, R → C], C, TIn, TOut).
 
 
 % Same as
@@ -168,7 +204,8 @@ rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(U)),
 	merge_rule_graph([L, R], L → R, "→I", GIn, GOut),
 
-	table_insert("→I", [L, R], L → R, TIn, TOut).
+	temp_invariant(A2, A2I),
+	table_insert("→I", A2I, [L, R], L → R, TIn, TOut).
 
 
 % Same as
@@ -183,8 +220,9 @@ rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	U := A ∪ P, 
 	not(has_contradictions(U)),
 	merge_rule_graph([L, R], L ∧ R, "∧I", GIn, GOut),
-	
-	table_insert("∧I", [L, R], L ∧ R, TIn, TOut).
+
+	temp_invariant(A, AI),
+	table_insert("∧I", AI, [L, R], L ∧ R, TIn, TOut).
 
 
 % Same as
@@ -199,7 +237,8 @@ rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(U)),
 	merge_rule_graph([L], L ∨ R, "∨I", GIn, GOut),
 
-	table_insert("∨I", [L], L ∨ R, TIn, TOut).
+	temp_invariant(A, AI),
+	table_insert("∨I", AI, [L], L ∨ R, TIn, TOut).
 
 % Same as
 % [A;P?L∨R] → [A;P?R]   
@@ -213,7 +252,8 @@ rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(has_contradictions(U)),
 	merge_rule_graph([R], L ∨ R, "∨I", GIn, GOut),
 
-	table_insert("∨I", [R], L ∨ R, TIn, TOut).
+	temp_invariant(A, AI),
+	table_insert("∨I", AI, [R], L ∨ R, TIn, TOut).
 
 %
 % Same as
@@ -232,7 +272,8 @@ rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	merge_rule_graph([L ∨ R, L → C, R → C], C, "∨E", GIn, GOut),
 
-	table_insert("∨E", [L ∨ R, L → C, R → C], C, TIn, TOut).
+	temp_invariant(A1, A1I),
+	table_insert("∨E", A1I, [L ∨ R, L → C, R → C], C, TIn, TOut).
 
 % Same as
 % [A;P?C, (C ∧ ¬C) ∉ A, ¬C ∉ A] → (A,¬C;P?(X1 ∧ ¬X1)) ∨ (A,¬C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,¬C;P?(Xn ∧ ¬Xn))    
@@ -248,7 +289,8 @@ rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	merge_rule_graph([¬(C), ⊥(N)], C, "¬E", GIn, GOut),
 
-	table_insert("¬E", [¬(C), ⊥(N)], C, TIn, TOut).
+	temp_invariant(A, AI),
+	table_insert("¬E", AI, [¬(C), ⊥(N)], C, TIn, TOut).
 
 
 % Same as
@@ -264,22 +306,21 @@ rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	merge_rule_graph([C, ⊥(N)], ¬(C), "¬I", GIn, GOut),
 
-	table_insert("¬I", [C, ⊥(N)], ¬(C), TIn, TOut).
+	temp_invariant(A, AI),
+	table_insert("¬I", AI, [C, ⊥(N)], ¬(C), TIn, TOut).
 %
 % Same as
 % [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 % RuleName: →E
-rule(epoch5, Origin, NextStep, GIn, GOut, TIn, TOut) :-
+rule(epoch5, Origin, NextStep, G, G, TblIn, TblOut) :-
 	Origin = ((A1, P1) ⊢ C), 
 	Origin0 = ((A2, P2) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ L) ∧ ((A1, P3) ⊢ C)),
-	GIn = graph(_, E),
-	
 
 	U1 := (A1 ∪ P1), temp_invariant(U1, UT),
 
 	((L → R) ∈ U1), R ∉ UT, not(C=L), 
-	P3 := P1 ∪ [L, R], 
+	P3 := P1 ∪ [L], 
 
 	replace_derivation_by_inv(L → R, Origin, Origin0),
 
@@ -288,9 +329,14 @@ rule(epoch5, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	not(( L = ¬(¬(L1)), (edge(¬(¬(L1)), ¬(L1), "¬I") ∈ E))),% To eliminate derivations like ¬(¬d) ⊢ d
 
 	not(has_contradictions(UT)),
-	merge_rule_graph([L, L → R], R, "→E", GIn, GOut),
 
-	table_insert("→E", [L, L → R], R, TIn, TOut).
+	remove_inv(A2, A3, temp),
+	table_insert("Single", A3, _, L, TblIn, TblOut).
+
+
+solvable_unless(N, Derivation, Graph, Table) :-
+	M is N - 1,	get_atom_list_with_prefix_between(epoch, 1, M, Epochs),
+	member(Epoch, Epochs), rule(Epoch, Derivation, _, Graph, _, Table, _).
 
 
 
@@ -305,7 +351,8 @@ proof(Derivation, G, G, T, T) :-
 		isvalid(Derivation),
 		!.
 proof(Derivation, GIn, G, TIn, T) :- 	
-		Derivation = ((_, _) ⊢ ⊥(N)),
+		Derivation = ((A, _) ⊢ ⊥(N)),
+		%NextStep = ((A, P) ⊢ (C ∧ ¬(C))),
 		%T = [LeftIn, RightIn],
 		%TOut = [LeftOut, RightOut],
 		iscontradiction(Derivation, C),
@@ -313,7 +360,8 @@ proof(Derivation, GIn, G, TIn, T) :-
 		%subs(⊥(N), (C ∧ ¬(C)), RightIn, RightOut),
 		replace_vertex_weighted(⊥(N), (C ∧ ¬(C)), GIn, GOut),
 		merge_rule_graph([C, ¬(C)], (C ∧ ¬(C)), "∧I", GOut, G),
-		table_insert("∧I", [C, ¬(C)], (C ∧ ¬(C)), TOut, T),
+		temp_invariant(A, AA),
+		table_insert("∧I", AA, [C, ¬(C)], (C ∧ ¬(C)), TOut, T),
 		!.
 proof(Derivation, GIn, G, TIn, T) :- 
 		%Derivation = ((A, P) ⊢ C),
@@ -344,6 +392,7 @@ proof(Derivation, GIn, G, TIn, T) :-
 		dec_space_counter,
 		!.
 proof(Derivation, GIn, G, TIn, T) :- 
+		%not(solvable_unless(4, Derivation, GIn, TIn)),
 		rule(epoch4,Derivation, NextStep, GIn, GOut, TIn, TOut),
 		trace_constant(epoch4, Derivation),
 		trace_constant('Next Step', NextStep),
@@ -352,6 +401,7 @@ proof(Derivation, GIn, G, TIn, T) :-
 		dec_space_counter,
 		!.
 proof(Derivation, GIn, G, TIn, T) :- 
+		not(solvable_unless(5, Derivation, GIn, TIn)),
 		rule(epoch5,Derivation, NextStep, GIn, GOut, TIn, TOut),
 		trace_constant(epoch5, Derivation),
 		trace_constant('Next Step', NextStep),
@@ -438,13 +488,16 @@ go_proof44(G, T) :- proofD(([(p→q),(r→s)] ⊢ ((p∨r)→(q∨s))), G, T).
 go_proof46(G, T) :- proofD(([p→(q∧r)] ⊢ ((p→q)∧(p→r))), G, T).
 go_proof48(G, T) :- proofD(([(p↔q)] ⊢ (q↔p)), G, T).
 go_proof50(G, T) :- proofD(([(p↔q),(q↔r)] ⊢ (p↔r)), G, T).
+go_proof54(G, T) :- proofD([(p↔q)] ⊢ ((¬p)↔(¬q)), G, T).
+go_proof64(G, T) :- proofD([(p∨(p∧q))] ⊢ p, G, T).
+go_proof68(G, T) :- proofD([p, (¬(p∧q))] ⊢ (¬q), G, T).
 
 go_debug :-
     set_prolog_flag(color_term, false),
     protocol('p.txt'),
     leash(-all),
-    trace(proof/6),
-    proof(([(p↔q), (q↔r)],[]) ⊢ (p↔r), _P),
+    trace(proof/3),
+    proof((([(p↔q), (q↔r)],[]) ⊢ (p↔r)), _G, _P),
     !,
     nodebug,
     noprotocol.

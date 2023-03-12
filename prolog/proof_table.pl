@@ -4,7 +4,7 @@
 %    Copyright (c)  2022, Martin Kunze
 
 :- module(proof_table, [
-				   		table_insert/5,
+				   		table_insert/6,
 				   		table_init/3,
 				   		is_proof_table/1,
 				   		write_proof_table/1,
@@ -20,12 +20,18 @@
 
 :- use_module(library(clpfd)).
 
+
 % Inits the table with his base assumptions and the conclusion.
 table_init(Assumptions, Conclusion, Tbl) :-
 	findall(X, (nth1(I, Assumptions, A), X = [[I], [I], I, A, "A", []]), AssumptionTable),
 	findall(I, ([_, _, I, _, _, _] ∈ AssumptionTable), AIdx),
 	C = [[AIdx, _, _, Conclusion, _, _]],
 	Tbl = [AssumptionTable, C].
+
+% Stores the Lines in the proof table Tbl of all assumptions which occur in list "Assumptions" in the list Idx.  
+get_assumption_idx(Assumptions, Tbl, Idx) :-
+	Tbl = [TblL, _],
+	findall(I, (A ∈ Assumptions, [[I], [I], I, A, "A", []] ∈ TblL), Idx).
 
 table_append(_, Element, Assumptions, TblIn, TblIn) :-
 	TblIn = [Left, _],
@@ -56,7 +62,7 @@ table_append(left, Element, AIdx, TblIn, TblOut) :-
 table_append(right, Element, AIdx, TblIn, TblOut) :-
 	Element = [AIdx, AA, I, C, R, P],
 	set_evaluate(AA, A), subset(A, AIdx),
-	table_append(left, [AIdx, A, I, C, R, P], TblIn, TblOut).
+	table_append(left, [AIdx, A, I, C, R, P], AIdx, TblIn, TblOut).
 
 table_append(right, Element, A, TblIn, TblOut) :-
 	TblIn = [Left, Right],
@@ -64,8 +70,8 @@ table_append(right, Element, A, TblIn, TblOut) :-
 	append([Element], Right, RightOut),
 	TblOut = [Left, RightOut].
 
-table_insert("∧I", Premisses, L ∧ R, TblIn, TblOut) :-
-	Premisses = [L, R],
+table_insert("∧I", Assumptions, Premisses, L ∧ R, TblIn, TblOut) :-
+	Premisses = [L, R], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	C   = [AIdxC, AC, IC, L ∧ R, "∧I", [IL, IR]],
 	P_L = [AIdxL, AL, IL, L    ,  _  , _      ],
@@ -77,6 +83,8 @@ table_insert("∧I", Premisses, L ∧ R, TblIn, TblOut) :-
 			table_append(right, C  , AIdxC, TblIn, TblB0 ),
 			table_append(right, P_L, AIdxC, TblB0, TblB1 ),
 			table_append(right, P_R, AIdxC, TblB1, TblOut),
+			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
 			(   (var(AIdxL)) ->
 		        AIdxL = AIdxC
 		    ;   true
@@ -90,8 +98,8 @@ table_insert("∧I", Premisses, L ∧ R, TblIn, TblOut) :-
 		    ;   true
 		    ))).
 
-table_insert("↔I", Premisses, L ↔ R, TblIn, TblOut) :-
-	Premisses = [L → R, R → L],
+table_insert("↔I", Assumptions, Premisses, L ↔ R, TblIn, TblOut) :-
+	Premisses = [L → R, R → L], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	C   = [AIdxC, AC, IC, L ↔ R, "↔I", [IL, IR]],
 	P_L = [AIdxL, AL, IL, L → R, _   , _       ],
@@ -103,6 +111,8 @@ table_insert("↔I", Premisses, L ↔ R, TblIn, TblOut) :-
 			table_append(right, C  , AIdxC, TblIn, TblB0 ),
 			table_append(right, P_L, AIdxC, TblB0, TblB1 ),
 			table_append(right, P_R, AIdxC, TblB1, TblOut),
+			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
 			(   (var(AIdxL)) ->
 		        AIdxL = AIdxC
 		    ;   true
@@ -117,60 +127,80 @@ table_insert("↔I", Premisses, L ↔ R, TblIn, TblOut) :-
 		    ))).
 
 
-table_insert("→I", Premisses, L → R, TblIn, TblOut) :-
-	Premisses = [L, R],
+table_insert("→I", Assumptions, Premisses, L → R, TblIn, TblOut) :-
+	Premisses = [L, R], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	C   = [AIdxC, AC  , IC, L → R, "→I", [IA, IR]],
 	X   = [[IA] , [IA], IA, L    , "A" ,       []],
 	P_R = [AIdxR, AR  , IR,     R, _   ,        _],
 
-	AC = ((AR) \\ ([IA])), IA #< IR, IR #< IC, 
+	AC = ((AR) \\ ([IA])), IA #=< IR, IR #=< IC, 
 
 	once((
 			table_append(right, C  , AIdxC, TblIn, TblB0 ),
 			table_append(left , X  , [IA] , TblB0, TblB1 ),
 			table_append(right, P_R, AIdxR, TblB1, TblOut),
 			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
+			nonvar(AIdxC),
 			(   (var(AIdxR)) ->
 				union(AIdxC, [IA], AIdxR) 
 		    ;   true
 		    ))).
 
-table_insert("∧E", Premisses, L, TblIn, TblOut) :-
-	Premisses = [L ∧ R],
+table_insert("∧E", Assumptions, Premisses, L, TblIn, TblOut) :-
+	Premisses = [L ∧ R], get_assumption_idx(Assumptions, TblIn, AAIdx),
 
-	P_LR = [AIdx, ALR, ILR, L ∧ R, _   , _    ],
-	C    = [AIdx, ALR, IC , L    , "∧E", [ILR]],
+	P_LR = [AIdxLR, ALR, ILR, L ∧ R, _   , _    ],
+	C    = [AIdxC , ALR, IC , L    , "∧E", [ILR]],
 	ILR #< IC,
 
 	once((
 			table_append(left, P_LR, AIdx, TblIn, TblB1 ),
-			table_append(left, C   , AIdx, TblB1, TblOut))).
+			table_append(left, C   , AIdx, TblB1, TblOut),
+			nonvar(AIdxLR),
+			subset(AIdxLR, AAIdx),
+			(   (var(AIdxC)) ->
+		        AIdxC = AIdxLR
+		    ;   true
+		    ))).
 
-table_insert("∧E", Premisses, R, TblIn, TblOut) :-
-	Premisses = [L ∧ R],
+table_insert("∧E", Assumptions, Premisses, R, TblIn, TblOut) :-
+	Premisses = [L ∧ R], get_assumption_idx(Assumptions, TblIn, AAIdx),
 	
-	P_LR = [AIdx, ALR, ILR, L ∧ R, _    , _    ],
-	C =    [AIdx, ALR, IC ,     R, "∧E" , [ILR]],
+	P_LR = [AIdxLR, ALR, ILR, L ∧ R, _    , _    ],
+	C =    [AIdxC , ALR, IC ,     R, "∧E" , [ILR]],
 	ILR #< IC,
 	
 	once((
 			table_append(left, P_LR, AIdx, TblIn, TblB1 ),
-			table_append(left, C   , AIdx, TblB1, TblOut))).
+			table_append(left, C   , AIdx, TblB1, TblOut),
+			nonvar(AIdxLR),
+			subset(AIdxLR, AAIdx),
+			(   (var(AIdxC)) ->
+		        AIdxC = AIdxLR
+		    ;   true
+		    ))).
 
-table_insert("↔E", Premisses, (L → R) ∧ (R → L), TblIn, TblOut) :-
-	Premisses = [L ↔ R],
+table_insert("↔E", Assumptions, Premisses, (L → R) ∧ (R → L), TblIn, TblOut) :-
+	Premisses = [L ↔ R], get_assumption_idx(Assumptions, TblIn, AAIdx),
 	
-	P_LR = [AIdx, ALR, ILR,       L ↔ R       , _   , _    ],
-	C    = [AIdx, ALR, IC , (L → R) ∧ (R → L) , "↔E", [ILR]],
+	P_LR = [AIdxLR, ALR, ILR,       L ↔ R       , _   , _    ],
+	C    = [AIdxC , ALR, IC , (L → R) ∧ (R → L) , "↔E", [ILR]],
 	ILR #< IC,
 
 	once((
 			table_append(left, P_LR, AIdx, TblIn, TblB1 ),
-			table_append(left, C   , AIdx, TblB1, TblOut))).
+			table_append(left, C   , AIdx, TblB1, TblOut),
+			nonvar(AIdxLR),
+			subset(AIdxLR, AAIdx),
+			(   (var(AIdxC)) ->
+		        AIdxC = AIdxLR
+		    ;   true
+		    ))).
 
-table_insert("→E", Premisses, R, TblIn, TblOut) :-
-	Premisses = [L, L → R],
+table_insert("→E", Assumptions, Premisses, R, TblIn, TblOut) :-
+	Premisses = [L, L → R], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	LR  = [AIdxLR, ALR, ILR, (L → R), _   , _        ],
 	P_L = [AIdxL , AL , IL ,  L     , _   , _        ],
@@ -182,19 +212,22 @@ table_insert("→E", Premisses, R, TblIn, TblOut) :-
 			table_append(right, P_R, AIdxR, TblIn, TblB0 ),
 			table_append(left ,  LR, AIdxR, TblB0, TblB1 ),
 			table_append(right, P_L, AIdxR, TblB1, TblOut),
-			(   (var(AIdxL), var(AIdxR)) ->
-		        AIdxL = AIdxLR,
-		        AIdxR = AIdxLR
+			nonvar(AIdxLR),
+			(nonvar(AIdxR);nonvar(AIdxL)),
+			(   (var(AIdxL), nonvar(AIdxR)) ->
+		        AIdxL := (AIdxLR ∪ AIdxR)
 		    ;   true
 		    ),
-			(   (var(AIdxR)) ->
+			(   (nonvar(AIdxL), var(AIdxR)) ->
 		        AIdxR := (AIdxLR ∪ AIdxL)
 		    ;   true
-		    ))).
+		    ),
+		    AIdx1 := (AIdxLR ∪  AIdxL),
+		    subset(AIdx1, AIdx))).
 	
 
-table_insert("∨E", Premisses, C, TblIn, TblOut) :-
-	Premisses = [L ∨ R, L → C, R → C],
+table_insert("∨E", Assumptions, Premisses, C, TblIn, TblOut) :-
+	Premisses = [L ∨ R, L → C, R → C], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	X =  [_     , AX, IX, L ∨ R,    _, _           ],
 	LC = [AIdxLC, AL, IL, L → C,    _, _           ],
@@ -208,6 +241,8 @@ table_insert("∨E", Premisses, C, TblIn, TblOut) :-
 			table_append(left,   X, AIdxC, TblB0, TblB1 ),
 			table_append(right, LC, AIdxC, TblB1, TblB2 ),
 			table_append(right, RC, AIdxC, TblB2, TblOut),
+			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
 			(   (var(AIdxLC)) ->
 		        AIdxLC = AIdxC
 		    ;   true
@@ -217,8 +252,8 @@ table_insert("∨E", Premisses, C, TblIn, TblOut) :-
 		    ;   true
 		    ))).
 
-table_insert("∨I", Premisses, L ∨ R, TblIn, TblOut) :-
-	Premisses = [R],
+table_insert("∨I", Assumptions, Premisses, L ∨ R, TblIn, TblOut) :-
+	Premisses = [R], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	P_R = [AIdxR, AC, IR,     R,    _, _   ],
 	C   = [AIdxC, AC, IC, L ∨ R, "∨I", [IR]],
@@ -227,13 +262,15 @@ table_insert("∨I", Premisses, L ∨ R, TblIn, TblOut) :-
 	once((
 			table_append(right, C  , AIdxC, TblIn, TblB0 ),
 			table_append(right, P_R, AIdxC, TblB0, TblOut),
+			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
 			(   (var(AIdxR)) ->
 		        AIdxR = AIdxC
 		    ;   true
 		    ))).
 
-table_insert("∨I", Premisses, L ∨ R, TblIn, TblOut) :-
-	Premisses = [L],
+table_insert("∨I", Assumptions, Premisses, L ∨ R, TblIn, TblOut) :-
+	Premisses = [L], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	P_R = [AIdxR, AC, IR, L    ,    _, _   ],
 	C   = [AIdxC, AC, IC, L ∨ R, "∨I", [IR]],
@@ -242,13 +279,15 @@ table_insert("∨I", Premisses, L ∨ R, TblIn, TblOut) :-
 	once((
 			table_append(right, C  , AIdxC, TblIn, TblB1 ),
 			table_append(right, P_R, AIdxC, TblB1, TblOut),
+			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
 			(   (var(AIdxR)) ->
 		        AIdxR = AIdxC
 		    ;   true
 		    ))).
 
-table_insert("¬E", Premisses, C, TblIn, TblOut) :-
-	Premisses = [¬(C), ⊥(N)],
+table_insert("¬E", Assumptions, Premisses, C, TblIn, TblOut) :-
+	Premisses = [¬(C), ⊥(N)], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	NA =  [[IA] , [IA], IA, ¬(C), "A" , []      ],
 	W  =  [AIdxW, AW  , IW, ⊥(N), _   , _       ],
@@ -261,14 +300,15 @@ table_insert("¬E", Premisses, C, TblIn, TblOut) :-
 			table_append(left , NA, [IA] , TblB0, TblB1 ),
 			table_append(right, W , AIdxW, TblB1, TblOut),
 			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
 			(   (var(AIdxW)) ->
 				union(AIdxC, [IA], AIdxW) 
 		    ;   true
 		    ))).
 
 
-table_insert("¬I", Premisses, ¬(C), TblIn, TblOut) :-
-	Premisses = [C, ⊥(N)],
+table_insert("¬I", Assumptions, Premisses, ¬(C), TblIn, TblOut) :-
+	Premisses = [C, ⊥(N)], get_assumption_idx(Assumptions, TblIn, AIdx),
 
 	A  =  [[IA] , [IA], IA, C   , "A" , []      ],
 	W  =  [AIdxW, AW  , IW, ⊥(N), _   , _       ],
@@ -281,10 +321,20 @@ table_insert("¬I", Premisses, ¬(C), TblIn, TblOut) :-
 			table_append(left , A , [IA] , TblB0, TblB1),
 			table_append(right, W , AIdxW, TblB1, TblOut),
 			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
 			(   (var(AIdxW)) ->
 				union(AIdxC, [IA], AIdxW) 
 		    ;   true
 		    ))).
+
+table_insert("Single", Assumptions, _, S, TblIn, TblOut) :-
+	get_assumption_idx(Assumptions, TblIn, AIdx),
+
+	Single = [AIdx, _, _, S, _, _],
+	once((
+			table_append(right, Single, AIdx, TblIn, TblOut)
+			)).
+
 
 descriped(Element) :- 
 	Element = [_, AA, _, _, _, P], 

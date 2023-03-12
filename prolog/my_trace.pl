@@ -13,6 +13,8 @@
 :- dynamic global_counter/1.
 
 % Initialisiere die globale Variable mit Null
+% To generate some protocol file, first initialize prolog_flag my_trace with:
+% set_prolog_flag(my_trace, true).
 global_counter(0).
 
 inc_space_counter :-

@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.14.0 (TeX Live 2022/dev/Debian)  (format=lualatex 2022.6.27)  3 MAR 2023 13:07
+This is LuaHBTeX, Version 1.14.0 (TeX Live 2022/dev/Debian)  (format=lualatex 2022.6.27)  12 MAR 2023 09:54
  restricted system commands enabled.
 **test5.tex
 (./test5.tex
@@ -490,26 +490,24 @@ LaTeX Font Info:    Font shape `TU/latinmodern-math.otf(3)/m/n' will be
  [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}] [2]
-[3] [4] [5] [6] [7] [8] [9] [10] [11] [12] [13
-
-] [14] (./test5.aux))
+[3] [4] [5] [6] [7] [8] [9] [10] [11] [12] [13] (./test5.aux))
 
 Here is how much of LuaTeX's memory you used:
- 9485 strings out of 477805
- 195346,794899 words of node,token memory allocated
+ 9585 strings out of 477805
+ 244184,794899 words of node,token memory allocated
  484 words of node memory still in use:
    6 hlist, 2 vlist, 2 rule, 2 glue, 4 kern, 1 glyph, 6 attribute, 52 glue_spec,
  6 attribute_list, 1 write nodes
-   avail lists: 2:11065,3:649,4:8,5:524,6:156,7:17291,8:30,9:3171,10:7,11:1
- 30062 multiletter control sequences out of 65536+600000
- 31 fonts using 10281559 bytes
- 86i,9n,115p,255b,316s stack positions out of 5000i,500n,10000p,200000b,80000s
+   avail lists: 1:1,2:12749,3:722,4:8,5:612,6:174,7:19815,8:29,9:3619,10:7,11:1
+ 30162 multiletter control sequences out of 65536+600000
+ 31 fonts using 10281479 bytes
+ 103i,9n,115p,255b,316s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/share/texmf/fonts/opentype/public/lm/lmroman10-regular.otf></usr/share/tex
 mf/fonts/opentype/public/lm-math/latinmodern-math.otf>
-Output written on test5.pdf (14 pages, 22641 bytes).
+Output written on test5.pdf (13 pages, 22215 bytes).
 
-PDF statistics: 63 PDF objects out of 1000 (max. 8388607)
- 40 compressed objects within 1 object stream
+PDF statistics: 60 PDF objects out of 1000 (max. 8388607)
+ 38 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 131072)
  1 words of extra memory for PDF output out of 10000 (max. 100000000)
 

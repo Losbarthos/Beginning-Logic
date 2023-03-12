@@ -16,7 +16,8 @@
 				   		split_list/4,
 				   		list_without_variables/1,
 				   		find_first/3,
-				   		create_vector/3
+				   		create_vector/3,
+				   		get_atom_list_with_prefix_between/4
 				   		]).
 
 :- use_module(library(clpfd)).
@@ -133,3 +134,19 @@ create_vector(Elem, Len, [Elem|Vec]) :-
 % It creates the vector by calling "create_vector" with the appropriate arguments
 make_vector(Elem, Len, Vec) :-
     create_vector(Elem, Len, Vec).
+
+
+% Generates a list of atoms with a given prefix and numeric suffixes between two given bounds.
+% @param Prefix A prefix that represents the beginning of the generated atoms.
+% @param From The lower bound of the numeric suffixes.
+% @param To The upper bound of the numeric suffixes.
+% @param Atoms The generated list of atoms.
+get_atom_list_with_prefix_between(Prefix, From, To, Atoms) :-
+    % Use findall/3 to generate a list of atoms.
+    findall(Atom, 
+            % Use between/3 to iterate over all numeric suffixes between the given bounds.
+            (between(From, To, N), 
+             % Use atomic_list_concat/2 to generate the atom from the prefix and current suffix.
+             atomic_list_concat([Prefix, N], Atom)), 
+            % The list of generated atoms.
+            Atoms).

@@ -447,6 +447,8 @@ class Derivation(Frame):
 		f.write("\\usepackage{caption}\n")
 		f.write("\\usepackage{unicode-math}\n")
 		f.write("\\begin{document}\n")
+		f.write("\\maxdeadcycles=200\n") 
+		f.write("\\extrafloats{100}\n")
 
 		fooder = "\\end{document}\n"
 
@@ -462,7 +464,7 @@ class Derivation(Frame):
 				f.write(f"\\caption*{{{derivation}}}")
 				f.write(f"\\centering")
 				f.write(latex_table.replace("set()","{}"))
-				f.write("\\end{table}")
+				f.write("\\end{table}\n")
 
 		f.write(fooder)
 		f.close()
