@@ -26,7 +26,7 @@ table_init(Assumptions, Conclusion, Tbl) :-
 	C = [[AIdx, _, _, Conclusion, _, _]],
 	Tbl = [AssumptionTable, C].
 
-% Stores the Lines in the proof table Tbl of all assumptions which occur in list "Assumptions" in the list Idx.
+% Stores the Lines in the proof table Tbl of all assumptions which occur in list "Assumptions" in the list Idx.  
 get_assumption_idx(Assumptions, Tbl, Idx) :-
 	Tbl = [TblL, _],
 	findall(I, (A ∈ Assumptions, [[I], [I], I, A, "A", []] ∈ TblL), Idx).
@@ -53,7 +53,7 @@ table_append(left, Element, AIdx, TblIn, TblOut) :-
 	TblIn = [Left, Right],
 	Element = [AIdx, A, N, C, R, P],
 	length(Left, I), N #= I + 1,
-	set_evaluate(A, AA),
+	set_evaluate(A, AA), 
 	append(Left, [[AIdx, AA, N, C, R, P]], LeftOut),
 	TblOut = [LeftOut, Right].
 
@@ -73,7 +73,7 @@ table_insert("∧I", Assumptions, Premisses, L ∧ R, TblIn, TblOut) :-
 
 	C   = [AIdxC, AC, IC, L ∧ R, "∧I", [IL, IR]],
 	P_L = [AIdxL, AL, IL, L    ,  _  , _      ],
-	P_R = [AIdxR, AR, IR,     R,  _  , _      ],
+	P_R = [AIdxR, AR, IR,     R,  _  , _      ], 
 
 	AC = ((AR) ∪ (AL)), IL #< IC, IR #< IC,
 
@@ -101,7 +101,7 @@ table_insert("↔I", Assumptions, Premisses, L ↔ R, TblIn, TblOut) :-
 
 	C   = [AIdxC, AC, IC, L ↔ R, "↔I", [IL, IR]],
 	P_L = [AIdxL, AL, IL, L → R, _   , _       ],
-	P_R = [AIdxR, AR, IR, R → L, _   , _       ],
+	P_R = [AIdxR, AR, IR, R → L, _   , _       ], 
 
 	AC = ((AR) ∪ (AL)), IL #< IC, IR #< IC,
 
@@ -132,7 +132,7 @@ table_insert("→I", Assumptions, Premisses, L → R, TblIn, TblOut) :-
 	X   = [[IA] , [IA], IA, L    , "A" ,       []],
 	P_R = [AIdxR, AR  , IR,     R, _   ,        _],
 
-	AC = ((AR) \\ ([IA])), IA #=< IR, IR #=< IC,
+	AC = ((AR) \\ ([IA])), IA #=< IR, IR #=< IC, 
 
 	once((
 			table_append(right, C  , AIdxC, TblIn, TblB0 ),
@@ -140,9 +140,9 @@ table_insert("→I", Assumptions, Premisses, L → R, TblIn, TblOut) :-
 			table_append(right, P_R, AIdxR, TblB1, TblOut),
 			nonvar(AIdxC),
 			subset(AIdxC, AIdx),
-                        nonvar(AIdxC),
+			nonvar(AIdxC),
 			(   (var(AIdxR)) ->
-				union(AIdxC, [IA], AIdxR)
+				union(AIdxC, [IA], AIdxR) 
 		    ;   subset(AIdxR, AIdx)
 		    ))).
 
@@ -165,11 +165,11 @@ table_insert("∧E", Assumptions, Premisses, L, TblIn, TblOut) :-
 
 table_insert("∧E", Assumptions, Premisses, R, TblIn, TblOut) :-
 	Premisses = [L ∧ R], get_assumption_idx(Assumptions, TblIn, AAIdx),
-
+	
 	P_LR = [AIdxLR, ALR, ILR, L ∧ R, _    , _    ],
 	C =    [AIdxC , ALR, IC ,     R, "∧E" , [ILR]],
 	ILR #< IC,
-
+	
 	once((
 			table_append(left, P_LR, AIdx, TblIn, TblB1 ),
 			table_append(left, C   , AIdx, TblB1, TblOut),
@@ -182,7 +182,7 @@ table_insert("∧E", Assumptions, Premisses, R, TblIn, TblOut) :-
 
 table_insert("↔E", Assumptions, Premisses, (L → R) ∧ (R → L), TblIn, TblOut) :-
 	Premisses = [L ↔ R], get_assumption_idx(Assumptions, TblIn, AAIdx),
-
+	
 	P_LR = [AIdxLR, ALR, ILR,       L ↔ R       , _   , _    ],
 	C    = [AIdxC , ALR, IC , (L → R) ∧ (R → L) , "↔E", [ILR]],
 	ILR #< IC,
@@ -222,7 +222,7 @@ table_insert("→E", Assumptions, Premisses, R, TblIn, TblOut) :-
 		    ),
 		    AIdx1 := (AIdxLR ∪  AIdxL),
 		    subset(AIdx1, AIdx))).
-
+	
 
 table_insert("∨E", Assumptions, Premisses, C, TblIn, TblOut) :-
 	Premisses = [L ∨ R, L → C, R → C], get_assumption_idx(Assumptions, TblIn, AIdx),
@@ -289,7 +289,7 @@ table_insert("¬E", Assumptions, Premisses, C, TblIn, TblOut) :-
 
 	NA =  [[IA] , [IA], IA, ¬(C)    , "A" , []     ],
 	A  =  [AIdxC, _   , IC,   C     , "¬E", [IA, _]],
-
+	
 	IA #< IC,
 
     once((
@@ -306,7 +306,7 @@ table_insert("¬I", Assumptions, Premisses, ¬(C), TblIn, TblOut) :-
 	A  =  [[IA] , [IA], IA, C       , "A" , []     ],
 	NA =  [AIdxC, _   , IC, ¬(C)    , "¬I", [IA, _]],
 
-	IA #< IC,
+	IA #< IC, 
 
 	once((
 			table_append(right, NA, AIdxC, TblIn, TblB0 ),
@@ -325,8 +325,8 @@ table_insert("⊥", Assumptions, Premisses, P, TblIn, TblOut) :-
 	CO  =  [AIdxW , AW  , IW, ¬(X) ∧ X, "∧I", [I1, I2]],
 	NA  =  [AIdxC , AC  , IC, P       , R   , [IA, IW]],
 
-	AC = ((AW) \\ ([IA])), IA #< IC, IW #< IC,
-	AW = (A1 ∪ A2),
+	AC = ((AW) \\ ([IA])), IA #< IC, IW #< IC, 
+	AW = (A1 ∪ A2), 
 
 
 	once((
@@ -353,8 +353,8 @@ table_insert("Single", Assumptions, _, S, TblIn, TblOut) :-
 			)).
 
 
-descriped(Element) :-
-	Element = [_, AA, _, _, _, P],
+descriped(Element) :- 
+	Element = [_, AA, _, _, _, P], 
 	set_evaluate(AA, A), nonvar(P), nonvar(A),
 	list_without_variables(P), list_without_variables(A).
 
@@ -369,9 +369,9 @@ update_table([L, R], [L2, R2]) :-
     maplist(add_to_l, ToL, Rg), % Update the I values of the appended elements
     !. % The cut ensures that the function only returns one solution
 
-complete_subproof(T, T) :-
+complete_subproof(T, T) :- 
 	update_table(T, T), !.
-complete_subproof(TBIn, TBOut) :-
+complete_subproof(TBIn, TBOut) :- 
 	update_table(TBIn, TBB), complete_subproof(TBB, TBOut).
 
 is_proof_table(Tbl) :-
@@ -385,12 +385,12 @@ is_proof_table(Tbl) :-
 
 
 tblfd_to_tbllist(TblIn, TblOut) :-
-	findall(X,
+	findall(X, 
 			  (
-			  	[_, RG, I, C, R, PP] ∈ TblIn,
+			  	[_, RG, I, C, R, PP] ∈ TblIn, 
 				set_evaluate(RG, AA), sort(AA, A), sort(PP, P),
 				X = [A, I, C, R, P]
-			  ),
+			  ), 
 			TblOut).
 
 define_table(TblIn, TblOut) :-

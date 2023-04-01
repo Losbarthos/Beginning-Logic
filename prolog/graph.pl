@@ -75,11 +75,15 @@ generate_unweighted_graph(ListOfEdges,graph(VSorted,ListOfEdges)):-
 % creates a graph in graph-term form
 % directed and weighted graph
 generate_weighted_graph(ListOfEdges,graph(VSorted,ListOfEdges)):-
-    findall(X,(member(edge(X,_,_),ListOfEdges)),VX),
-    findall(Y,(member(edge(_,Y,_),ListOfEdges)),VY),
+    maplist(from_edge_weighted, ListOfEdges, VX),
+    maplist(to_edge_weighted, ListOfEdges, VY),
+    %findall(X,(member(edge(X,_,_),ListOfEdges)),VX),
+    %findall(Y,(member(edge(_,Y,_),ListOfEdges)),VY),
     append(VX,VY,V),
     sort(V,VSorted).
 
+from_edge_weighted(edge(X, _, _), X).
+to_edge_weighted(edge(_, Y, _), Y).
 
 % find_path_unweighted(+Graph,+V1,+V2,-Path)
 % find all paths between V1 and V2 in a directed unweighted graph

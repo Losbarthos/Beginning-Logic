@@ -22,9 +22,12 @@
 	contradictions/2,
 	derivation_route/2,					% +From, +To
 	has_cases/2,
-	has_contradictions/1
+	has_contradictions/1,
+	contains_negation/4,
+	get_np/2
 ]).
 
+:-use_module(my_term).
 :-use_module(set).
 
 % Logical operators
@@ -80,19 +83,8 @@ conjunction_list(List, Disjunction) :-
 
 % Definition of subformula
 subformulas(Formula, Subformulas) :- 
-			variable(Formula), 
-			Subformulas = [Formula].
-subformulas(Formula, Subformulas) :-
-			binary_connective(Formula, X, Y),
-			subformulas(X, S1),
-			subformulas(Y, S2),
-			union(S1, S2, SXY),
-			union(SXY,[Formula],Subformulas).
-
-subformulas(Formula, Subformulas) :-
-			Formula = ¬(X),
-			subformulas(X, S1),
-			union(S1, [¬(X)], Subformulas).
+			formula(Formula),
+			flatten_terms(Formula, Subformulas).
 
 get_next_element(N, N) :- not(⊥(N)), assert(⊥(N)), !.
 get_next_element(N, M) :- ⊥(N), O is N + 1, get_next_element(O, M).
@@ -153,3 +145,21 @@ has_cases(S, D) :-
 
 % checks, if the set S has contradictions. 
 has_contradictions(S) :- A ∈ S, ¬(A) ∈ S.
+
+contains_negation(L, C, N, R) :-
+    member(N, L),
+    (   ¬(N) = C, R = "¬I"
+    ;   ¬(C) = N, R = "¬E"
+    ).	
+
+% This function takes a proposition P as input and determines the value of the
+% second parameter NP based on the form of P.
+
+% If P is of the form ¬(P0), then NP is set to P0.
+get_np(P, NP) :- 
+    P =.. [¬, P0], 
+    NP = P0.
+get_np(P, NP) :- 
+    P =.. [P0], 
+    P0 \= ¬(_), 
+    NP =.. [¬, P].

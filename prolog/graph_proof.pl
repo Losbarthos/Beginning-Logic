@@ -18,9 +18,11 @@
 % ?- merge_rule([(∧(a,b))],a,"∧E",graph([],[]),G).
 % G = graph([a, ∧(a, b)], [edge(∧(a, b), a, "∧E")]).
 merge_rule_graph(Assumptions, Conclusion, RuleName, GIn, GOut) :-
-	findall(X, (A ∈ Assumptions, X = edge(A, Conclusion, RuleName)), EL),
+    maplist(create_edge(Conclusion, RuleName), Assumptions, EL), 
 	generate_weighted_graph(EL, G1),
 	merge_graphs(G1, GIn, GOut).
+
+create_edge(Conclusion, RuleName, Assumption, edge(Assumption, Conclusion, RuleName)).
 
 get_assumptions_of(graph(V, E), Of, Assumptions) :-
 	findall(X, (X ∈ V, edge(_, X, _) ∉ E, find_path_weighted(graph(V, E), X, Of, _)), Assumptions).

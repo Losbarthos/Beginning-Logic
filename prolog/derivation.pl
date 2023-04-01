@@ -12,7 +12,9 @@
 	isvalid/1,							% +Derivation
 	iscontradiction/2,					% +Derivation, -Contradiction
 	remove_from_derivation/3,			% +ToRemove, +DerivationIn, -DerivationOut
-	replace_derivation_by_inv/3
+	replace_derivation_by_inv/3,
+	subformulas/3,						%+Derivation, -Subformulas, +Options in ["Assumptions", "Premisses", "Conclusion"]
+	has_subformula/3					%+Derivation, +Subformula , +Options in ["Assumptions", "Premisses", "Conclusion"]
 ]).
 
 :-use_module(invariant).
@@ -58,7 +60,7 @@ isvalid(((A, P) ⊢ C)) :-
 	C ∈ AP.
 
 % Checks if their is some contradiction inside of the derivation ((A, P) ⊢ C).
-iscontradiction(((A, P) ⊢ ⊥(_)), X) :-
+iscontradiction(((A, P) ⊢ _), X) :-
 	AP:= A ∪ P, 
 	X ∈ AP, ¬(X) ∈ AP. 
 
@@ -76,4 +78,30 @@ replace_derivation_by_inv(ToReplace, DerivationIn, DerivationOut) :-
 	replace_by_inv(A, [ToReplace], AO, temp),
 	replace_by_inv(P, [ToReplace], PO, temp).
 
-	
+% subformulas/3: Find the subformulas of a sequent (A, P) ⊢ C, based on the given Options.
+subformulas((A, P) ⊢ C, Subformulas, Options) :-
+    find_subformulas(A, P, C, Options, SubformulasList),
+    flatten(SubformulasList, Subformulas).
+
+% Helper predicate to find the subformulas based on the Options.
+find_subformulas(A, P, C, Options, SubformulasList) :-
+    (member("Assumptions", Options) ->
+        maplist(subformulas, A, SubformulasA);
+        SubformulasA = []
+    ),
+    (member("Premisses", Options) ->
+        maplist(subformulas, P, SubformulasP);
+        SubformulasP = []
+    ),
+    (member("Conclusion", Options) ->
+        subformulas(C, SubformulasC);
+        SubformulasC = []
+    ),
+    append([SubformulasA, SubformulasP, [SubformulasC]], SubformulasList).
+
+% has_subformula/3: Check if a sequent (A, P) ⊢ C contains a specific Subformula based on the given Options.
+has_subformula((A, P) ⊢ C, Subformula, Options) :-
+    % Retrieve the subformulas based on the Options.
+    subformulas((A, P) ⊢ C, Subformulas, Options),
+    % Check if Subformula is a member of Subformulas.
+    member(Subformula, Subformulas).

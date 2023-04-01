@@ -3,7 +3,8 @@
 # [a1, a2, ..., an] ⊢ c, wherby
 # ai are the assumptions for 1 ≤ i ≤ n and c is the conclusion
 
-p→q,p ⊢ q 													# Problem 1
+p→q,p ⊢ q
+ 													# Problem 1
 (¬q),((¬q)→((¬p)→q)) ⊢ ((¬p)→q)								# Problem 2
 p→q,q→r,p ⊢ r 												# Problem 3
 p→(q→r),p→q,p ⊢ r											# Problem 4
@@ -75,3 +76,15 @@ p ⊢ (p∧(p∨q))												# Problem 31b
 p ⊢ (p∨(p∧q))												# Problem 32b
 (p∨p) ⊢ p 													# Problem 33a
 p ⊢ (p∨p)													# Problem 33b
+p,(¬(p∧q)) ⊢ (¬q)											# Problem 34
+(p→q) ⊢ (¬(p∧(¬q)))											# Problem 35a
+(¬(p∧(¬q))) ⊢ (p→q)											# Problem 35b
+(p∨q) ⊢ (¬((¬p)∧(¬q)))										# Problem 36a
+(¬((¬p)∧(¬q))) ⊢ (p∨q)										# Problem 36a
+
+(p∨q) ⊢ (p∨q)												# Excercise 1a
+(p∧p) ⊢ p 													# Excercise 1b
+(p∧(q∨r)) ⊢ ((p∧q)∨(p∧r))                                   # Excercise 1c_a
+((p∧q)∨(p∧r)) ⊢ (p∧(q∨r))									# Excercice 1c_b
+(p∨(q∧r)) ⊢ ((p∨q)∧(p∨r))                                   # Excercise 1d_a
+(p∨(q∧r)) ⊢ ((p∨q)∧(p∨r))                                   # Excercise 1d_b
