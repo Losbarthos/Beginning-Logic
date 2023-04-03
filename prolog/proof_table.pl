@@ -42,8 +42,8 @@ table_append(_, Element, Assumptions, TblIn, TblIn) :-
 
 table_append(_, Element, Assumptions, TblIn, TblIn) :-
 	TblIn = [_, Right],
-	Element = [AIdx, A, _, _, _, _],
-	Element ∈ Right, acyclic_term(A),
+	Element = [AIdx, A, _, _, R, _],
+	Element ∈ Right, R \= "A", acyclic_term(A),
 	(   is_list(Assumptions) ->
         subset(AIdx, Assumptions)
     ;   true
@@ -79,8 +79,8 @@ table_insert("∧I", Assumptions, Premisses, L ∧ R, TblIn, TblOut) :-
 
 	once((
 			table_append(right, C  , AIdxC, TblIn, TblB0 ),
-			table_append(right, P_L, AIdxC, TblB0, TblB1 ),
-			table_append(right, P_R, AIdxC, TblB1, TblOut),
+			table_append(right, P_R, AIdxC, TblB0, TblB1),
+			table_append(right, P_L, AIdxC, TblB1, TblOut ),
 			nonvar(AIdxC),
 			subset(AIdxC, AIdx),
 			(   (var(AIdxL)) ->
@@ -143,7 +143,10 @@ table_insert("→I", Assumptions, Premisses, L → R, TblIn, TblOut) :-
                         nonvar(AIdxC),
 			(   (var(AIdxR)) ->
 				union(AIdxC, [IA], AIdxR)
-		    ;   subset(AIdxR, AIdx)
+		    ;   (
+		    		union(AIdx, [IA], AIdxIA),
+		    		subset(AIdxR, AIdxIA)
+		    	)
 		    ))).
 
 table_insert("∧E", Assumptions, Premisses, L, TblIn, TblOut) :-
@@ -340,7 +343,7 @@ table_insert("⊥", Assumptions, Premisses, P, TblIn, TblOut) :-
 			member(R, ["¬I", "¬E"]),
 			(   (var(AIdxW)) ->
 				union(AIdx1, AIdx2, AIdxW)
-		    ;   true
+		    ;   subset(AIdxW, AIdx)
 		    ))).
 
 

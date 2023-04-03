@@ -41,21 +41,21 @@ portray(Term) :-
 %
 
 % Same as
-% A;P?L↔R → A;P?L→R and A;P?R→L
+% A;P?L↔R → A;P?L→R and A;P?R→L   
 % RuleName: ↔I
 rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A, P) ⊢ (LR)), P1 := P ∪ [L → R], nonvar(LR), LR =.. [↔, L, R],
+	Origin = ((A, P) ⊢ (LR)), P1 := P ∪ [L → R], nonvar(LR), LR =.. [↔, L, R], 
 	NextStep = (((A, P) ⊢ (L → R)) ∧ ((A, P1) ⊢ (R → L))),
-
+	
 	merge_rule_graph([L → R, R → L], L ↔ R, "↔I", GIn, GOut),
 
 	table_insert("↔I", A, [L → R, R → L], L ↔ R, TIn, TOut).
 
 % Same as
-% [A;P?C, (L ↔ R) ∈ (A ∪ P), (L → R) ∧ (R → L) ∉ (A ∪ P)] → A;P,(L → R) ∧ (R → L)?C
+% [A;P?C, (L ↔ R) ∈ (A ∪ P), (L → R) ∧ (R → L) ∉ (A ∪ P)] → A;P,(L → R) ∧ (R → L)?C   
 %    with
 % RuleName: ↔E
-rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
+rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :- 
 	Origin = ((A, P1) ⊢ C), NextStep0 = ((A, P2) ⊢ C), nonvar(C),
 	U:= A ∪ P1, ((L ↔ R) ∈ U),
 	(((L → R) ∧ (R → L)) ∉ U), P2 := P1 ∪ [(L → R) ∧ (R → L)],
@@ -68,13 +68,13 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	table_insert("↔E", AI, [L ↔ R], (L → R) ∧ (R → L), TIn, TOut).
 
 % Same as
-% [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L?C
+% [A;P?C, (L ∧ R) ∈ (A ∪ P), L ∉ (A ∪ P)] → A;P,L?C   
 %    with
 % RuleName: ∧E
-rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
+rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :- 
 	Origin = ((A, P1) ⊢ C), NextStep0 = ((A, P2) ⊢ C), nonvar(C),
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
-	(L ∉ U), P2 := P1 ∪ [L],
+	(L ∉ U), P2 := P1 ∪ [L], 
 
 	((R ∈ U) -> replace_derivation_by_inv(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
 
@@ -84,14 +84,14 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	table_insert("∧E", AI, [L ∧ R], L, TIn, TOut).
 
 % Same as
-% [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R?C
+% [A;P?C, (L ∧ R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;P,R?C   
 %    with
 % RuleName: ∧E
-rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
+rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :- 
 	Origin = ((A, P1) ⊢ C), NextStep0 = ((A, P2) ⊢ C), nonvar(C),
 	U:= A ∪ P1, ((L ∧ R) ∈ U),
-	(R ∉ U), P2 := P1 ∪ [R],
-
+	(R ∉ U), P2 := P1 ∪ [R], 
+	
 	((L ∈ U) -> replace_derivation_by_inv(L ∧ R, NextStep0, NextStep);NextStep = NextStep0),
 
 	merge_rule_graph([L ∧ R], R, "∧E", GIn, GOut),
@@ -101,18 +101,18 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 %
 % Same as
-% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L
+% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 % RuleName: →E
 rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	Origin = ((A1, P1) ⊢ C), nonvar(C),
-	Origin0 = ((A2, P2) ⊢ C),
+	Origin0 = ((A2, P2) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, P3) ⊢ C)),
 	GIn = graph(_, E),
-
+	
 
 	U1 := (A1 ∪ P1), temp_invariant(U1, UT),
 
-	((L → R) ∈ U1), L ∈ U1,  R ∉ UT, not(C=L),
+	((L → R) ∈ U1), L ∈ U1,  R ∉ UT, not(C=L),  
 
 	replace_derivation_by_inv(L → R, Origin, Origin0),
 	union(P2, [L, R], P3),
@@ -128,19 +128,19 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 %
 % Same as
-% [A;P?R, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?R and A\(L → R);P\(L → R)?L
+% [A;P?R, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?R and A\(L → R);P\(L → R)?L    
 % RuleName: →E
 %rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-%	Origin = ((A1, P1) ⊢ R),
-%	Origin0 = ((A2, P2) ⊢ R),
+%	Origin = ((A1, P1) ⊢ R), 
+%	Origin0 = ((A2, P2) ⊢ R), 
 %	NextStep = (((A2, P2) ⊢ L) ∧ ((A2, P3) ⊢ R)),
 %	GIn = graph(_, E),
-
+	
 
 %	U1 := (A1 ∪ P1), temp_invariant(U1, UT),
 
-%	((L → R) ∈ U1), R ∉ UT, not(R=L),
-
+%	((L → R) ∈ U1), R ∉ UT, not(R=L), 
+	 
 
 %	replace_derivation_by_inv(L → R, Origin, Origin0),
 %	union(P2, [L, R], P3),
@@ -158,16 +158,16 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 %
 % Same as
-% [A;P?C, (L ∨ R) ∈ (A ∪ P)] → A\(L ∨ R),P\(L ∨ R)?((L → C) ∧ (R → C))
+% [A;P?C, (L ∨ R) ∈ (A ∪ P)] → A\(L ∨ R),P\(L ∨ R)?((L → C) ∧ (R → C))    
 % RuleName: ∨E
 rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	Origin = ((A1, P1) ⊢ C),
-	Origin0 = ((A2, P2) ⊢ C),
+	Origin0 = ((A2, P2) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ (L → C)) ∧ ((A2, P2) ⊢ (R → C))),
-
+	
 	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1),
 	(L == C; R == C; (L → C) ∈ U1; (R → C) ∈ U1),
-
+	
 
 	replace_derivation_by_inv(L ∨ R, Origin, Origin0),
 
@@ -177,12 +177,12 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	table_insert("∨E", A1I, [L ∨ R, L → C, R → C], C, TIn, TOut).
 
 % Same as
-% [A;P?L∨R,] → [A;P?L]
+% [A;P?L∨R,] → [A;P?L]   
 %    with
 % RuleName: ∨I
 rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A, P) ⊢ (L ∨ R)),
-	NextStep = ((A, P) ⊢ L),
+	Origin = ((A, P) ⊢ (L ∨ R)), 
+	NextStep = ((A, P) ⊢ L), 
 	U:= A ∪ P, temp_invariant(U, UT), L ∈ UT,
 
 	merge_rule_graph([L], L ∨ R, "∨I", GIn, GOut),
@@ -191,12 +191,12 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	table_insert("∨I", AI, [L], L ∨ R, TIn, TOut).
 
 % Same as
-% [A;P?L∨R] → [A;P?R]
+% [A;P?L∨R] → [A;P?R]   
 %    with
 % RuleName: ∨I
 rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	Origin = ((A, P) ⊢ (L ∨ R)),
-	NextStep = ((A, P) ⊢ R),
+	NextStep = ((A, P) ⊢ R), 
 	U:= A ∪ P, temp_invariant(U, UT), R ∈ UT,
 
 	merge_rule_graph([R], L ∨ R, "∨I", GIn, GOut),
@@ -206,12 +206,14 @@ rule(epoch1, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 
 % Same as
-% [A;P?L→R] → A,L;P?R
+% [A;P?L→R] → A,L;P?R   
 %    with
 % RuleName: →I
 rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A1, P) ⊢ (L → R)),
-	A2 := A1 ∪ [L], %Pn := P ∪ [temp(L → R)],%, [A1, P]],
+	Origin = ((A1, P) ⊢ (L → R)),  
+	U:= A1 ∪ P, 
+	%L ∉ U, 
+	A2 := A1 ∪ [L], %Pn := P ∪ [temp(L → R)],%, [A1, P]], 
 	NextStep = ((A2, P) ⊢ R),
 
 	merge_rule_graph([L, R], L → R, "→I", GIn, GOut),
@@ -224,7 +226,7 @@ rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 % A;P?L∧R → A;P?L and A;P?R
 % RuleName: ∧I
 rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A, P) ⊢ (L ∧ R)),
+	Origin = ((A, P) ⊢ (L ∧ R)), 
 	P1 := P ∪ [L],
 	NextStep = (((A, P) ⊢ L) ∧ ((A, P1) ⊢ R)),
 
@@ -235,13 +237,13 @@ rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 %
 % Same as
-% [A;P?C, (L ∨ R) ∈ (A ∪ P)] → A\(L ∨ R),P\(L ∨ R)?((L → C) ∧ (R → C))
+% [A;P?C, (L ∨ R) ∈ (A ∪ P)] → A\(L ∨ R),P\(L ∨ R)?((L → C) ∧ (R → C))    
 % RuleName: ∨E
 rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A1, P1) ⊢ C),
-	Origin0 = ((A2, P2) ⊢ C),
+	Origin = ((A1, P1) ⊢ C), 
+	Origin0 = ((A2, P2) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ (L → C)) ∧ ((A2, P2) ⊢ (R → C))),
-
+	
 	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1), %subtract(A1, [L ∨ R], A2), subtract(P1, [L ∨ R], P2),
 
 	replace_derivation_by_inv(L ∨ R, Origin, Origin0),
@@ -252,12 +254,12 @@ rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	table_insert("∨E", A1I, [L ∨ R, L → C, R → C], C, TIn, TOut).
 
 % Same as
-% [A;P?L∨R,] → [A;P?L]
+% [A;P?L∨R,] → [A;P?L]   
 %    with
 % RuleName: ∨I
 rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A, P) ⊢ (L ∨ R)),
-	NextStep = ((A, P) ⊢ L),
+	Origin = ((A, P) ⊢ (L ∨ R)), 
+	NextStep = ((A, P) ⊢ L), 
 
 	merge_rule_graph([L], L ∨ R, "∨I", GIn, GOut),
 
@@ -265,12 +267,12 @@ rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	table_insert("∨I", AI, [L], L ∨ R, TIn, TOut).
 
 % Same as
-% [A;P?L∨R] → [A;P?R]
+% [A;P?L∨R] → [A;P?R]   
 %    with
 % RuleName: ∨I
 rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	Origin = ((A, P) ⊢ (L ∨ R)),
-	NextStep = ((A, P) ⊢ R),
+	NextStep = ((A, P) ⊢ R), 
 
 	merge_rule_graph([R], L ∨ R, "∨I", GIn, GOut),
 
@@ -280,12 +282,12 @@ rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 
 % Same as
-% [A;P?¬C, (C ∧ ¬C) ∉ A, C ∉ A] → (A,C;P?(X1 ∧ ¬X1)) ∨ (A,C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,C;P?(Xn ∧ ¬Xn))
+% [A;P?¬C, (C ∧ ¬C) ∉ A, C ∉ A] → (A,C;P?(X1 ∧ ¬X1)) ∨ (A,C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,C;P?(Xn ∧ ¬Xn))    
 %    with
 % ¬Xi ∈ (A ∪ P)
-% RuleName: ¬I
+% RuleName: ¬I 
 rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A, P) ⊢ ¬(C)),
+	Origin = ((A, P) ⊢ ¬(C)), 
 	not(is_contradiction(C)), U:= A ∪ P, (C ∉ U), (temp(C) ∉ U), A0 := A ∪ [C],
 	NextStep = ((A0, P) ⊢ ¬(C)),
 
@@ -302,17 +304,17 @@ rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 
 % Same as
-% [A;P?C, (C ∧ ¬C) ∉ A, ¬C ∉ A] → (A,¬C;P?(X1 ∧ ¬X1)) ∨ (A,¬C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,¬C;P?(Xn ∧ ¬Xn))
+% [A;P?C, (C ∧ ¬C) ∉ A, ¬C ∉ A] → (A,¬C;P?(X1 ∧ ¬X1)) ∨ (A,¬C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,¬C;P?(Xn ∧ ¬Xn))    
 %    with
 % ¬Xi ∈ (A ∪ P)
-% RuleName: ¬E
+% RuleName: ¬E 
 % Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
 rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
-	Origin = ((A, P) ⊢ C),
-	not(is_contradiction(C)), U:= A ∪ P, (¬(C) ∉ U), (temp(¬(C)) ∉ U), A0 := A ∪ [¬(C)],
+	Origin = ((A, P) ⊢ C), 
+	not(is_contradiction(C)), U:= A ∪ P, (¬(C) ∉ U), (temp(¬(C)) ∉ U), A0 := A ∪ [¬(C)], 
 	NextStep = ((A0, P) ⊢ C),
 
-
+	
 
 	%(variable(C) ->
 	%	(remove_inv(A, RA, temp), remove_inv(P, RP, temp),
@@ -329,19 +331,19 @@ rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 %
 % Same as
-% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L
+% [A;P?C, (L → R) ∈ (A ∪ P), R ∉ (A ∪ P)] → A;R,P?C and A\(L → R);P\(L → R)?L    
 % RuleName: →E
 rule(epoch5, Origin, NextStep, G, G, TblIn, TblOut) :-
 	Origin = ((A1, P1) ⊢ C),
-	Origin0 = ((A2, P2) ⊢ C),
+	Origin0 = ((A2, P2) ⊢ C), 
 	NextStep = (((A2, P2) ⊢ L) ∧ ((A1, P3) ⊢ C)),
 
 	U1 := (A1 ∪ P1), temp_invariant(U1, UT),
 
-	((L → R) ∈ U1), R ∉ UT, not(C=L),
+	((L → R) ∈ U1), R ∉ UT, not(C=L), 
 
 	replace_derivation_by_inv(L → R, Origin, Origin0),
-	union([L], P1, P3),
+	union([L], P1, P3), 
 
 	not(((¬(¬(L)) ∈ UT), (edge(¬(¬(L)), ¬(L), "¬E") ∈ E))), % To eliminate derivations like d ⊢ ¬(¬d)
 	not(( L = ¬(¬(L1)), (edge(¬(¬(L1)), ¬(L1), "¬I") ∈ E))),% To eliminate derivations like ¬(¬d) ⊢ d
@@ -352,86 +354,86 @@ rule(epoch5, Origin, NextStep, G, G, TblIn, TblOut) :-
 
 %
 % Same as
-% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∧Y, X,Y∈(A ∪ P) → A;R,P?D and A;P, D?C
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∧Y, X,Y∈(A ∪ P) → A;R,P?D and A;P, D?C    
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
-	Origin = ((A, P) ⊢ C),
+	Origin = ((A, P) ⊢ C), 
 	NextStep = (((A, P) ⊢ D) ∧ ((A, P1) ⊢ C)),
 
 	U1 := (A ∪ P), temp_invariant(U1, UT),
 
 	(¬(D) ∈ UT), D ∉ UT, not(C=D), D = (X∧Y), X ∈ UT, Y ∈ UT,
-	P1 := P ∪ [D],
+	P1 := P ∪ [D], 
 
 	remove_inv(A, A1, temp),
 	table_insert("Single", A1, _, D, TblIn, TblOut).
 
 % Same as
-% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y, X or Y∈(A ∪ P) → A;R,P?D and A;P, D?C
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y, X or Y∈(A ∪ P) → A;R,P?D and A;P, D?C    
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
-	Origin   = ((A, P) ⊢ C),
+	Origin   = ((A, P) ⊢ C), 
 	NextStep = (((A, P) ⊢ D) ∧ ((A, P1) ⊢ C)),
 
 
 	U1 := (A ∪ P), temp_invariant(U1, UT),
 
 	(¬(D) ∈ UT), D ∉ UT, not(C=D), D = (X∨Y), (X ∈ UT; Y ∈ UT),
-	P1 := P ∪ [D],
+	P1 := P ∪ [D], 
 
 	remove_inv(A, A1, temp),
 	table_insert("Single", A1, _, D, TblIn, TblOut).
 
 % Same as
-% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X→Y, X or Y∈(A ∪ P) → A;R,P?D and A;P, D?C
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X→Y, X or Y∈(A ∪ P) → A;R,P?D and A;P, D?C    
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
-	Origin   = ((A, P) ⊢ C),
+	Origin   = ((A, P) ⊢ C), 
 	NextStep = (((A, P) ⊢ D) ∧ ((A, P1) ⊢ C)),
 
 
 	U1 := (A ∪ P), temp_invariant(U1, UT),
 
 	(¬(D) ∈ UT), D ∉ UT, not(C=D), D = (X→Y), (¬(X) ∈ UT; Y ∈ UT),
-	P1 := P ∪ [D],
+	P1 := P ∪ [D], 
 
 	remove_inv(A, A1, temp),
 	table_insert("Single", A1, _, D, TblIn, TblOut).
 
 % Same as
-% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C    
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
-	Origin = ((A, P) ⊢ C),
+	Origin = ((A, P) ⊢ C), 
 	NextStep = ((([temp(¬(D))], []) ⊢ (X∧Y)) ∧ ((A, P1) ⊢ C)),
 
-	U1 := (A ∪ P),
+	U1 := (A ∪ P), 
 
 	(¬(D) ∈ U1), D ∉ U1, D = (X0∨Y0), get_np(X0, X), get_np(Y0, Y),
-	P1 := P ∪ [X∧Y],
+	P1 := P ∪ [X∧Y], 
 
 
 	table_insert("Single", [¬(D)], _, (X∧Y), TblIn, TblOut).
 
 % Same as
-% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C    
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
-	Origin = ((A, P) ⊢ C),
+	Origin = ((A, P) ⊢ C), 
 	NextStep = ((([temp(¬(D))], []) ⊢ (X∨Y)) ∧ ((A, P1) ⊢ C)),
 
-	U1 := (A ∪ P),
+	U1 := (A ∪ P), 
 
 	(¬(D) ∈ U1), D ∉ U1, D = (X0∧Y0), get_np(X0, X), get_np(Y0, Y), ¬(X∨Y)∉ U1,
-	P1 := P ∪ [X∨Y],
+	P1 := P ∪ [X∨Y], 
 
 	table_insert("Single", [¬(D)], _, (X∨Y), TblIn, TblOut).
 
 % Same as
-% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C    
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
-	Origin = ((A, P) ⊢ C),
+	Origin = ((A, P) ⊢ C), 
 	NextStep = ((([temp(¬(D))], []) ⊢ (X→Y)) ∧ ((A, P1) ⊢ C)),
 
-	U1 := (A ∪ P),
+	U1 := (A ∪ P), 
 
 	(¬(D) ∈ U1), D ∉ U1, D = (X0→Y0), get_np(X0, X), get_np(Y0, Y), ¬(X→Y)∉ U1,
-	P1 := P ∪ [X→Y],
+	P1 := P ∪ [X→Y], 
 
 	table_insert("Single", [¬(D)], _, (X→Y), TblIn, TblOut).
 
@@ -450,12 +452,12 @@ solvable_unless(N, Derivation, Graph, Table) :-
 
 % Preconditions
 
-proof(Derivation, G, G, T, T) :-
+proof(Derivation, G, G, T, T) :- 	
 		isvalid(Derivation),
 		!.
-proof(Derivation, GIn, GOut, TIn, TOut) :-
-		Derivation = ((A, P) ⊢ C),
-		DerivationI = ((AI, PI) ⊢ C),
+proof(Derivation, GIn, GOut, TIn, TOut) :- 	
+		Derivation = ((A, P) ⊢ C), 
+		DerivationI = ((AI, PI) ⊢ C), 
 		temp_invariant(A, AI), temp_invariant(P, PI),
 		iscontradiction(DerivationI, X),
 		contains_negation(AI, C, N, R),
@@ -467,7 +469,7 @@ proof(Derivation, GIn, GOut, TIn, TOut) :-
 		temp_invariant(A, AA),
 		table_insert("⊥", AA, [¬(X), X, ¬(X) ∧ X, N], C, TIn, TOut),
 		!.
-proof(Derivation, GIn, G, TIn, T) :-
+proof(Derivation, GIn, G, TIn, T) :- 
 		%Derivation = ((A, P) ⊢ C),
 		%U := (A ∪ P),
 		%not(has_cases(U, C)),
@@ -478,7 +480,7 @@ proof(Derivation, GIn, G, TIn, T) :-
 		proof(NextStep, GOut, G, TOut, T),
 		dec_space_counter,
 		!.
-proof(Derivation, GIn, G, TIn, T) :-
+proof(Derivation, GIn, G, TIn, T) :- 
 		rule(epoch2,Derivation, NextStep, GIn, GOut, TIn, TOut),
 		trace_constant(epoch2, Derivation),
 		trace_constant('Next Step', NextStep),
@@ -486,7 +488,7 @@ proof(Derivation, GIn, G, TIn, T) :-
 		proof(NextStep, GOut, G, TOut, T),
 		dec_space_counter,
 		!.
-proof(Derivation, GIn, G, TIn, T) :-
+proof(Derivation, GIn, G, TIn, T) :- 
 		rule(epoch3,Derivation, NextStep, GIn, GOut, TIn, TOut),
 		trace_constant(epoch3, Derivation),
 		trace_constant('Next Step', NextStep),
@@ -495,7 +497,7 @@ proof(Derivation, GIn, G, TIn, T) :-
 		proof(NextStep, GOut, G, TOut, T),
 		dec_space_counter,
 		!.
-proof(Derivation, GIn, G, TIn, T) :-
+proof(Derivation, GIn, G, TIn, T) :- 
 		not(solvable_unless(3, Derivation, GIn, TIn)),
 		rule(epoch4,Derivation, NextStep, GIn, GOut, TIn, TOut),
 		trace_constant(epoch4, Derivation),
@@ -504,7 +506,7 @@ proof(Derivation, GIn, G, TIn, T) :-
 		proof(NextStep, GOut, G, TOut, T),
 		dec_space_counter,
 		!.
-proof(Derivation, GIn, G, TIn, T) :-
+proof(Derivation, GIn, G, TIn, T) :- 
 		not(solvable_unless(5, Derivation, GIn, TIn)),
 		rule(epoch5,Derivation, NextStep, GIn, GOut, TIn, TOut),
 		trace_constant(epoch5, Derivation),
@@ -512,7 +514,7 @@ proof(Derivation, GIn, G, TIn, T) :-
 		inc_space_counter,
 		proof(NextStep, GOut, G, TOut, T),
 		dec_space_counter,!.
-proof(Derivation, GIn, GOut, TIn, TOut) :-
+proof(Derivation, GIn, GOut, TIn, TOut) :- 
 		not(solvable_unless(6, Derivation, GIn, TIn)),
 		rule(epoch6,Derivation, NextStep, GIn, GIn, TIn, TB),
 		trace_constant(epoch6, Derivation),
@@ -520,7 +522,7 @@ proof(Derivation, GIn, GOut, TIn, TOut) :-
 		inc_space_counter,
 		proof(NextStep, GIn, GOut, TB, TOut),
 		dec_space_counter,!.
-proof(Derivation, GIn, G, TIn, T) 	:-
+proof(Derivation, GIn, G, TIn, T) 	:- 	
 		Derivation = (D1 ∧ D2),
 		D1 = ((_, _) ⊢ _),
 		D2 = ((_, _) ⊢ _),
@@ -533,7 +535,7 @@ proof(Derivation, GIn, G, TIn, T) 	:-
 		inc_space_counter,
 		proof(D2, GOut, G, TOut, T), dec_space_counter.
 
-proof(Derivation, Graph, Table) :-
+proof(Derivation, Graph, Table) :- 
 	Derivation = (A ⊢ C),
 	table_init(A, C, TInit),
 	proof(((A, []) ⊢ C), graph([],[]), Graph0, TInit, Table0),
@@ -548,7 +550,7 @@ proof(Derivation, Graph, Table) :-
 
 
 proof_py(Derivation, GProof, TProof) :-
-	proof(Derivation, GProofO, TProofO),
+	proof(Derivation, GProofO, TProofO), 
 	term_to_atom(GProofO, GProof),
 	term_to_atom(TProofO, TProof), !.
 proof_py(Derivation, GProof, TProof) :-
@@ -577,7 +579,7 @@ go_proof8(G, T) :- proofD(([¬(p)→q,¬(q)] ⊢ p), G, T).
 go_proof9(G, T) :- proofD(([p→q] ⊢ (¬(q)→ ¬(p))), G, T).
 go_proof10(G, T) :- proofD(([p→(q→r)] ⊢ (q→(p→r))), G, T).
 go_proof11(G, T) :- proofD(([q→r] ⊢ ((¬(q)→ ¬(p))→ (p→r))), G, T).
-go_proof12(G, T) :- proofD(([p→ ¬(q), q] ⊢ ¬(p)), G, T).
+go_proof12(G, T) :- proofD(([p→ ¬(q), q] ⊢ ¬(p)), G, T).	
 
 go_proof13(G, T) :- proofD(([(p ∧ q) → r] ⊢ (p → (q → r)) ), G, T).
 go_proof13_2(G,T) :- proofD(([q → (p → r), ¬(r), q] ⊢ ¬(p)), G, T).
@@ -596,7 +598,7 @@ go_proof34(G, T) :- proofD(([(q→r)] ⊢ ((p∨q)→(p∨r))), G, T).
 go_proof35(G, T) :- proofD(([(p∨(q∨r))] ⊢ (q∨(p∨r))), G, T).
 go_proof41(G, T) :- proofD(([(p∧q)] ⊢ (p∨q)), G, T).
 go_proof42(G, T) :- proofD(([(p→r)∧(q→r)] ⊢ ((p∨q)→r)), G, T).
-go_proof44(G, T) :- proofD(([(p→q),(r→s)] ⊢ ((p∨r)→(q∨s))), G, T).
+go_proof44(G, T) :- proofD(([(p→q),(r→s)] ⊢ ((p∨r)→(q∨s))), G, T).	
 go_proof46(G, T) :- proofD(([p→(q∧r)] ⊢ ((p→q)∧(p→r))), G, T).
 go_proof48(G, T) :- proofD(([(p↔q)] ⊢ (q↔p)), G, T).
 go_proof50(G, T) :- proofD(([(p↔q),(q↔r)] ⊢ (p↔r)), G, T).

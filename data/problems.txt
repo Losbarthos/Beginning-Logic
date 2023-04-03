@@ -88,3 +88,5 @@ p,(¬(p∧q)) ⊢ (¬q)											# Problem 34
 ((p∧q)∨(p∧r)) ⊢ (p∧(q∨r))									# Excercice 1c_b
 (p∨(q∧r)) ⊢ ((p∨q)∧(p∨r))                                   # Excercise 1d_a
 (p∨(q∧r)) ⊢ ((p∨q)∧(p∨r))                                   # Excercise 1d_b
+(p∧q) ⊢ (¬(p→(¬q)))											# Excercise 1e_a
+(¬(p→(¬q))) ⊢ (p∧q)											# Excercise 1e_b
