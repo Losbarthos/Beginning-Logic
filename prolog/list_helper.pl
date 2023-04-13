@@ -150,3 +150,8 @@ get_atom_list_with_prefix_between(Prefix, From, To, Atoms) :-
              atomic_list_concat([Prefix, N], Atom)), 
             % The list of generated atoms.
             Atoms).
+
+% Define the replace/4 predicate that replaces the first occurrence of X with Y in a list
+replace(_, _, [], []).
+replace(O, R, [O|T], [R|T2]) :- replace(O, R, T, T2).
+replace(O, R, [H|T], [H|T2]) :- H \= O, replace(O, R, T, T2).

@@ -9,7 +9,8 @@
 				   		is_proof_table/1,
 				   		write_proof_table/1,
 				   		define_table/2,
-				   		complete_subproof/2
+				   		complete_subproof/2,
+				   		tbl_assumptions_from_proposition/6
 				   		]).
 
 :-use_module(list_helper).
@@ -30,6 +31,11 @@ table_init(Assumptions, Conclusion, Tbl) :-
 get_assumption_idx(Assumptions, Tbl, Idx) :-
 	Tbl = [TblL, _],
 	findall(I, (A ∈ Assumptions, [[I], [I], I, A, "A", []] ∈ TblL), Idx).
+
+get_assumptions_from_idx(Assumptions, Tbl, Idx) :-
+	Tbl = [TblL, _],
+	findall(A, (I ∈ Idx, [[I], [I], I, A, "A", []] ∈ TblL), Assumptions).
+
 
 table_append(_, Element, Assumptions, TblIn, TblIn) :-
 	TblIn = [Left, _],
@@ -59,7 +65,7 @@ table_append(left, Element, AIdx, TblIn, TblOut) :-
 
 table_append(right, Element, AIdx, TblIn, TblOut) :-
 	Element = [AIdx, AA, I, C, R, P],
-	set_evaluate(AA, A), subset(A, AIdx),
+	set_evaluate(AA, A), nonvar(AIdx), subset(A, AIdx),
 	table_append(left, [AIdx, A, I, C, R, P], AIdx, TblIn, TblOut).
 
 table_append(right, Element, A, TblIn, TblOut) :-
@@ -328,6 +334,7 @@ table_insert("⊥", Assumptions, Premisses, P, TblIn, TblOut) :-
 	CO  =  [AIdxW , AW  , IW, ¬(X) ∧ X, "∧I", [I1, I2]],
 	NA  =  [AIdxC , AC  , IC, P       , R   , [IA, IW]],
 
+	contains_negation(Premisses, P, O, R),
 	AC = ((AW) \\ ([IA])), IA #< IC, IW #< IC,
 	AW = (A1 ∪ A2),
 
@@ -336,15 +343,36 @@ table_insert("⊥", Assumptions, Premisses, P, TblIn, TblOut) :-
 			table_append(left , A , [IA] , TblIn, TblB0),
 			table_append(left, NXL, AIdx1, TblB0, TblB1),
 			table_append(left,  XL, AIdx2, TblB1, TblB2),
-			table_append(left,  CO, AIdx2, TblB2, TblB3),
-			table_append(right, NA, AIdxC, TblB3, TblOut),
-			nonvar(AIdxC),
-			subset(AIdxC, AIdx),
-			member(R, ["¬I", "¬E"]),
 			(   (var(AIdxW)) ->
 				union(AIdx1, AIdx2, AIdxW)
 		    ;   subset(AIdxW, AIdx)
-		    ))).
+		    ),
+			table_append(left,  CO, AIdxW, TblB2, TblB3),
+			table_append(right, NA, AIdxC, TblB3, TblOut),
+			nonvar(AIdxC),
+			subset(AIdxC, AIdx),
+			subset(AIdx1, AIdx),
+			subset(AIdx2, AIdx)
+			)).
+
+
+table_insert("SingleR", Assumptions, _, S, TblIn, TblOut) :-
+	get_assumption_idx(Assumptions, TblIn, AIdx),
+
+	Single = [AIdx, _, _, S, _, _],
+	once((
+			table_append(right, Single, AIdx, TblIn, TblOut)
+			)),
+	TblOut = [_, R], Single ∈ R.
+
+table_insert("SingleL", Assumptions, _, S, TblIn, TblOut) :-
+	get_assumption_idx(Assumptions, TblIn, AIdx),
+
+	Single = [AIdx, _, _, S, _, _],
+	once((
+			table_append(right, Single, AIdx, TblIn, TblOut)
+			)),
+	TblOut = [L, _], Single ∈ L.
 
 
 table_insert("Single", Assumptions, _, S, TblIn, TblOut) :-
@@ -354,6 +382,7 @@ table_insert("Single", Assumptions, _, S, TblIn, TblOut) :-
 	once((
 			table_append(right, Single, AIdx, TblIn, TblOut)
 			)).
+
 
 
 descriped(Element) :-
@@ -386,7 +415,6 @@ is_proof_table(Tbl) :-
 			NewTbl),
 	Tbl = NewTbl.
 
-
 tblfd_to_tbllist(TblIn, TblOut) :-
 	findall(X,
 			  (
@@ -409,4 +437,12 @@ write_proof_table(Tbl) :-
 	foreach(X ∈ Tbl, write_term(X, [max_depth(0), nl(true)])).
 
 
-
+tbl_assumptions_from_proposition(Proposition, MaxAssumptions, _, _, [Proposition], []) :-
+	Proposition ∈ MaxAssumptions, !.
+tbl_assumptions_from_proposition(Proposition, MaxAssumptions, MaxPremisses, Tbl, A, [Proposition]) :-
+	Proposition ∈ MaxPremisses,  Tbl = [Left, _],
+	X =  [AIdx, _, _, Proposition, _, _],
+	X ∈ Left,
+	get_assumption_idx(MaxAssumptions, Tbl, MAIdx),
+	get_assumptions_from_idx(A, Tbl, AIdx),
+	subset(AIdx, MAIdx).

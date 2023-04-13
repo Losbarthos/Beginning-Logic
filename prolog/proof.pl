@@ -236,13 +236,14 @@ rule(epoch2, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 %
 % Same as
 % [A;P?C, (L ∨ R) ∈ (A ∪ P)] → A\(L ∨ R),P\(L ∨ R)?((L → C) ∧ (R → C))
+% Remark: Its not possible to use this rule, if C will be shown by ¬I or ¬E.
 % RuleName: ∨E
 rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	Origin = ((A1, P1) ⊢ C),
 	Origin0 = ((A2, P2) ⊢ C),
 	NextStep = (((A2, P2) ⊢ (L → C)) ∧ ((A2, P2) ⊢ (R → C))),
 
-	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1), %subtract(A1, [L ∨ R], A2), subtract(P1, [L ∨ R], P2),
+	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1),
 
 	replace_derivation_by_inv(L ∨ R, Origin, Origin0),
 
@@ -250,6 +251,26 @@ rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 
 	temp_invariant(A1, A1I),
 	table_insert("∨E", A1I, [L ∨ R, L → C, R → C], C, TIn, TOut).
+
+% Same as
+% [A;P?C, (L ∨ R) ∈ (A ∪ P)] → A\(L ∨ R),P\(L ∨ R)?((L → C) ∧ (R → C))
+% RuleName: ∨E
+rule(epoch3, Origin, NextStep, G, G, TIn, TOut) :-
+	C = ¬(L∨R), 
+	Origin = ((A1, P1) ⊢ C),
+	Origin0 = ((A2, P2) ⊢ C),
+	NextStep = (((A1, P1) ⊢ D) ∧ ((A2, P3) ⊢ C)),
+	get_np(L, NL), get_np(R, NR),
+	D = ¬(NL ∧ NR),
+
+	U1 := (A1 ∪ P1), ((L ∨ R) ∈ U1),
+
+	replace_derivation_by_inv(L ∨ R, Origin, Origin0),
+	P3 := P2 ∪ [D],
+
+
+	remove_inv(A1, A3, temp),
+	table_insert("Single", A3, _, D, TIn, TOut).
 
 % Same as
 % [A;P?L∨R,] → [A;P?L]
@@ -262,6 +283,7 @@ rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	merge_rule_graph([L], L ∨ R, "∨I", GIn, GOut),
 
 	temp_invariant(A, AI),
+
 	table_insert("∨I", AI, [L], L ∨ R, TIn, TOut).
 
 % Same as
@@ -275,9 +297,8 @@ rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	merge_rule_graph([R], L ∨ R, "∨I", GIn, GOut),
 
 	temp_invariant(A, AI),
+
 	table_insert("∨I", AI, [R], L ∨ R, TIn, TOut).
-
-
 
 % Same as
 % [A;P?¬C, (C ∧ ¬C) ∉ A, C ∉ A] → (A,C;P?(X1 ∧ ¬X1)) ∨ (A,C;P?(X2 ∧ ¬X2)) ∨ ... ∨ (A,C;P?(Xn ∧ ¬Xn))
@@ -286,14 +307,9 @@ rule(epoch3, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 % RuleName: ¬I
 rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	Origin = ((A, P) ⊢ ¬(C)),
-	not(is_contradiction(C)), U:= A ∪ P, (C ∉ U), (temp(C) ∉ U), A0 := A ∪ [C],
+	%U:= A ∪ P,
+	 (C ∉ A), (temp(C) ∉ A), A0 := A ∪ [C],
 	NextStep = ((A0, P) ⊢ ¬(C)),
-
-	%(variable(C) ->
-	%	(remove_inv(A, RA, temp), remove_inv(P, RP, temp),
-     %   has_subformula((RA, RP) ⊢ C, C, ["Assumptions", "Premisses"]));
-      %  true
-    %),
 
 	merge_rule_graph([C], ¬(C), "¬I", GIn, GOut),
 
@@ -309,16 +325,9 @@ rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 % Remark: maybe its better to say ¬Xi ∈ (A ∪ P ∪ {¬C}), but already no counterexample for ¬Xi ∈ (A ∪ P) found.
 rule(epoch4, Origin, NextStep, GIn, GOut, TIn, TOut) :-
 	Origin = ((A, P) ⊢ C),
-	not(is_contradiction(C)), U:= A ∪ P, (¬(C) ∉ U), (temp(¬(C)) ∉ U), A0 := A ∪ [¬(C)],
+	%U:= A ∪ P, 
+	(¬(C) ∉ A), (temp(¬(C)) ∉ A), A0 := A ∪ [¬(C)],
 	NextStep = ((A0, P) ⊢ C),
-
-
-
-	%(variable(C) ->
-	%	(remove_inv(A, RA, temp), remove_inv(P, RP, temp),
-    %    has_subformula((RA, RP) ⊢ C, ¬(C), ["Assumptions", "Premisses"]));
-    %    true
-    %),
 
 	merge_rule_graph([¬(C)], C, "¬E", GIn, GOut),
 
@@ -374,11 +383,13 @@ rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
 
 	U1 := (A ∪ P), temp_invariant(U1, UT),
 
-	(¬(D) ∈ UT), D ∉ UT, not(C=D), D = (X∨Y), (X ∈ UT; Y ∈ UT),
+	(¬(D) ∈ UT), D ∉ UT, D = (X∨Y), (X ∈ UT; Y ∈ UT),
 	P1 := P ∪ [D],
+	%not(C=D),
 
-	remove_inv(A, A1, temp),
+	temp_invariant(A, A1),
 	table_insert("Single", A1, _, D, TblIn, TblOut).
+
 
 % Same as
 % [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X→Y, X or Y∈(A ∪ P) → A;R,P?D and A;P, D?C
@@ -389,7 +400,7 @@ rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
 
 	U1 := (A ∪ P), temp_invariant(U1, UT),
 
-	(¬(D) ∈ UT), D ∉ UT, not(C=D), D = (X→Y), (¬(X) ∈ UT; Y ∈ UT),
+	(¬(D) ∈ U1), D ∉ U1, not(C=D), D = (X→Y), (¬(X) ∈ UT; Y ∈ UT),
 	P1 := P ∪ [D],
 
 	remove_inv(A, A1, temp),
@@ -399,41 +410,113 @@ rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
 % [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
 	Origin = ((A, P) ⊢ C),
-	NextStep = ((([temp(¬(D))], []) ⊢ (X∧Y)) ∧ ((A, P1) ⊢ C)),
 
-	U1 := (A ∪ P),
+	temp_invariant(A, AT), temp_invariant(P, PT),
 
-	(¬(D) ∈ U1), D ∉ U1, D = (X0∨Y0), get_np(X0, X), get_np(Y0, Y),
+	UT := (AT ∪ PT), U1 := (A ∪ P),
+
+	(¬(D) ∈ U1), D ∉ U1, D = (X0∨Y0), get_np(X0, X), get_np(Y0, Y), (X∧Y) ∉ UT,
 	P1 := P ∪ [X∧Y],
 
+	tbl_assumptions_from_proposition(¬(D), AT, PT, TblIn, AGet, PGet),
+	temp(AGet, A0), temp(PGet, P0),
+	NextStep = (((A0, P0) ⊢ (X∧Y)) ∧ ((A, P1) ⊢ C)),
 
-	table_insert("Single", [¬(D)], _, (X∧Y), TblIn, TblOut).
+	table_insert("SingleR", AGet, _, (X∧Y), TblIn, TblOut).
+
 
 % Same as
 % [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
 	Origin = ((A, P) ⊢ C),
-	NextStep = ((([temp(¬(D))], []) ⊢ (X∨Y)) ∧ ((A, P1) ⊢ C)),
 
-	U1 := (A ∪ P),
+	temp_invariant(A, AT), temp_invariant(P, PT),
 
-	(¬(D) ∈ U1), D ∉ U1, D = (X0∧Y0), get_np(X0, X), get_np(Y0, Y), ¬(X∨Y)∉ U1,
+	UT := (AT ∪ PT), U1 := (A ∪ P),
+
+	(¬(D) ∈ U1), D ∉ U1, D = (X0∨Y0), get_np(X0, X), get_np(Y0, Y), (X∧Y) ∉ UT,
+	P1 := P ∪ [X∧Y],
+
+	tbl_assumptions_from_proposition(¬(D), AT, PT, TblIn, AGet, _),
+	NextStep = ((A, P1) ⊢ C),
+
+	table_insert("SingleL", AGet, _, (X∧Y), TblIn, TblOut).
+
+% Same as
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
+rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
+	Origin = ((A, P) ⊢ C),
+
+	temp_invariant(A, AT), temp_invariant(P, PT),
+
+	UT := (AT ∪ PT), U1 := (A ∪ P),
+
+	(¬(D) ∈ U1), D ∉ U1, D = (X0∧Y0), get_np(X0, X), get_np(Y0, Y), (X∨Y)∉ UT,
 	P1 := P ∪ [X∨Y],
 
-	table_insert("Single", [¬(D)], _, (X∨Y), TblIn, TblOut).
+	tbl_assumptions_from_proposition(¬(D), AT, PT, TblIn, AGet, PGet),
+	temp(AGet, A0), temp(PGet, P0),
+	NextStep = (((A0, P0) ⊢ (X∨Y)) ∧ ((A, P1) ⊢ C)),
+
+	table_insert("SingleR", AGet, _, (X∨Y), TblIn, TblOut).
 
 % Same as
 % [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
 rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
 	Origin = ((A, P) ⊢ C),
-	NextStep = ((([temp(¬(D))], []) ⊢ (X→Y)) ∧ ((A, P1) ⊢ C)),
 
-	U1 := (A ∪ P),
+	temp_invariant(A, AT), temp_invariant(P, PT),
 
-	(¬(D) ∈ U1), D ∉ U1, D = (X0→Y0), get_np(X0, X), get_np(Y0, Y), ¬(X→Y)∉ U1,
+	UT := (AT ∪ PT), U1 := (A ∪ P),
+
+	(¬(D) ∈ U1), D ∉ U1, D = (X0∧Y0), get_np(X0, X), get_np(Y0, Y), (X∨Y)∉ UT,
+	P1 := P ∪ [X∨Y],
+
+	tbl_assumptions_from_proposition(¬(D), AT, PT, TblIn, AGet, _),
+
+	NextStep = ((A, P1) ⊢ C),
+
+	table_insert("SingleL", AGet, _, (X∨Y), TblIn, TblOut).
+
+
+
+% Same as
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
+rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
+	Origin = ((A, P) ⊢ C),
+
+	temp_invariant(A, AT), temp_invariant(P, PT),
+
+
+	UT := (AT ∪ PT), U1 := (A ∪ P),
+
+	(¬(D) ∈ UT), D ∉ U1, D = (X0→Y0), get_np(X0, X), get_np(Y0, Y), (X→Y)∉ UT,
 	P1 := P ∪ [X→Y],
 
-	table_insert("Single", [¬(D)], _, (X→Y), TblIn, TblOut).
+	tbl_assumptions_from_proposition(¬(D), AT, PT, TblIn, AGet, PGet),
+	temp(AGet, A0), temp(PGet, P0),
+	NextStep = (((A0, P0) ⊢ (X→Y)) ∧ ((A, P1) ⊢ C)),
+
+	table_insert("SingleR", AGet, _, (X→Y), TblIn, TblOut).
+
+% Same as
+% [A;P?C, ¬(D) ∈ (A ∪ P), ¬(D) ≠ C, D = X∨Y → A;R,P?D and A;P, D?C
+rule(epoch6, Origin, NextStep, G, G, TblIn, TblOut) :-
+	Origin = ((A, P) ⊢ C),
+
+	temp_invariant(A, AT), temp_invariant(P, PT),
+
+
+	UT := (AT ∪ PT), U1 := (A ∪ P),
+
+	(¬(D) ∈ UT), D ∉ U1, D = (X0→Y0), get_np(X0, X), get_np(Y0, Y), (X→Y)∉ UT,
+	P1 := P ∪ [X→Y],
+
+
+	tbl_assumptions_from_proposition(¬(D), AT, PT, TblIn, AGet, _),
+	NextStep = ((A, P1) ⊢ C),
+
+	table_insert("SingleL", AGet, _, (X→Y), TblIn, TblOut).
 
 
 
@@ -450,9 +533,8 @@ solvable_unless(N, Derivation, Graph, Table) :-
 
 % Preconditions
 
-proof(Derivation, G, G, T, T) :-
-		isvalid(Derivation),
-		!.
+
+
 proof(Derivation, GIn, GOut, TIn, TOut) :-
 		Derivation = ((A, P) ⊢ C),
 		DerivationI = ((AI, PI) ⊢ C),
@@ -466,6 +548,12 @@ proof(Derivation, GIn, GOut, TIn, TOut) :-
 		merge_rule_graph([(¬(X) ∧ X)], C, R, GB, GOut),
 		temp_invariant(A, AA),
 		table_insert("⊥", AA, [¬(X), X, ¬(X) ∧ X, N], C, TIn, TOut),
+		!.
+proof(Derivation, G, G, T, T) :-
+		Derivation = ((A, P) ⊢ C),
+		DerivationI = ((AI, PI) ⊢ C),
+		temp_invariant(A, AI), temp_invariant(P, PI),
+		isvalid(DerivationI),
 		!.
 proof(Derivation, GIn, G, TIn, T) :-
 		%Derivation = ((A, P) ⊢ C),
@@ -609,11 +697,18 @@ go_proof72(G, T) :- proofD([(¬((¬p)∧(¬q)))] ⊢ (p∨q), G, T).
 go_proof72_3a(G, T) :- proofD([(p∧(q∨r))] ⊢ ((p∧q)∨(p∧r)), G, T).
 go_proof72_3b(G, T) :- proofD([((p∧q)∨(p∧r))] ⊢ (p∧(q∨r)), G, T).
 go_proof72_5b(G, T) :- proofD([(¬(p→(¬q)))] ⊢ (p∧q), G, T).
+go_proof72_6b(G, T) :- proofD([((¬p)∧(¬q))] ⊢ (¬(p∨q)), G, T).
+go_proof72_8a(G, T) :- proofD([(p∧q)] ⊢ (¬((¬p)∨(¬q))), G, T).
+go_proof72_9a(G, T) :- proofD([(p→q)] ⊢ (¬(p)∨q), G, T).
 
-
+go_proof_37a(G, T) :- proofD([] ⊢ (¬(p∧(¬p))), G, T).
+go_proof_37b(G, T) :- proofD([] ⊢ (¬(¬(p)∧p)), G, T).
+go_proof_44(G, T) :- proofD([] ⊢ (p∨(¬p)), G, T).
+go_proof_45(G, T) :- proofD([p] ⊢ ((p∧q)∨(p∧(¬q))), G, T).
 
 go_proof_test(G, T) :- proofD([((¬p)∨q)] ⊢ (p→q), G, T).
 go_proof_test2(G, T) :- proofD([p] ⊢ (q→q), G, T).
+go_proof_test3(G, T) :- proofD([¬(p∨q)] ⊢ ((¬p)∧(¬q)), G, T).
 
 % Testfunktion zum Überprüfen des Einlesens der Datei
 test_read_file :-

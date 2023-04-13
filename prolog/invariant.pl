@@ -12,7 +12,8 @@
     	subset_inv/3,					% +Set, +SubSet, +Inv
     	union_inv/5,					% +Set1, +Set2, -Set3, +Inv, +Order
     	temp_invariant/2, 				% +WithTemp, -NoTemp
-    	replace_by_inv/4
+    	replace_by_inv/4,
+    	temp/2
     ]).
 
 :-use_module(set).
@@ -102,3 +103,8 @@ replace_by_inv(BaseSet, ToReplace, WithInv, Inv) :-
 	First ∉ ToReplace,
 	replace_by_inv(Last, ToReplace, LastInv, Inv),
 	append([First], LastInv, WithInv).
+
+
+% Define the temp/2 predicate that converts a list of terms to a list of temp terms
+temp(L, TempL) :-
+	findall(X, (Y ∈ L, 	(Y=temp(_) -> X = Y; X = temp(Y))), TempL).

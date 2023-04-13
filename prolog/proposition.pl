@@ -146,6 +146,7 @@ has_cases(S, D) :-
 % checks, if the set S has contradictions. 
 has_contradictions(S) :- A ∈ S, ¬(A) ∈ S.
 
+% checks, whenever C originates from N by ¬I or ¬E, whereby N is some element of the list L.
 contains_negation(L, C, N, R) :-
     member(N, L),
     (   ¬(N) = C, R = "¬I"
@@ -158,8 +159,8 @@ contains_negation(L, C, N, R) :-
 % If P is of the form ¬(P0), then NP is set to P0.
 get_np(P, NP) :- 
     P =.. [¬, P0], 
-    NP = P0.
+    NP = P0, !.
 get_np(P, NP) :- 
-    P =.. [P0], 
-    P0 \= ¬(_), 
+    %P =.. [P0], 
+    %P0 \= ¬(_), 
     NP =.. [¬, P].

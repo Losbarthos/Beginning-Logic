@@ -7,16 +7,19 @@
     (⊢)/2, op(799, xfy, ⊢),
 	binary_derivation/3,
 	derivation/1,
-	find_derivations/2,					% +LIn, -LOut
-	unzip/4,							% +Derivation, -Assumptions, -Premisses, -Conclusion
-	isvalid/1,							% +Derivation
-	iscontradiction/2,					% +Derivation, -Contradiction
-	remove_from_derivation/3,			% +ToRemove, +DerivationIn, -DerivationOut
+	find_derivations/2,						% +LIn, -LOut
+	unzip/4,								% +Derivation, -Assumptions, -Premisses, -Conclusion
+	isvalid/1,								% +Derivation
+	iscontradiction/2,						% +Derivation, -Contradiction
+	remove_from_derivation/3,				% +ToRemove, +DerivationIn, -DerivationOut
 	replace_derivation_by_inv/3,
-	subformulas/3,						%+Derivation, -Subformulas, +Options in ["Assumptions", "Premisses", "Conclusion"]
-	has_subformula/3					%+Derivation, +Subformula , +Options in ["Assumptions", "Premisses", "Conclusion"]
+	subformulas/3,							%+Derivation, -Subformulas, +Options in ["Assumptions", "Premisses", "Conclusion"]
+	has_subformula/3,						%+Derivation, +Subformula , +Options in ["Assumptions", "Premisses", "Conclusion"]
+	replace_derivation_by_temp/2,			% DerivationIn, -DerivationOut
+	replace_derivation_by_temp_except_of/3 	%+ExceptOf, +Derivation, - Derivation
 ]).
 
+:-use_module(list_helper).
 :-use_module(invariant).
 
 :-use_module(proposition).
@@ -77,6 +80,20 @@ replace_derivation_by_inv(ToReplace, DerivationIn, DerivationOut) :-
 
 	replace_by_inv(A, [ToReplace], AO, temp),
 	replace_by_inv(P, [ToReplace], PO, temp).
+
+% Appends Inv at occurences of ToReplace from DerivationIn and sets it in DerivationOut. 
+replace_derivation_by_temp(DerivationIn, DerivationOut) :-
+	DerivationIn = ((A, P) ⊢ C), 
+	DerivationOut = ((AT, PT) ⊢ C),
+	temp(A, AT), temp(P, PT).
+
+% Appends Inv at occurences of ToReplace from DerivationIn and sets it in DerivationOut. 
+replace_derivation_by_temp_except_of(ExceptOf, DerivationIn, DerivationOut) :-
+	DerivationIn = ((A, P) ⊢ C), 
+	DerivationOut = ((ATE, PTE) ⊢ C),
+	temp(A, AT), temp(P, PT), 
+	list_helper:replace(temp(ExceptOf), ExceptOf, AT, ATE),
+	list_helper:replace(temp(ExceptOf), ExceptOf, PT, PTE).
 
 % subformulas/3: Find the subformulas of a sequent (A, P) ⊢ C, based on the given Options.
 subformulas((A, P) ⊢ C, Subformulas, Options) :-

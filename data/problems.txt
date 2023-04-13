@@ -90,3 +90,21 @@ p,(¬(p∧q)) ⊢ (¬q)											# Problem 34
 (p∨(q∧r)) ⊢ ((p∨q)∧(p∨r))                                   # Excercise 1d_b
 (p∧q) ⊢ (¬(p→(¬q)))											# Excercise 1e_a
 (¬(p→(¬q))) ⊢ (p∧q)											# Excercise 1e_b
+(¬(p∨q)) ⊢ ((¬p)∧(¬q))										# Excercise 1f_a
+((¬p)∧(¬q)) ⊢ (¬(p∨q))										# Excercise 1f_b
+(¬(p∧q)) ⊢ ((¬p)∨(¬q))										# Excercise 1g_a
+((¬p)∨(¬q)) ⊢ (¬(p∧q))										# Excercise 1g_b
+(p∧q) ⊢ (¬((¬p)∨(¬q)))										# Excercise 1h_a
+(¬((¬p)∨(¬q))) ⊢ (p∧q)										# Excercise 1h_b
+(p→q) ⊢ ((¬p)∨q)											# Excercise 1i
+((¬p)→q) ⊢ (p∨q)											# Excercise 1j
+
+⊢ (¬(p∧(¬p)))												# Problem 37
+⊢ (p→p)														# Problem 38
+⊢ (p→(¬(¬p)))												# Problem 39
+⊢ ((¬(¬p))→p)												# Problem 40
+⊢ ((p∧q)→p)													# Problem 41
+⊢ ((p→q)→((¬q)→(¬p)))										# Problem 42
+⊢ ((p→(q→r))→((p→q)→(p→r)))									# Problem 43
+⊢ (p∨(¬p))													# Problem 44
+p ⊢ ((p∧q)∨(p∧(¬q)))										# Problem 45	
