@@ -17,7 +17,8 @@
 				   		list_without_variables/1,
 				   		find_first/3,
 				   		create_vector/3,
-				   		get_atom_list_with_prefix_between/4
+				   		get_atom_list_with_prefix_between/4,
+                        replace/4
 				   		]).
 
 :- use_module(library(clpfd)).

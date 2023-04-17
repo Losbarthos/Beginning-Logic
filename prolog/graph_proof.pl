@@ -22,6 +22,7 @@ merge_rule_graph(Assumptions, Conclusion, RuleName, GIn, GOut) :-
 	generate_weighted_graph(EL, G1),
 	merge_graphs(G1, GIn, GOut).
 
+
 create_edge(Conclusion, RuleName, Assumption, edge(Assumption, Conclusion, RuleName)).
 
 get_assumptions_of(graph(V, E), Of, Assumptions) :-
